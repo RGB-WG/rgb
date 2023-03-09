@@ -20,3 +20,5 @@
 // limitations under the License.
 
 mod stock;
+
+pub use stock::StockFs;

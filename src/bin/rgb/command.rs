@@ -19,9 +19,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fs;
 use std::path::PathBuf;
 
+use rgbstd::containers::ContractBuilder;
 use rgbstd::contract::ContractId;
+use rgbstd::interface::SchemaIfaces;
+use rgbstd::persistence::Stock;
+use rgbstd::schema::SchemaId;
+use rgbstd::Chain;
+use strict_types::StrictVal;
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
 #[display(lowercase)]
@@ -62,7 +69,7 @@ pub enum Command {
     #[display("issue")]
     Issue {
         /// Schema name to use for the contract.
-        schema: String,
+        schema: SchemaId, //String,
 
         /// Interface name to use for the contract.
         iface: String,
@@ -73,15 +80,94 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn exec(self) {
+    pub fn exec(self, stock: &mut Stock, chain: Chain) {
         match self {
             Self::Info => {
-                println!("RGB stash");
+                println!("Schemata:");
+                println!("---------");
+                for (id, _item) in stock.schemata() {
+                    println!("{id::<0}");
+                }
+
+                println!("Interfaces:");
+                println!("---------");
+                for (id, item) in stock.ifaces() {
+                    println!("{} {id::<0}", item.name);
+                }
+
+                println!("Contracts:");
+                println!("---------");
+                for (id, _item) in stock.contracts() {
+                    println!("{id::<0}");
+                }
             }
             Command::Import { .. } => {}
             Command::Export { .. } => {}
             Command::State { .. } => {}
-            Command::Issue { .. } => {}
+            Command::Issue {
+                schema,
+                iface,
+                contract,
+            } => {
+                let SchemaIfaces {
+                    ref schema,
+                    ref iimpls,
+                } = stock.schema(schema).expect("unknown schema");
+                let iface = stock.iface(&iface).expect("invalid interface name").clone();
+                let iface_id = iface.iface_id();
+                let iface_impl = iimpls
+                    .iter()
+                    .find(|(id, _)| **id == iface_id)
+                    .map(|(_, imp)| imp)
+                    .expect("unknown interface implementation");
+                let types = &schema.type_system;
+
+                let file = fs::File::open(contract).expect("invalid contract file");
+
+                let _builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())
+                    .expect("schema fails to implement RGB20 interface")
+                    .set_chain(chain);
+
+                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)
+                    .expect("invalid contract definition");
+
+                if let Some(globals) = code
+                    .as_mapping()
+                    .expect("invalid YAML root-level structure")
+                    .get("globals")
+                {
+                    for (name, val) in globals
+                        .as_mapping()
+                        .expect("invalid YAML: globals must be an mapping")
+                    {
+                        let name = name
+                            .as_str()
+                            .expect("invalid YAML: global name must be a string");
+                        let state_type = iface_impl
+                            .global_state
+                            .iter()
+                            .find(|info| info.name.as_str() == name)
+                            .expect("unknown type name")
+                            .id;
+                        let sem_id = schema
+                            .global_types
+                            .get(&state_type)
+                            .expect("invalid schema implementation")
+                            .sem_id;
+                        let val = StrictVal::from(val.clone());
+                        let _typed_val = types
+                            .typify(val, sem_id)
+                            .expect("global type doesn't match type definition");
+
+                        /*builder = builder
+                           .add_global_state(name, typed_val)
+                           .expect("invalid global state data");
+                        */
+                    }
+                }
+
+                todo!()
+            }
         }
     }
 }
