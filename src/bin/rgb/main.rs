@@ -27,12 +27,14 @@ extern crate log;
 extern crate clap;
 
 mod loglevel;
+mod opts;
+mod command;
 
-use std::path::PathBuf;
-use clap::{Parser, ValueHint};
-use rgbstd::Chain;
+use clap::Parser;
 
-use self::loglevel::LogLevel;
+pub use crate::command::Command;
+pub use crate::loglevel::LogLevel;
+pub use crate::opts::Opts;
 
 #[cfg(any(target_os = "linux"))]
 pub const RGB_DATA_DIR: &str = "~/.rgb";
@@ -47,64 +49,12 @@ pub const RGB_DATA_DIR: &str = "~/Documents";
 #[cfg(target_os = "android")]
 pub const RGB_DATA_DIR: &str = ".";
 
-/// Command-line arguments
-#[derive(Parser)]
-#[derive(Clone, Eq, PartialEq, Debug)]
-#[command(author, version, about)]
-pub struct Opts {
-    /// Set verbosity level.
-    ///
-    /// Can be used multiple times to increase verbosity.
-    #[clap(short, long, global = true, action = clap::ArgAction::Count)]
-    pub verbose: u8,
-
-    /// Data directory path.
-    ///
-    /// Path to the directory that contains RGB stored data.
-    #[clap(
-        short,
-        long,
-        global = true,
-        default_value = RGB_DATA_DIR,
-        env = "RGB_DATA_DIR",
-        value_hint = ValueHint::DirPath
-    )]
-    pub data_dir: PathBuf,
-
-
-    /// Blockchain to use.
-    #[clap(
-        short = 'n',
-        long,
-        global = true,
-        alias = "network",
-        default_value = "signet",
-        env = "RGB_NETWORK"
-    )]
-    pub chain: Chain,
-
-    /// Command to execute.
-    #[clap(subcommand)]
-    pub command: Command,
-}
-
-#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
-#[display(lowercase)]
-pub enum Command {
-    Noop
-}
-
-impl Opts {
-    pub fn process(&mut self) {
-        self.data_dir = PathBuf::from(shellexpand::tilde(&self.data_dir.display().to_string()).to_string());
-    }
-}
-
 fn main() {
     let mut opts = Opts::parse();
     opts.process();
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    debug!("Executing command: {}", opts.command);
+    let command = opts.command.unwrap_or_default();
+    debug!("Executing command: {}", command);
 }
