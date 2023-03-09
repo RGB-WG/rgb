@@ -19,4 +19,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod stock;
+use std::path::Path;
+
+use amplify::confinement::U32;
+use rgbstd::persistence::Stock;
+use strict_encoding::{DeserializeError, SerializeError, StrictDeserialize, StrictSerialize};
+
+pub trait StockFs: Sized {
+    fn load(file: impl AsRef<Path>) -> Result<Self, DeserializeError>;
+    fn store(&self, file: impl AsRef<Path>) -> Result<(), SerializeError>;
+}
+
+impl StockFs for Stock {
+    fn load(file: impl AsRef<Path>) -> Result<Self, DeserializeError> {
+        Stock::strict_deserialize_from_file::<U32>(file)
+    }
+
+    fn store(&self, file: impl AsRef<Path>) -> Result<(), SerializeError> {
+        self.strict_serialize_to_file::<U32>(file)
+    }
+}
