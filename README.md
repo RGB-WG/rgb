@@ -1,4 +1,4 @@
-# RGB smart contracts for command-line
+# RGB smart contracts 
 
 ![Build](https://github.com/RGB-WG/rgb/workflows/Build/badge.svg)
 ![Tests](https://github.com/RGB-WG/rgb/workflows/Tests/badge.svg)

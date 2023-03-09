@@ -42,19 +42,22 @@ name = "rgb"
 
 [[bin]]
 name = "rgb"
-path = "src/main.rs"
 required-features = ["cli"]
 
 [dependencies]
+amplify = { workspace = true }
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0-alpha.1", path = "fs" }
-clap = { version = "4.1.8", features = ["derive"], optional = true }
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
+env_logger = "0.10.0"
+clap = { version = "4.1.8", features = ["derive", "env"], optional = true }
+shellexpand = { version = "3.0.0", optional = true }
 
 [features]
 default = []
-all = ["cli"]
-cli = ["clap"]
+all = ["cli", "log"]
+cli = ["clap", "shellexpand", "log"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]

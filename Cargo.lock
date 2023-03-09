@@ -3,6 +3,15 @@
 version = 3
 
 [[package]]
+name = "aho-corasick"
+version = "0.7.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc936419f96fa211c1b9166887b38e5e40b19958e5b895be7c1f93adec7071ac"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "aluvm"
 version = "0.10.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -155,7 +164,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#2fccf9bd8ac78dc37858497bc96950d0327bca2c"
+source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
 dependencies = [
  "amplify",
  "bp-dbc",
@@ -169,7 +178,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#2fccf9bd8ac78dc37858497bc96950d0327bca2c"
+source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
 dependencies = [
  "amplify",
  "bp-primitives",
@@ -181,7 +190,7 @@ dependencies = [
 [[package]]
 name = "bp-primitives"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#2fccf9bd8ac78dc37858497bc96950d0327bca2c"
+source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
 dependencies = [
  "amplify",
  "commit_verify",
@@ -192,7 +201,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#2fccf9bd8ac78dc37858497bc96950d0327bca2c"
+source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
 dependencies = [
  "amplify",
  "baid58",
@@ -310,6 +319,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
+dependencies = [
+ "humantime",
+ "is-terminal",
+ "log",
+ "regex",
+ "termcolor",
+]
+
+[[package]]
 name = "errno"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -381,6 +423,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
 
 [[package]]
+name = "humantime"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
+
+[[package]]
 name = "indexmap"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -447,6 +495,12 @@ checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "memchr"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "mime"
@@ -561,13 +615,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_syscall"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
+dependencies = [
+ "getrandom",
+ "redox_syscall",
+ "thiserror",
+]
+
+[[package]]
+name = "regex"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48aaa5748ba571fb95cd2c85c09f629215d3a6ece942baa100950af03a34f733"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.6.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
+
+[[package]]
 name = "rgb-contracts"
 version = "0.10.0-alpha.1"
 dependencies = [
+ "amplify",
  "clap",
+ "env_logger",
+ "log",
  "rgb-persist-fs",
  "rgb-std",
  "rgb-wallet",
+ "shellexpand",
 ]
 
 [[package]]
@@ -601,7 +696,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#f6802e45aa9270d9511d3c1a93d339e70b37f32f"
+source = "git+https://github.com/RGB-WG/rgb-wallet#27e3b23eb9be3541f2c23107acbe8a517365e6b7"
 dependencies = [
  "amplify",
  "baid58",
@@ -619,7 +714,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#f6802e45aa9270d9511d3c1a93d339e70b37f32f"
+source = "git+https://github.com/RGB-WG/rgb-wallet#27e3b23eb9be3541f2c23107acbe8a517365e6b7"
 dependencies = [
  "getrandom",
  "rgb-core",
@@ -721,6 +816,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "shellexpand"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd1c7ddea665294d484c39fd0c0d2b7e35bbfe10035c5fe1854741a57f6880e1"
+dependencies = [
+ "dirs",
+]
+
+[[package]]
 name = "single_use_seals"
 version = "0.10.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -797,6 +901,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be55cf8942feac5c765c2c993422806843c9a9a45d4d5c407ad6dd2ea95eb9b6"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5ab016db510546d856297882807df8da66a16fb8c4101cb8b30054b0d5b2d9c"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5420d42e90af0c38c3290abcca25b9b3bdf379fc9f55c528f53a269d9c9a267e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
