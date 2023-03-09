@@ -57,4 +57,5 @@ fn main() {
 
     let command = opts.command.unwrap_or_default();
     debug!("Executing command: {}", command);
+    command.exec();
 }
