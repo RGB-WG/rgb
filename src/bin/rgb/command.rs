@@ -67,7 +67,12 @@ pub enum Command {
     },
 
     /// Reports information about state of a contact.
-    State { contract_id: ContractId },
+    State {
+        /// Contract identifier.
+        contract_id: ContractId,
+        /// Interface to interpret the state data.
+        iface: String,
+    },
 
     /// Issues new contract.
     #[display("issue")]
@@ -139,7 +144,21 @@ impl Command {
                 }
             }
             Command::Export { .. } => {}
-            Command::State { .. } => {}
+            Command::State { contract_id, iface } => {
+                let iface = stock.iface(&iface).expect("invalid interface name").clone();
+                let contract = stock
+                    .contract_iface(contract_id, iface.iface_id())
+                    .expect("unknown contract");
+
+                let nominal = contract.global("Nominal").unwrap();
+                let allocations = contract.fungible("Assets").unwrap();
+                eprintln!("Global state:\nNominal:={}\n", nominal[0]);
+
+                eprintln!("Owned state:");
+                for (txout, amount) in allocations {
+                    eprintln!("  (amount={amount}, txout={txout})");
+                }
+            }
             Command::Issue {
                 schema,
                 iface,
