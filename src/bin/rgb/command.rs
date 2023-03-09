@@ -19,16 +19,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::convert::Infallible;
 use std::fs;
 use std::path::PathBuf;
 
-use rgbstd::containers::ContractBuilder;
+use bp::Tx;
+use rgbstd::containers::{ContractBuilder, UniversalBindle};
 use rgbstd::contract::ContractId;
 use rgbstd::interface::SchemaIfaces;
-use rgbstd::persistence::Stock;
+use rgbstd::persistence::{Inventory, Stock};
+use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
-use rgbstd::Chain;
-use strict_types::StrictVal;
+use rgbstd::validation::{ResolveTx, TxResolverError};
+use rgbstd::{Chain, Txid};
+use strict_types::{StrictDumb, StrictVal};
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
 #[display(lowercase)]
@@ -47,7 +51,7 @@ pub enum Command {
 
         /// File with RGB data. If not provided, assumes `-a` and prints out
         /// data to STDOUT.
-        file: Option<PathBuf>,
+        file: PathBuf,
     },
 
     /// Exports existing RGB data from the stash.
@@ -79,6 +83,17 @@ pub enum Command {
     },
 }
 
+struct DumbResolver;
+
+impl ResolveTx for DumbResolver {
+    fn resolve_tx(&self, _txid: Txid) -> Result<Tx, TxResolverError> { Ok(Tx::strict_dumb()) }
+}
+
+impl ResolveHeight for DumbResolver {
+    type Error = Infallible;
+    fn resolve_height(&mut self, _txid: Txid) -> Result<u32, Self::Error> { Ok(0) }
+}
+
 impl Command {
     pub fn exec(self, stock: &mut Stock, chain: Chain) {
         match self {
@@ -101,7 +116,28 @@ impl Command {
                     println!("{id::<0}");
                 }
             }
-            Command::Import { .. } => {}
+            Command::Import { armored, file } => {
+                if armored {
+                    todo!()
+                } else {
+                    let bindle = UniversalBindle::load(file).expect("invalid RGB file");
+                    match bindle {
+                        UniversalBindle::Iface(iface) => {
+                            stock.import_iface(iface).expect("invalid interface")
+                        }
+                        UniversalBindle::Schema(schema) => {
+                            stock.import_schema(schema).expect("invalid schema")
+                        }
+                        UniversalBindle::Impl(iimpl) => stock
+                            .import_iface_impl(iimpl)
+                            .expect("invalid interface implementation"),
+                        UniversalBindle::Contract(contract) => stock
+                            .import_contract(contract.unbindle(), &mut DumbResolver)
+                            .expect("invalid contract"),
+                        UniversalBindle::Transfer(_) => todo!(),
+                    };
+                }
+            }
             Command::Export { .. } => {}
             Command::State { .. } => {}
             Command::Issue {

@@ -50,6 +50,7 @@ required-features = ["cli"]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
+bp-core = "0.10.0-beta.2"
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0-alpha.1", path = "fs" }

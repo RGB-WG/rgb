@@ -660,9 +660,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.139"
+version = "0.2.140"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
+checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
 
 [[package]]
 name = "link-cplusplus"
@@ -868,6 +868,7 @@ version = "0.10.0-alpha.1"
 dependencies = [
  "amplify",
  "baid58",
+ "bp-core",
  "clap",
  "env_logger",
  "log",
@@ -910,7 +911,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#7517027d4d5e0ba8162b65f18ae836a1d49cdb33"
+source = "git+https://github.com/RGB-WG/rgb-wallet#a8fe6f38636d6b0d07668fce9c9cd65232a20bf2"
 dependencies = [
  "amplify",
  "baid58",
@@ -928,7 +929,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#7517027d4d5e0ba8162b65f18ae836a1d49cdb33"
+source = "git+https://github.com/RGB-WG/rgb-wallet#a8fe6f38636d6b0d07668fce9c9cd65232a20bf2"
 dependencies = [
  "getrandom",
  "rgb-core",
