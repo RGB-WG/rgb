@@ -22,5 +22,5 @@ globals:
 
 assignments:
   Assets:
-    UTXO: 01d46e52c4bdb51931a0eae83e958c78bdef9cac2057b36d55370410edafdd42:0
+    Seal: 01d46e52c4bdb51931a0eae83e958c78bdef9cac2057b36d55370410edafdd42:0
     Amount: 1_000_000__000_000_00

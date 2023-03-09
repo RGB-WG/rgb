@@ -69,6 +69,8 @@ cli = ["clap", "shellexpand", "log", "serde_yaml"]
 features = [ "all" ]
 
 [patch.crates-io]
+strict_encoding = { git = "https://github.com/strict-types/strict-encoding" }
+strict_types = { git = "https://github.com/strict-types/strict-types" }
 bp-core = { git = "https://github.com/BP-WG/bp-core" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }

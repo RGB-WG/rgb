@@ -22,16 +22,19 @@
 use std::convert::Infallible;
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
+use amplify::confinement::U16;
 use bp::Tx;
 use rgbstd::containers::{ContractBuilder, UniversalBindle};
-use rgbstd::contract::ContractId;
+use rgbstd::contract::{ContractId, GenesisSeal, StateType};
 use rgbstd::interface::SchemaIfaces;
 use rgbstd::persistence::{Inventory, Stock};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
 use rgbstd::{Chain, Txid};
+use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
@@ -106,16 +109,16 @@ impl Command {
                 println!("Schemata:");
                 println!("---------");
                 for (id, _item) in stock.schemata() {
-                    println!("{id::<0}");
+                    println!("{id:#}");
                 }
 
-                println!("Interfaces:");
+                println!("\nInterfaces:");
                 println!("---------");
                 for (id, item) in stock.ifaces() {
-                    println!("{} {id::<0}", item.name);
+                    println!("{} {id:#}", item.name);
                 }
 
-                println!("Contracts:");
+                println!("\nContracts:");
                 println!("---------");
                 for (id, _item) in stock.contracts() {
                     println!("{id::<0}");
@@ -179,18 +182,17 @@ impl Command {
 
                 let file = fs::File::open(contract).expect("invalid contract file");
 
-                let _builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())
+                let mut builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())
                     .expect("schema fails to implement RGB20 interface")
                     .set_chain(chain);
 
                 let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)
                     .expect("invalid contract definition");
 
-                if let Some(globals) = code
+                let code = code
                     .as_mapping()
-                    .expect("invalid YAML root-level structure")
-                    .get("globals")
-                {
+                    .expect("invalid YAML root-level structure");
+                if let Some(globals) = code.get("globals") {
                     for (name, val) in globals
                         .as_mapping()
                         .expect("invalid YAML: globals must be an mapping")
@@ -210,18 +212,77 @@ impl Command {
                             .expect("invalid schema implementation")
                             .sem_id;
                         let val = StrictVal::from(val.clone());
-                        let _typed_val = types
+                        let typed_val = types
                             .typify(val, sem_id)
                             .expect("global type doesn't match type definition");
 
-                        /*builder = builder
-                           .add_global_state(name, typed_val)
-                           .expect("invalid global state data");
-                        */
+                        let serialized = types
+                            .strict_serialize_type::<U16>(&typed_val)
+                            .expect("internal error");
+                        // Workaround for borrow checker:
+                        let type_name =
+                            TypeName::try_from(name.to_owned()).expect("invalid type name");
+                        builder = builder
+                            .add_global_state(type_name, serialized)
+                            .expect("invalid global state data");
                     }
                 }
 
-                todo!()
+                if let Some(assignments) = code.get("assignments") {
+                    for (name, val) in assignments
+                        .as_mapping()
+                        .expect("invalid YAML: assignments must be an mapping")
+                    {
+                        let name = name
+                            .as_str()
+                            .expect("invalid YAML: assignments name must be a string");
+                        let state_type = iface_impl
+                            .owned_state
+                            .iter()
+                            .find(|info| info.name.as_str() == name)
+                            .expect("unknown type name")
+                            .id;
+                        let state_schema = schema
+                            .owned_types
+                            .get(&state_type)
+                            .expect("invalid schema implementation");
+
+                        let assign = val.as_mapping().expect("an assignment must be a mapping");
+                        let seal = assign
+                            .get("Seal")
+                            .expect("assignment doesn't provide seal information")
+                            .as_str()
+                            .expect("seal must be a string");
+                        let seal = GenesisSeal::from_str(seal).expect("invalid seal definition");
+
+                        // Workaround for borrow checker:
+                        let type_name =
+                            TypeName::try_from(name.to_owned()).expect("invalid type name");
+                        match state_schema.state_type() {
+                            StateType::Void => todo!(),
+                            StateType::Fungible => {
+                                let amount = assign
+                                    .get("Amount")
+                                    .expect("owned state must be a fungible amount")
+                                    .as_u64()
+                                    .expect("fungible state must be an integer");
+                                builder = builder
+                                    .add_fungible_state(type_name, seal, amount)
+                                    .expect("invalid global state data");
+                            }
+                            StateType::Structured => todo!(),
+                            StateType::Attachment => todo!(),
+                        }
+                    }
+                }
+
+                let contract = builder.issue_contract().expect("failed issuing contract");
+                let validated_contract = contract
+                    .validate(&mut DumbResolver)
+                    .expect("internal error: failed validating self-issued contract");
+                stock
+                    .import_contract(validated_contract, &mut DumbResolver)
+                    .expect("failure importing issued contract");
             }
         }
     }
