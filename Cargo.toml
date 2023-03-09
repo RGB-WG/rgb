@@ -1,0 +1,66 @@
+[workspace]
+members = [
+    "fs",
+    ".",
+]
+default-members = [
+    "fs",
+    "."
+]
+
+[workspace.package]
+authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
+homepage = "https://github.com/RGB-WG"
+repository = "https://github.com/RGB-WG/rgb-wallet"
+rust-version = "1.66" # Due to strict encoding library (caused by GAD)
+edition = "2021"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+amplify = "4.0.0-beta.17"
+strict_encoding = "2.0.0-rc.1"
+rgb-std = { version = "0.10.0-alpha.1", features = ["fs"] }
+rgb-wallet = { version = "0.10.0-alpha.1", features = ["fs"] }
+
+[package]
+name = "rgb-contracts"
+version = "0.10.0-alpha.1"
+description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
+keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
+categories = ["cryptography::cryptocurrencies"]
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+readme = "README.md"
+exclude = [".github", "std"]
+
+[lib]
+name = "rgb"
+
+[[bin]]
+name = "rgb"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[dependencies]
+rgb-std = { workspace = true }
+rgb-wallet = { workspace = true }
+rgb-persist-fs = { version = "0.10.0-alpha.1", path = "fs" }
+clap = { version = "4.1.8", features = ["derive"], optional = true }
+
+[features]
+default = []
+all = ["cli"]
+cli = ["clap"]
+
+[package.metadata.docs.rs]
+features = [ "all" ]
+
+[patch.crates-io]
+bp-core = { git = "https://github.com/BP-WG/bp-core" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }

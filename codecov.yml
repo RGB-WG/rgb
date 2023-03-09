@@ -1,0 +1,19 @@
+codecov:
+  require_ci_to_pass: no
+
+coverage:
+  precision: 1
+  round: nearest
+  range: "0...95"
+  status:
+    project:
+      default:
+        target: 75%
+        threshold: 1%
+        branches:
+          - master
+    patch:
+      default:
+        target: 60%
+        threshold: 1%
+        only_pulls: true
