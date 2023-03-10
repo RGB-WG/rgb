@@ -17,10 +17,10 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.0.0-beta.17"
+amplify = "4.0.0-beta.19"
 baid58 = "0.2.0"
-strict_encoding = "2.0.0-rc.1"
-strict_types = "1.0.0-beta.4"
+strict_encoding = "2.0.0-rc.3"
+strict_types = "1.0.0-beta.5"
 rgb-std = { version = "0.10.0-alpha.1", features = ["fs"] }
 rgb-wallet = { version = "0.10.0-alpha.1", features = ["fs"] }
 
@@ -50,7 +50,7 @@ required-features = ["cli"]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
-bp-core = "0.10.0-beta.2"
+bp-core = "0.10.0-beta.3"
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0-alpha.1", path = "fs" }
@@ -67,11 +67,3 @@ cli = ["clap", "shellexpand", "log", "serde_yaml"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
-
-[patch.crates-io]
-strict_encoding = { git = "https://github.com/strict-types/strict-encoding" }
-strict_types = { git = "https://github.com/strict-types/strict-types" }
-bp-core = { git = "https://github.com/BP-WG/bp-core" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
-rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }
