@@ -2,9 +2,10 @@ interface: RGB20
 
 globals:
   Nominal:
-    Ticker: TEST
-    Name: Test asset
-    Precision: centiMicro
+    ticker: TEST
+    name: Test asset
+    details: ~
+    precision: 8
   ContractText: >
     SUBJECT TO, AND WITHOUT IN ANY WAY LIMITING, THE REPRESENTATIONS AND WARRANTIES OF ANY SELLER 
     EXPRESSLY SET FORTH IN THIS AGREEMENT OR ANY OTHER EXPRESS OBLIGATION OF SELLERS PURSUANT TO THE
@@ -22,5 +23,5 @@ globals:
 
 assignments:
   Assets:
-    Seal: 01d46e52c4bdb51931a0eae83e958c78bdef9cac2057b36d55370410edafdd42:0
-    Amount: 1_000_000__000_000_00
+    seal: tapret1st:01d46e52c4bdb51931a0eae83e958c78bdef9cac2057b36d55370410edafdd42:0
+    amount: 100000000000000

@@ -25,6 +25,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
+use bp::seals::txout::ExplicitSeal;
 use bp::Tx;
 use rgbstd::containers::{ContractBuilder, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, StateType};
@@ -108,20 +109,27 @@ impl Command {
             Self::Info => {
                 println!("Schemata:");
                 println!("---------");
-                for (id, _item) in stock.schemata() {
-                    println!("{id:#}");
+                for (id, SchemaIfaces { iimpls, .. }) in stock.schemata() {
+                    print!("{id:-}: ");
+                    for (_, iimpl) in iimpls {
+                        let iface = stock
+                            .iface_by_id(iimpl.iface_id)
+                            .expect("interface not found");
+                        print!("{} ", iface.name);
+                    }
+                    println!();
                 }
 
                 println!("\nInterfaces:");
                 println!("---------");
                 for (id, item) in stock.ifaces() {
-                    println!("{} {id:#}", item.name);
+                    println!("{} {id:-}", item.name);
                 }
 
                 println!("\nContracts:");
                 println!("---------");
                 for (id, _item) in stock.contracts() {
-                    println!("{id::<0}");
+                    println!("{id::<}");
                 }
             }
             Command::Import { armored, file } => {
@@ -148,7 +156,10 @@ impl Command {
             }
             Command::Export { .. } => {}
             Command::State { contract_id, iface } => {
-                let iface = stock.iface(&iface).expect("invalid interface name").clone();
+                let iface = stock
+                    .iface_by_name(&iface)
+                    .expect("invalid interface name")
+                    .clone();
                 let contract = stock
                     .contract_iface(contract_id, iface.iface_id())
                     .expect("unknown contract");
@@ -171,12 +182,13 @@ impl Command {
                     ref schema,
                     ref iimpls,
                 } = stock.schema(schema).expect("unknown schema");
-                let iface = stock.iface(&iface).expect("invalid interface name").clone();
+                let iface = stock
+                    .iface_by_name(&iface)
+                    .expect("invalid interface name")
+                    .clone();
                 let iface_id = iface.iface_id();
                 let iface_impl = iimpls
-                    .iter()
-                    .find(|(id, _)| **id == iface_id)
-                    .map(|(_, imp)| imp)
+                    .get(&iface_id)
                     .expect("unknown interface implementation");
                 let types = &schema.type_system;
 
@@ -249,11 +261,13 @@ impl Command {
 
                         let assign = val.as_mapping().expect("an assignment must be a mapping");
                         let seal = assign
-                            .get("Seal")
+                            .get("seal")
                             .expect("assignment doesn't provide seal information")
                             .as_str()
                             .expect("seal must be a string");
-                        let seal = GenesisSeal::from_str(seal).expect("invalid seal definition");
+                        let seal =
+                            ExplicitSeal::<Txid>::from_str(seal).expect("invalid seal definition");
+                        let seal = GenesisSeal::from(seal);
 
                         // Workaround for borrow checker:
                         let type_name =
@@ -262,7 +276,7 @@ impl Command {
                             StateType::Void => todo!(),
                             StateType::Fungible => {
                                 let amount = assign
-                                    .get("Amount")
+                                    .get("amount")
                                     .expect("owned state must be a fungible amount")
                                     .as_u64()
                                     .expect("fungible state must be an integer");

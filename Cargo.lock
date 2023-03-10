@@ -190,7 +190,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
+source = "git+https://github.com/BP-WG/bp-core#89d2ce16b48b4a94b2970ec45e2201e883ae0053"
 dependencies = [
  "amplify",
  "bp-dbc",
@@ -204,7 +204,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
+source = "git+https://github.com/BP-WG/bp-core#89d2ce16b48b4a94b2970ec45e2201e883ae0053"
 dependencies = [
  "amplify",
  "bp-primitives",
@@ -216,7 +216,7 @@ dependencies = [
 [[package]]
 name = "bp-primitives"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
+source = "git+https://github.com/BP-WG/bp-core#89d2ce16b48b4a94b2970ec45e2201e883ae0053"
 dependencies = [
  "amplify",
  "commit_verify",
@@ -227,7 +227,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.10.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core#f1472adf90b454bea5a196c05487812736d6ff01"
+source = "git+https://github.com/BP-WG/bp-core#89d2ce16b48b4a94b2970ec45e2201e883ae0053"
 dependencies = [
  "amplify",
  "baid58",
@@ -911,7 +911,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#307a17a707fd0284922415d91b75f8175c2eee92"
+source = "git+https://github.com/RGB-WG/rgb-wallet#3c78359a729ab1e5ae7ca49775f7429d6c0cdb2b"
 dependencies = [
  "amplify",
  "baid58",
@@ -929,7 +929,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#307a17a707fd0284922415d91b75f8175c2eee92"
+source = "git+https://github.com/RGB-WG/rgb-wallet#3c78359a729ab1e5ae7ca49775f7429d6c0cdb2b"
 dependencies = [
  "getrandom",
  "rgb-core",
@@ -1157,7 +1157,7 @@ dependencies = [
 [[package]]
 name = "strict_types"
 version = "1.0.0-beta.4"
-source = "git+https://github.com/strict-types/strict-types#d47f054d4d63284582e4a505f7e66c24500ebbc0"
+source = "git+https://github.com/strict-types/strict-types#3299974472c4a554d54b579a008a457dda193524"
 dependencies = [
  "amplify",
  "baid58",
