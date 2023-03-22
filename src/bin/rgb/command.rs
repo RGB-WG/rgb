@@ -152,9 +152,15 @@ impl Command {
                         UniversalBindle::Impl(iimpl) => stock
                             .import_iface_impl(iimpl)
                             .expect("invalid interface implementation"),
-                        UniversalBindle::Contract(contract) => stock
-                            .import_contract(contract.unbindle(), &mut DumbResolver)
-                            .expect("invalid contract"),
+                        UniversalBindle::Contract(bindle) => {
+                            let contract = bindle
+                                .unbindle()
+                                .validate(&mut DumbResolver)
+                                .expect("invalid contract");
+                            stock
+                                .import_contract(contract, &mut DumbResolver)
+                                .expect("invalid contract")
+                        }
                         UniversalBindle::Transfer(_) => todo!(),
                     };
                 }
