@@ -927,7 +927,7 @@ dependencies = [
  "env_logger",
  "log",
  "rgb-persist-fs",
- "rgb-std 0.10.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rgb-std",
  "rgb-wallet",
  "serde_yaml",
  "shellexpand",
@@ -959,33 +959,14 @@ name = "rgb-persist-fs"
 version = "0.10.0-alpha.1"
 dependencies = [
  "amplify",
- "rgb-std 0.10.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rgb-std",
  "strict_encoding",
 ]
 
 [[package]]
 name = "rgb-std"
 version = "0.10.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33fd6ae7033c4e55f15cf209533f4604324fec323038976163267d629e8406d2"
-dependencies = [
- "amplify",
- "baid58",
- "base64 0.21.0",
- "bp-core",
- "commit_verify",
- "getrandom",
- "rgb-core",
- "serde",
- "strict_encoding",
- "strict_types",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "rgb-std"
-version = "0.10.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#7d824f7fcd152d68df5b14782052fd4685f9a535"
+source = "git+https://github.com/RGB-WG/rgb-wallet#13b62d2842975971839fd551fe7f4ca73448269e"
 dependencies = [
  "amplify",
  "baid58",
@@ -1003,7 +984,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/RGB-WG/rgb-wallet#7d824f7fcd152d68df5b14782052fd4685f9a535"
+source = "git+https://github.com/RGB-WG/rgb-wallet#13b62d2842975971839fd551fe7f4ca73448269e"
 dependencies = [
  "amplify",
  "baid58",
@@ -1014,7 +995,7 @@ dependencies = [
  "getrandom",
  "indexmap",
  "rgb-core",
- "rgb-std 0.10.0-beta.1 (git+https://github.com/RGB-WG/rgb-wallet)",
+ "rgb-std",
  "strict_encoding",
  "wasm-bindgen",
 ]

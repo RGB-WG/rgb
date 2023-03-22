@@ -70,3 +70,4 @@ features = [ "all" ]
 
 [patch.crates-io]
 rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }

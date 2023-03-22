@@ -25,17 +25,17 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
-use bp::seals::txout::ExplicitSeal;
+use bp::seals::txout::{ExplicitSeal, TxPtr};
 use bp::Tx;
 use rgbstd::containers::UniversalBindle;
-use rgbstd::contract::{ContractId, GenesisSeal, StateType};
+use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash, Stock};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
 use rgbstd::{Chain, Txid};
-use rgbwallet::RgbInvoice;
+use rgbwallet::{RgbInvoice, RgbTransport};
 use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
 
@@ -103,6 +103,9 @@ pub enum Command {
 
         /// Value to transfer.
         value: u64,
+
+        /// Seal to get the transfer to.
+        seal: ExplicitSeal<TxPtr>,
     },
 
     /// Create new transfer.
@@ -110,9 +113,6 @@ pub enum Command {
     Transfer {
         /// PSBT file.
         psbt: PathBuf,
-
-        /// Contract identifier.
-        contract_id: ContractId,
 
         /// Invoice data.
         invoice: RgbInvoice,
@@ -122,14 +122,6 @@ pub enum Command {
 
         /// Filename to save transfer consignment.
         outfile: PathBuf,
-    },
-
-    /// Complete commitment structure in PSBT file and makes it ready to be
-    /// signed.
-    #[display("conclude")]
-    Conclude {
-        /// PSBT file.
-        psbt: PathBuf,
     },
 
     /// Verifies and accepts transfer.
@@ -357,9 +349,33 @@ impl Command {
                     .import_contract(validated_contract, &mut DumbResolver)
                     .expect("failure importing issued contract");
             }
-            Command::Invoice { .. } => todo!(),
-            Command::Transfer { .. } => todo!(),
-            Command::Conclude { .. } => todo!(),
+            Command::Invoice {
+                contract_id,
+                iface,
+                value,
+                seal,
+            } => {
+                let iface = TypeName::try_from(iface).expect("invalid interface name");
+                let seal = GraphSeal::from(seal);
+                let invoice = RgbInvoice {
+                    transport: RgbTransport::UnspecifiedMeans,
+                    contract: contract_id,
+                    iface,
+                    operation: None,
+                    assignment: None,
+                    seal: seal.to_concealed_seal(),
+                    value,
+                    unknown_query: none!(),
+                };
+                stock.store_seal_secret(seal.blinding).expect("infallible");
+                println!("{invoice}");
+            }
+            Command::Transfer {
+                psbt,
+                invoice,
+                change,
+                outfile,
+            } => {}
             Command::Accept { .. } => todo!(),
         }
     }
