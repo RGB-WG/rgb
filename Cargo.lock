@@ -545,6 +545,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fluent-uri"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17c704e9dbe1ddd863da1e6ff3567795087b1eb201ce80d8fa81162e1516500d"
+dependencies = [
+ "bitflags 1.3.2",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -918,7 +927,7 @@ dependencies = [
  "env_logger",
  "log",
  "rgb-persist-fs",
- "rgb-std",
+ "rgb-std 0.10.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rgb-wallet",
  "serde_yaml",
  "shellexpand",
@@ -950,7 +959,7 @@ name = "rgb-persist-fs"
 version = "0.10.0-alpha.1"
 dependencies = [
  "amplify",
- "rgb-std",
+ "rgb-std 0.10.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "strict_encoding",
 ]
 
@@ -974,18 +983,38 @@ dependencies = [
 ]
 
 [[package]]
-name = "rgb-wallet"
-version = "0.10.0-alpha.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b02f5107ba42f9de0c04c4f351c5592f5587f6c6822c0e9230fa47005396540"
+name = "rgb-std"
+version = "0.10.0-beta.1"
+source = "git+https://github.com/RGB-WG/rgb-wallet#7d824f7fcd152d68df5b14782052fd4685f9a535"
 dependencies = [
  "amplify",
- "bitcoin",
+ "baid58",
+ "base64 0.21.0",
  "bp-core",
  "commit_verify",
  "getrandom",
  "rgb-core",
- "rgb-std",
+ "serde",
+ "strict_encoding",
+ "strict_types",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "rgb-wallet"
+version = "0.10.0-alpha.2"
+source = "git+https://github.com/RGB-WG/rgb-wallet#7d824f7fcd152d68df5b14782052fd4685f9a535"
+dependencies = [
+ "amplify",
+ "baid58",
+ "bitcoin",
+ "bp-core",
+ "commit_verify",
+ "fluent-uri",
+ "getrandom",
+ "indexmap",
+ "rgb-core",
+ "rgb-std 0.10.0-beta.1 (git+https://github.com/RGB-WG/rgb-wallet)",
  "strict_encoding",
  "wasm-bindgen",
 ]

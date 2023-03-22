@@ -35,6 +35,7 @@ use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
 use rgbstd::{Chain, Txid};
+use rgbwallet::RgbInvoice;
 use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
 
@@ -89,6 +90,53 @@ pub enum Command {
 
         /// File containing contract genesis description in YAML format.
         contract: PathBuf,
+    },
+
+    /// Create new invoice.
+    #[display("invoice")]
+    Invoice {
+        /// Contract identifier.
+        contract_id: ContractId,
+
+        /// Interface to interpret the state data.
+        iface: String,
+
+        /// Value to transfer.
+        value: u64,
+    },
+
+    /// Create new transfer.
+    #[display("transfer")]
+    Transfer {
+        /// PSBT file.
+        psbt: PathBuf,
+
+        /// Contract identifier.
+        contract_id: ContractId,
+
+        /// Invoice data.
+        invoice: RgbInvoice,
+
+        /// Change output number.
+        change: u32,
+
+        /// Filename to save transfer consignment.
+        outfile: PathBuf,
+    },
+
+    /// Complete commitment structure in PSBT file and makes it ready to be
+    /// signed.
+    #[display("conclude")]
+    Conclude {
+        /// PSBT file.
+        psbt: PathBuf,
+    },
+
+    /// Verifies and accepts transfer.
+    #[display("accept")]
+    Accept {
+        /// Filename containing transfer consignment.
+        consignment: PathBuf,
     },
 }
 
@@ -309,6 +357,10 @@ impl Command {
                     .import_contract(validated_contract, &mut DumbResolver)
                     .expect("failure importing issued contract");
             }
+            Command::Invoice { .. } => todo!(),
+            Command::Transfer { .. } => todo!(),
+            Command::Conclude { .. } => todo!(),
+            Command::Accept { .. } => todo!(),
         }
     }
 }

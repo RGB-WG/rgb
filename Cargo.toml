@@ -67,3 +67,6 @@ cli = ["clap", "shellexpand", "log", "serde_yaml"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }
