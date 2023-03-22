@@ -67,11 +67,3 @@ cli = ["clap", "shellexpand", "log", "serde_yaml"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
-
-[patch.crates-io]
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation" }
-bp-core = { git = "https://github.com/BP-WG/bp-core" }
-aluvm = { git = "https://github.com/AluVM/rust-aluvm" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "revision" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "consignments" }
-rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "consignments" }
