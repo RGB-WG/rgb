@@ -27,10 +27,10 @@ use std::str::FromStr;
 use amplify::confinement::U16;
 use bp::seals::txout::ExplicitSeal;
 use bp::Tx;
-use rgbstd::containers::{ContractBuilder, UniversalBindle};
+use rgbstd::containers::UniversalBindle;
 use rgbstd::contract::{ContractId, GenesisSeal, StateType};
-use rgbstd::interface::SchemaIfaces;
-use rgbstd::persistence::{Inventory, Stock};
+use rgbstd::interface::{ContractBuilder, SchemaIfaces};
+use rgbstd::persistence::{Inventory, Stash, Stock};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
@@ -109,9 +109,14 @@ impl Command {
             Self::Info => {
                 println!("Schemata:");
                 println!("---------");
-                for (id, SchemaIfaces { iimpls, .. }) in stock.schemata() {
+                for id in stock.schema_ids().expect("infallible") {
                     print!("{id:-}: ");
-                    for (_, iimpl) in iimpls {
+                    for iimpl in stock
+                        .schema(id)
+                        .expect("internal inconsistency")
+                        .iimpls
+                        .values()
+                    {
                         let iface = stock
                             .iface_by_id(iimpl.iface_id)
                             .expect("interface not found");
@@ -122,13 +127,13 @@ impl Command {
 
                 println!("\nInterfaces:");
                 println!("---------");
-                for (id, item) in stock.ifaces() {
-                    println!("{} {id:-}", item.name);
+                for (id, name) in stock.ifaces().expect("infallible") {
+                    println!("{} {id:-}", name);
                 }
 
                 println!("\nContracts:");
                 println!("---------");
-                for (id, _item) in stock.contracts() {
+                for id in stock.contract_ids().expect("infallible") {
                     println!("{id::<}");
                 }
             }
@@ -290,7 +295,7 @@ impl Command {
                     }
                 }
 
-                let contract = builder.issue_contract().expect("failed issuing contract");
+                let contract = builder.issue_contract().expect("failure issuing contract");
                 let validated_contract = contract
                     .validate(&mut DumbResolver)
                     .expect("internal error: failed validating self-issued contract");
