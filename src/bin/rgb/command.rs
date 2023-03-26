@@ -117,9 +117,6 @@ pub enum Command {
         /// Invoice data.
         invoice: RgbInvoice,
 
-        /// Change output number.
-        change: u32,
-
         /// Filename to save transfer consignment.
         outfile: PathBuf,
     },
@@ -373,10 +370,9 @@ impl Command {
             Command::Transfer {
                 psbt,
                 invoice,
-                change,
                 outfile,
             } => {}
-            Command::Accept { .. } => todo!(),
+            Command::Accept { consignment } => todo!(),
         }
     }
 }
