@@ -69,5 +69,7 @@ cli = ["clap", "shellexpand", "log", "serde_yaml"]
 features = [ "all" ]
 
 [patch.crates-io]
+strict_types = { git = "https://github.com/strict-types/strict-types" }
 rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }

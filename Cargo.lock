@@ -937,8 +937,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.10.0-beta.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f281a29e6d8e853f18da28ef93d146c91ebd76e94b9852e31064d8d806a1543b"
+source = "git+https://github.com/RGB-WG/rgb-core#b148e0be86ed1bbbf7da3297d7e60ff20aa3fb39"
 dependencies = [
  "aluvm",
  "amplify",
@@ -966,7 +965,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet#13b62d2842975971839fd551fe7f4ca73448269e"
+source = "git+https://github.com/RGB-WG/rgb-wallet#13765381108023b47d455cca815881f515f5f4b9"
 dependencies = [
  "amplify",
  "baid58",
@@ -984,7 +983,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/RGB-WG/rgb-wallet#13b62d2842975971839fd551fe7f4ca73448269e"
+source = "git+https://github.com/RGB-WG/rgb-wallet#13765381108023b47d455cca815881f515f5f4b9"
 dependencies = [
  "amplify",
  "baid58",
@@ -1223,8 +1222,7 @@ dependencies = [
 [[package]]
 name = "strict_types"
 version = "1.0.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1de37d3821ad169281e110f5694cfd79195c9bdb880f3b4705778b188c374729"
+source = "git+https://github.com/strict-types/strict-types#0b7b1fd198eef5d550c3a31f3ce768e59108af28"
 dependencies = [
  "amplify",
  "baid58",

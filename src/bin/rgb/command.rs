@@ -217,8 +217,11 @@ impl Command {
                 eprintln!("Global state:\nNominal:={}\n", nominal[0]);
 
                 eprintln!("Owned state:");
-                for (txout, amount) in allocations {
-                    eprintln!("  (amount={amount}, txout={txout})");
+                for allocation in allocations {
+                    eprintln!(
+                        "  (amount={}, owner={}, witness={})",
+                        allocation.value, allocation.owner, allocation.witness
+                    );
                 }
             }
             Command::Issue {
