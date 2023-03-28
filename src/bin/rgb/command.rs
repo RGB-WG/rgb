@@ -25,7 +25,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
-use bp::seals::txout::{ExplicitSeal, TxPtr};
+use bitcoin::psbt::Psbt;
+use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use bp::Tx;
 use rgbstd::containers::UniversalBindle;
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
@@ -35,7 +36,7 @@ use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
 use rgbstd::{Chain, Txid};
-use rgbwallet::{RgbInvoice, RgbTransport};
+use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
 use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
 
@@ -111,21 +112,18 @@ pub enum Command {
     /// Create new transfer.
     #[display("transfer")]
     Transfer {
+        #[clap(long, default_value = "tapret1st")]
+        /// Method for single-use-seals.
+        method: CloseMethod,
+
         /// PSBT file.
-        psbt: PathBuf,
+        psbt_file: PathBuf,
 
         /// Invoice data.
         invoice: RgbInvoice,
 
         /// Filename to save transfer consignment.
-        outfile: PathBuf,
-    },
-
-    /// Verifies and accepts transfer.
-    #[display("accept")]
-    Accept {
-        /// Filename containing transfer consignment.
-        consignment: PathBuf,
+        out_file: PathBuf,
     },
 }
 
@@ -198,14 +196,22 @@ impl Command {
                                 .import_contract(contract, &mut DumbResolver)
                                 .expect("invalid contract")
                         }
-                        UniversalBindle::Transfer(_) => todo!(),
+                        UniversalBindle::Transfer(bindle) => {
+                            let transfer = bindle
+                                .unbindle()
+                                .validate(&mut DumbResolver)
+                                .expect("invalid transfer");
+                            stock
+                                .accept_transfer(transfer, &mut DumbResolver)
+                                .expect("invalid transfer")
+                        }
                     };
                 }
             }
             Command::Export { .. } => {}
             Command::State { contract_id, iface } => {
                 let iface = stock
-                    .iface_by_name(&iface)
+                    .iface_by_name(&tn!(iface))
                     .expect("invalid interface name")
                     .clone();
                 let contract = stock
@@ -234,7 +240,7 @@ impl Command {
                     ref iimpls,
                 } = stock.schema(schema).expect("unknown schema");
                 let iface = stock
-                    .iface_by_name(&iface)
+                    .iface_by_name(&tn!(iface))
                     .expect("invalid interface name")
                     .clone();
                 let iface_id = iface.iface_id();
@@ -300,7 +306,7 @@ impl Command {
                             .as_str()
                             .expect("invalid YAML: assignments name must be a string");
                         let state_type = iface_impl
-                            .owned_state
+                            .assignments
                             .iter()
                             .find(|info| info.name.as_str() == name)
                             .expect("unknown type name")
@@ -363,19 +369,32 @@ impl Command {
                     iface,
                     operation: None,
                     assignment: None,
-                    seal: seal.to_concealed_seal(),
+                    beneficiary: seal.to_concealed_seal().into(),
                     value,
+                    chain: None,
                     unknown_query: none!(),
                 };
                 stock.store_seal_secret(seal.blinding).expect("infallible");
                 println!("{invoice}");
             }
             Command::Transfer {
-                psbt,
+                method,
+                psbt_file,
                 invoice,
-                outfile,
-            } => {}
-            Command::Accept { consignment } => todo!(),
+                out_file,
+            } => {
+                // TODO: Check PSBT format
+                let psbt_data = fs::read(&psbt_file).expect("unable to read PSBT file");
+                let mut psbt = Psbt::deserialize(&psbt_data).expect("unable to parse PSBT file");
+                let transfer = stock
+                    .pay(invoice, &mut psbt, method)
+                    .expect("error paying invoice");
+                fs::write(psbt_file, psbt.serialize()).expect("unable to write to PSBT file");
+                // TODO: Print PSBT as Base64
+                transfer
+                    .save(out_file)
+                    .expect("unable to write consignment to OUT_FILE");
+            }
         }
     }
 }
