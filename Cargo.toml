@@ -17,16 +17,16 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.0.0-beta.19"
+amplify = "4.0.0-beta.20"
 baid58 = "0.2.0"
-strict_encoding = "2.0.0-rc.3"
-strict_types = "1.0.0-beta.5"
-rgb-std = { version = "0.10.0-alpha.1", features = ["fs"] }
-rgb-wallet = { version = "0.10.0-alpha.1", features = ["fs"] }
+strict_encoding = "2.0.0"
+strict_types = "1.0.0-rc.1"
+rgb-std = { version = "0.10.0-rc.1", features = ["fs"] }
+rgb-wallet = { version = "0.10.0-beta.1", features = ["fs"] }
 
 [package]
 name = "rgb-contracts"
-version = "0.10.0-alpha.1"
+version = "0.10.0-beta.1"
 description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
@@ -50,10 +50,10 @@ required-features = ["cli"]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
-bp-core = "0.10.0-beta.3"
+bp-core = "0.10.0-rc.2"
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
-rgb-persist-fs = { version = "0.10.0-alpha.1", path = "fs" }
+rgb-persist-fs = { version = "0.10.0-rc.1", path = "fs" }
 bitcoin = "0.30.0"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
 env_logger = "0.10.0"
@@ -68,11 +68,3 @@ cli = ["clap", "shellexpand", "log", "serde_yaml"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
-
-[patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types" }
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation" }
-bp-core = { git = "https://github.com/BP-WG/bp-core" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
-rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }

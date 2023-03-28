@@ -1,6 +1,6 @@
 [package]
 name = "rgb-persist-fs"
-version = "0.10.0-alpha.1"
+version = "0.10.0-rc.1"
 description = "RGB persistence drivers for file storage"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
