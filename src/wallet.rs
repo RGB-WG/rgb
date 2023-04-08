@@ -29,9 +29,11 @@ use bp::{Outpoint, Txid};
 use crate::descriptor::DeriveInfo;
 use crate::{RgbDescr, SpkDescriptor};
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
 pub enum MiningStatus {
+    #[display("~")]
     Mempool,
+    #[display(inner)]
     Blockchain(u32),
 }
 

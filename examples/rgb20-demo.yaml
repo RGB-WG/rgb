@@ -2,8 +2,8 @@ interface: RGB20
 
 globals:
   Nominal:
-    ticker: TEST
-    name: Test asset
+    ticker: TST
+    name: Test asset by RGB command-line
     details: ~
     precision: 8
   ContractText: >
@@ -23,5 +23,5 @@ globals:
 
 assignments:
   Assets:
-    seal: tapret1st:01d46e52c4bdb51931a0eae83e958c78bdef9cac2057b36d55370410edafdd42:0
+    seal: tapret1st:619bb1851dd1226101057952c91e88ac6930f138c295f41f2d1b7f12996ca8c9:1
     amount: 100000000000000

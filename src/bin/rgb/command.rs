@@ -84,6 +84,13 @@ pub enum Command {
         xpub: ExtendedPubKey,
     },
 
+    /// Display list of UTXOs for a given wallet.
+    Utxos {
+        /// Wallet to filter the state.
+        #[clap(short, long, default_value = "default")]
+        wallet: Ident,
+    },
+
     /// Imports RGB data into the stash: contracts, schema, interfaces etc.
     #[display("import")]
     Import {
@@ -231,6 +238,16 @@ impl Command {
             Command::Create { name, xpub } => {
                 let descr = runtime.create_wallet(&name, xpub)?;
                 println!("New wallet {name} with descriptor {descr} is created");
+            }
+
+            Command::Utxos { wallet } => {
+                let wallet = runtime.wallet(&wallet)?;
+                for utxo in &wallet.utxos {
+                    println!(
+                        "outpoint={}, height={}, amount={}, derivation={}",
+                        utxo.outpoint, utxo.status, utxo.amount, utxo.derivation
+                    );
+                }
             }
 
             Command::Import { armored, file } => {
