@@ -63,8 +63,10 @@ fn main() {
 
     let mut data_dir = opts.data_dir.clone();
     data_dir.push(opts.chain.to_string());
+    debug!("Using data directory '{}'", data_dir.display());
     fs::create_dir_all(&data_dir).unwrap();
     data_dir.push("stock.dat");
+    debug!("Reading stock from '{}'", data_dir.display());
     let mut stock = Stock::load(&data_dir)
         .map_err(|_| warn!("stock file can't be read; re-creating"))
         .unwrap_or_default();
