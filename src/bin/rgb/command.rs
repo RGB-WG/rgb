@@ -119,10 +119,12 @@ pub enum Command {
     },
 
     /// Reports information about state of a contact.
+    #[display("state")]
     State {
         /// Wallet to filter the state.
-        #[clap(short, long, default_value = "default")]
-        wallet: Ident,
+        #[clap(short, long)]
+        wallet: Option<Ident>,
+
         /// Contract identifier.
         contract_id: ContractId,
         /// Interface to interpret the state data.
@@ -310,7 +312,7 @@ impl Command {
                 contract_id,
                 iface,
             } => {
-                let wallet = runtime.wallet(&wallet)?;
+                let wallet = wallet.map(|w| runtime.wallet(&w)).transpose()?;
 
                 let iface = runtime
                     .iface_by_name(&tn!(iface))
@@ -334,7 +336,9 @@ impl Command {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone()) {
                         for allocation in allocations {
-                            if let Some(utxo) = wallet.utxo(allocation.owner) {
+                            if let Some(utxo) =
+                                wallet.as_ref().and_then(|w| w.utxo(allocation.owner))
+                            {
                                 println!(
                                     "    amount={}, utxo={}, witness={}, derivation={}",
                                     allocation.value,
