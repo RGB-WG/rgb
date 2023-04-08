@@ -14,8 +14,7 @@ dependencies = [
 [[package]]
 name = "aluvm"
 version = "0.10.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c8b31faf1f2667ba122c49112d3c643588d11e7a999585192c2d492d697bb46"
+source = "git+https://github.com/aluvm/rust-aluvm?branch=bytestr-debug#63fb40232591f622ba332366f996b0f855f10f8d"
 dependencies = [
  "amplify",
  "baid58",
@@ -23,6 +22,7 @@ dependencies = [
  "blake3",
  "half",
  "paste",
+ "serde",
  "strict_encoding",
 ]
 
@@ -266,6 +266,7 @@ dependencies = [
  "bp-primitives",
  "bp-seals",
  "commit_verify",
+ "serde",
  "single_use_seals",
  "strict_encoding",
 ]
@@ -280,6 +281,7 @@ dependencies = [
  "bp-primitives",
  "commit_verify",
  "secp256k1 0.27.0",
+ "serde",
  "strict_encoding",
 ]
 
@@ -292,6 +294,7 @@ dependencies = [
  "amplify",
  "commit_verify",
  "secp256k1 0.27.0",
+ "serde",
  "strict_encoding",
 ]
 
@@ -307,6 +310,7 @@ dependencies = [
  "bp-primitives",
  "commit_verify",
  "rand",
+ "serde",
  "single_use_seals",
  "strict_encoding",
 ]
@@ -408,6 +412,7 @@ checksum = "a517ba2f2008e980c6cefe0553a7b56541b0a129e9e809d36770c9b1c6429c1b"
 dependencies = [
  "amplify",
  "rand",
+ "serde",
  "strict_encoding",
 ]
 
@@ -954,9 +959,11 @@ dependencies = [
  "rgb-persist-fs",
  "rgb-std",
  "rgb-wallet",
+ "serde_json",
  "serde_yaml",
  "shellexpand",
  "strict_types",
+ "toml 0.7.3",
 ]
 
 [[package]]
@@ -973,6 +980,7 @@ dependencies = [
  "getrandom",
  "mime",
  "secp256k1-zkp",
+ "serde",
  "single_use_seals",
  "strict_encoding",
  "strict_types",
@@ -991,8 +999,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5c15060e897349ee8aa09e3bdea0630b36a530e2657cefd6d262078cfca478d"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#f189577d8e8940fda5e0b8f4255037e18cf9435f"
 dependencies = [
  "amplify",
  "baid58",
@@ -1061,6 +1068,7 @@ checksum = "6b1629c9c557ef9b293568b338dddfc8208c98a18c59d722a9d53f859d9c9b62"
 dependencies = [
  "rand",
  "secp256k1-sys 0.6.1",
+ "serde",
 ]
 
 [[package]]
@@ -1072,6 +1080,7 @@ dependencies = [
  "bitcoin_hashes",
  "rand",
  "secp256k1-sys 0.8.1",
+ "serde",
 ]
 
 [[package]]
@@ -1101,6 +1110,7 @@ dependencies = [
  "rand",
  "secp256k1 0.24.3",
  "secp256k1-zkp-sys",
+ "serde",
 ]
 
 [[package]]

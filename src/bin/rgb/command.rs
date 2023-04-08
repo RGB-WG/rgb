@@ -40,6 +40,17 @@ use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
 use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
 
+#[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Hash, Debug, Display, Default)]
+#[display(lowercase)]
+pub enum InspectFormat {
+    #[default]
+    Yaml,
+    Toml,
+    Json,
+    Debug,
+    Contractum,
+}
+
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
 #[display(lowercase)]
 pub enum Command {
@@ -124,6 +135,17 @@ pub enum Command {
 
         /// Filename to save transfer consignment.
         out_file: PathBuf,
+    },
+
+    /// Inspects any RGB data file.
+    #[display("inspect")]
+    Inspect {
+        #[clap(short, long, default_value = "yaml")]
+        /// Format used for data inspection
+        format: InspectFormat,
+
+        /// RGB file to inspect.
+        file: PathBuf,
     },
 }
 
@@ -394,6 +416,23 @@ impl Command {
                 transfer
                     .save(out_file)
                     .expect("unable to write consignment to OUT_FILE");
+            }
+            Command::Inspect { format, file } => {
+                let bindle = UniversalBindle::load(file).expect("invalid RGB file");
+                let s = match format {
+                    InspectFormat::Yaml => {
+                        serde_yaml::to_string(&bindle).expect("unable to present as YAML")
+                    }
+                    InspectFormat::Toml => {
+                        toml::to_string(&bindle).expect("unable to present as TOML")
+                    }
+                    InspectFormat::Json => {
+                        serde_json::to_string(&bindle).expect("unable to present as JSON")
+                    }
+                    InspectFormat::Debug => format!("{bindle:#?}"),
+                    InspectFormat::Contractum => todo!("contractum representation"),
+                };
+                println!("{s}");
             }
         }
     }
