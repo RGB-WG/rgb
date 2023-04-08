@@ -103,12 +103,15 @@ pub enum Command {
         file: PathBuf,
     },
 
-    /// Exports existing RGB data from the stash.
+    /// Exports existing RGB contract.
     #[display("export")]
     Export {
         /// Use BASE64 ASCII armoring for binary data.
         #[clap(short)]
         armored: bool,
+
+        /// Contract to export.
+        contract: ContractId,
 
         /// File with RGB data. If not provided, assumes `-a` and reads the data
         /// from STDIN.
@@ -286,7 +289,22 @@ impl Command {
                     };
                 }
             }
-            Command::Export { armored, file } => {}
+            Command::Export {
+                armored,
+                contract,
+                file,
+            } => {
+                let bindle = runtime
+                    .export_contract(contract)
+                    .map_err(|err| err.to_string())?;
+                if let Some(file) = file {
+                    // TODO: handle armored flag
+                    bindle.save(file)?;
+                } else {
+                    println!("{bindle}");
+                }
+            }
+
             Command::State {
                 wallet,
                 contract_id,
