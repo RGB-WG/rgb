@@ -269,8 +269,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.10.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6feca907cebbd73759a7be15ca039b43d3f01d2221ca20c9082e6967a9a6cc4c"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.10.0-release#6703ad5302c47ce0207f647ee53cdfafd9144b9c"
 dependencies = [
  "amplify",
  "bp-dbc",
@@ -285,10 +284,10 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.10.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c91baad4c7a18ecb24261a2482bf87b0628011b724913b29d2dbbc003a65f82"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.10.0-release#6703ad5302c47ce0207f647ee53cdfafd9144b9c"
 dependencies = [
  "amplify",
+ "baid58 0.3.0",
  "bp-primitives",
  "commit_verify",
  "secp256k1 0.27.0",
@@ -299,8 +298,7 @@ dependencies = [
 [[package]]
 name = "bp-primitives"
 version = "0.10.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a4d444dbcc3df9f92c361d76edec7f9a33d323ab3c3f001bd75711f8be56a9d"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.10.0-release#6703ad5302c47ce0207f647ee53cdfafd9144b9c"
 dependencies = [
  "amplify",
  "commit_verify",
@@ -312,8 +310,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.10.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24f0598dcb7c3c8c8b983eca9ef0dbfdc86503e5b258918122ac90d88030dcea"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.10.0-release#6703ad5302c47ce0207f647ee53cdfafd9144b9c"
 dependencies = [
  "amplify",
  "baid58 0.2.0",
@@ -965,6 +962,7 @@ dependencies = [
  "bitcoin",
  "bp-core",
  "clap",
+ "commit_verify",
  "env_logger",
  "log",
  "rgb-persist-fs",
@@ -980,7 +978,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.10.0-rc.2"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.10.0-release#0eef1bf8271504d863c3b3c5835000928f2fde49"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.10.0-release#8fd77d0cd15205fa5470afb514f921d39b2afd9b"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1009,7 +1007,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#39d2beef0319546c255329c02f730fc2444b5aec"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#0310ba1de6a8d028dbc9b0c3c5c7e140a5708467"
 dependencies = [
  "amplify",
  "baid58 0.3.0",
@@ -1027,7 +1025,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#39d2beef0319546c255329c02f730fc2444b5aec"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#0310ba1de6a8d028dbc9b0c3c5c7e140a5708467"
 dependencies = [
  "amplify",
  "baid58 0.3.0",

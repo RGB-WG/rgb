@@ -234,7 +234,7 @@ impl Command {
                     };
                 }
             }
-            Command::Export { .. } => {}
+            Command::Export { armored, file } => {}
             Command::State { contract_id, iface } => {
                 let iface = stock
                     .iface_by_name(&tn!(iface))

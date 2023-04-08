@@ -50,6 +50,7 @@ required-features = ["cli"]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
+commit_verify = "0.10.0"
 bp-core = "0.10.0-rc.2"
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
@@ -74,6 +75,7 @@ features = [ "all" ]
 
 [patch.crates-io]
 aluvm = { git = "https://github.com/aluvm/rust-aluvm", branch = "bytestr-debug" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.10.0-release" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.10.0-release" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
 rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
