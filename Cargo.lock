@@ -17,7 +17,7 @@ version = "0.10.0-rc.1"
 source = "git+https://github.com/aluvm/rust-aluvm?branch=bytestr-debug#63fb40232591f622ba332366f996b0f855f10f8d"
 dependencies = [
  "amplify",
- "baid58",
+ "baid58 0.2.0",
  "bitcoin_hashes",
  "blake3",
  "half",
@@ -175,6 +175,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "baid58"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe675ca8398044a1076a8237e60540182931807beec840ddfa89f9df9f8c4d9f"
+dependencies = [
+ "base58",
+ "blake3",
+ "mnemonic",
+]
+
+[[package]]
 name = "base58"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -305,7 +316,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24f0598dcb7c3c8c8b983eca9ef0dbfdc86503e5b258918122ac90d88030dcea"
 dependencies = [
  "amplify",
- "baid58",
+ "baid58 0.2.0",
  "bp-dbc",
  "bp-primitives",
  "commit_verify",
@@ -950,7 +961,7 @@ name = "rgb-contracts"
 version = "0.10.0-beta.1"
 dependencies = [
  "amplify",
- "baid58",
+ "baid58 0.3.0",
  "bitcoin",
  "bp-core",
  "clap",
@@ -969,12 +980,11 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.10.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "922f39cecd9570931a66b810954952fcce33c7a7cab9d6cf0dbd878c20d48fc1"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.10.0-release#0eef1bf8271504d863c3b3c5835000928f2fde49"
 dependencies = [
  "aluvm",
  "amplify",
- "baid58",
+ "baid58 0.3.0",
  "bp-core",
  "commit_verify",
  "getrandom",
@@ -999,10 +1009,10 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#f189577d8e8940fda5e0b8f4255037e18cf9435f"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#39d2beef0319546c255329c02f730fc2444b5aec"
 dependencies = [
  "amplify",
- "baid58",
+ "baid58 0.3.0",
  "base64 0.21.0",
  "bp-core",
  "commit_verify",
@@ -1017,11 +1027,10 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5157775eea3a372a674a1aa4111a8fa12ed07e901e59d1a5ce6bb8d607077989"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#39d2beef0319546c255329c02f730fc2444b5aec"
 dependencies = [
  "amplify",
- "baid58",
+ "baid58 0.3.0",
  "bitcoin",
  "bp-core",
  "commit_verify",
@@ -1264,7 +1273,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "371701e525f77661673ef2dca749793000162c28eb9745e69499653f61f6a9e2"
 dependencies = [
  "amplify",
- "baid58",
+ "baid58 0.2.0",
  "blake3",
  "half",
  "indexmap",

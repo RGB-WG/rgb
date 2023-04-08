@@ -18,7 +18,7 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.0.0-beta.20"
-baid58 = "0.2.0"
+baid58 = "0.3.0"
 strict_encoding = "2.0.1"
 strict_types = "1.0.0-rc.1"
 rgb-std = { version = "0.10.0-rc.1", features = ["fs"] }
@@ -74,4 +74,6 @@ features = [ "all" ]
 
 [patch.crates-io]
 aluvm = { git = "https://github.com/aluvm/rust-aluvm", branch = "bytestr-debug" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.10.0-release" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
