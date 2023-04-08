@@ -40,6 +40,10 @@ use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
 use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
 
+// TODO: For now, serde implementation doesn't work for consignments due to
+//       some of the keys which can't be serialized to strings. Once this fixed,
+//       allow this inspect formats option
+/*
 #[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Hash, Debug, Display, Default)]
 #[display(lowercase)]
 pub enum InspectFormat {
@@ -50,6 +54,7 @@ pub enum InspectFormat {
     Debug,
     Contractum,
 }
+ */
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
 #[display(lowercase)]
@@ -140,10 +145,9 @@ pub enum Command {
     /// Inspects any RGB data file.
     #[display("inspect")]
     Inspect {
-        #[clap(short, long, default_value = "yaml")]
-        /// Format used for data inspection
-        format: InspectFormat,
-
+        // #[clap(short, long, default_value = "yaml")]
+        // /// Format used for data inspection
+        // format: InspectFormat,
         /// RGB file to inspect.
         file: PathBuf,
     },
@@ -417,9 +421,12 @@ impl Command {
                     .save(out_file)
                     .expect("unable to write consignment to OUT_FILE");
             }
-            Command::Inspect { format, file } => {
+            Command::Inspect { file } => {
                 let bindle = UniversalBindle::load(file).expect("invalid RGB file");
-                let s = match format {
+                // TODO: For now, serde implementation doesn't work for consignments due to
+                //       some of the keys which can't be serialized to strings. Once this fixed,
+                //       allow this inspect formats option
+                /* let s = match format {
                     InspectFormat::Yaml => {
                         serde_yaml::to_string(&bindle).expect("unable to present as YAML")
                     }
@@ -433,6 +440,8 @@ impl Command {
                     InspectFormat::Contractum => todo!("contractum representation"),
                 };
                 println!("{s}");
+                 */
+                println!("{bindle:#?}");
             }
         }
     }
