@@ -63,7 +63,7 @@ pub struct Opts {
 
     /// Command to execute.
     #[clap(subcommand)]
-    pub command: Option<Command>,
+    pub command: Command,
 }
 
 impl Opts {

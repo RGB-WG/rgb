@@ -60,7 +60,6 @@ fn main() {
 
     let mut runtime =
         Runtime::load(opts.data_dir.clone(), opts.chain).expect("unable to load runtime");
-    let command = opts.command.unwrap_or_default();
-    debug!("Executing command: {}", command);
-    command.exec(&mut runtime);
+    debug!("Executing command: {}", opts.command);
+    opts.command.exec(&mut runtime);
 }

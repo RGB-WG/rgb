@@ -57,13 +57,21 @@ pub enum InspectFormat {
 }
  */
 
-#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
 pub enum Command {
-    /// Prints out detailed information about RGB stash.
-    #[default]
-    #[clap(alias = "stash")]
-    Info,
+    /// Prints out list of known RGB schemata.
+    Schemata,
+    /// Prints out list of known RGB interfaces.
+    Interfaces,
+    /// Prints out list of known RGB contracts.
+    Contracts,
+    /// Prints out list of wallets.
+    Wallets {
+        /// Print out full descriptor with all tapret commitments.
+        #[clap(short, long)]
+        details: bool,
+    },
 
     /// Imports RGB data into the stash: contracts, schema, interfaces etc.
     #[display("import")]
@@ -168,11 +176,9 @@ impl ResolveHeight for DumbResolver {
 impl Command {
     pub fn exec(self, runtime: &mut Runtime) {
         match self {
-            Self::Info => {
-                println!("Schemata:");
-                println!("---------");
+            Command::Schemata => {
                 for id in runtime.schema_ids().expect("infallible") {
-                    print!("{id:-}: ");
+                    print!("{id} ");
                     for iimpl in runtime
                         .schema(id)
                         .expect("internal inconsistency")
@@ -186,19 +192,28 @@ impl Command {
                     }
                     println!();
                 }
-
-                println!("\nInterfaces:");
-                println!("---------");
+            }
+            Command::Interfaces => {
                 for (id, name) in runtime.ifaces().expect("infallible") {
-                    println!("{} {id:-}", name);
-                }
-
-                println!("\nContracts:");
-                println!("---------");
-                for id in runtime.contract_ids().expect("infallible") {
-                    println!("{id::<}");
+                    println!("{} {id}", name);
                 }
             }
+            Command::Contracts => {
+                for id in runtime.contract_ids().expect("infallible") {
+                    println!("{id}");
+                }
+            }
+
+            Command::Wallets { details } => {
+                for (name, descriptor) in runtime.wallets() {
+                    if details {
+                        println!("{name} {descriptor:#}");
+                    } else {
+                        println!("{name} {descriptor}");
+                    }
+                }
+            }
+
             Command::Import { armored, file } => {
                 if armored {
                     todo!()

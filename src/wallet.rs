@@ -52,18 +52,22 @@ impl Display for Tapret {
         f.write_str("tapret(")?;
         Display::fmt(&self.xpub, f)?;
         let mut first = true;
-        for (terminal, taprets) in &self.taprets {
-            if first {
-                f.write_str(",")?;
-                first = false;
-            } else {
-                f.write_str(" ")?;
+        if f.alternate() {
+            for (terminal, taprets) in &self.taprets {
+                if first {
+                    f.write_str(",")?;
+                    first = false;
+                } else {
+                    f.write_str(" ")?;
+                }
+                Display::fmt(terminal, f)?;
+                for tapret in taprets {
+                    f.write_str("&")?;
+                    Display::fmt(tapret, f)?;
+                }
             }
-            Display::fmt(terminal, f)?;
-            for tapret in taprets {
-                f.write_str("&")?;
-                Display::fmt(tapret, f)?;
-            }
+        } else {
+            f.write_str(", ...")?;
         }
         f.write_str(")")
     }
