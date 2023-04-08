@@ -30,7 +30,7 @@ use bitcoin::psbt::Psbt;
 use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use bp::Tx;
 use rgb::{Runtime, RuntimeError};
-use rgbstd::containers::UniversalBindle;
+use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
@@ -186,6 +186,20 @@ pub enum Command {
         /// RGB file to inspect.
         file: PathBuf,
     },
+
+    /// Validate transfer consignment.
+    #[display("validate")]
+    Validate {
+        /// File with the transfer consignment.
+        file: PathBuf,
+    },
+
+    /// Validate transfer consignment & accept to the stash.
+    #[display("accept")]
+    Accept {
+        /// File with the transfer consignment.
+        file: PathBuf,
+    },
 }
 
 struct DumbResolver;
@@ -259,7 +273,7 @@ impl Command {
                 if armored {
                     todo!()
                 } else {
-                    let bindle = UniversalBindle::load(file).expect("invalid RGB file");
+                    let bindle = UniversalBindle::load(file)?;
                     match bindle {
                         UniversalBindle::Iface(iface) => {
                             runtime.import_iface(iface).expect("invalid interface")
@@ -279,14 +293,10 @@ impl Command {
                                 .import_contract(contract, &mut DumbResolver)
                                 .expect("invalid contract")
                         }
-                        UniversalBindle::Transfer(bindle) => {
-                            let transfer = bindle
-                                .unbindle()
-                                .validate(&mut DumbResolver)
-                                .expect("invalid transfer");
-                            runtime
-                                .accept_transfer(transfer, &mut DumbResolver)
-                                .expect("invalid transfer")
+                        UniversalBindle::Transfer(_) => {
+                            return Err(s!("use `validate` and `accept` commands to work with \
+                                           transfer consignments")
+                            .into());
                         }
                     };
                 }
@@ -525,7 +535,7 @@ impl Command {
                     .expect("unable to write consignment to OUT_FILE");
             }
             Command::Inspect { file } => {
-                let bindle = UniversalBindle::load(file).expect("invalid RGB file");
+                let bindle = UniversalBindle::load(file)?;
                 // TODO: For now, serde implementation doesn't work for consignments due to
                 //       some of the keys which can't be serialized to strings. Once this fixed,
                 //       allow this inspect formats option
@@ -545,6 +555,33 @@ impl Command {
                 println!("{s}");
                  */
                 println!("{bindle:#?}");
+            }
+            Command::Validate { file } => {
+                let bindle = Bindle::<Transfer>::load(file)?;
+                let status = match bindle.unbindle().validate(&mut DumbResolver) {
+                    Ok(consignment) => consignment.into_validation_status(),
+                    Err(consignment) => consignment.into_validation_status(),
+                }
+                .expect("just validated");
+                eprintln!("{status}");
+            }
+            Command::Accept { file } => {
+                let bindle = Bindle::<Transfer>::load(file)?;
+                let transfer =
+                    bindle
+                        .unbindle()
+                        .validate(&mut DumbResolver)
+                        .map_err(|consignment| {
+                            format!(
+                                "consignment is invalid.\n{}",
+                                consignment.validation_status().expect("just validated")
+                            )
+                        })?;
+                eprintln!("{}", transfer.validation_status().expect("just validated"));
+                runtime
+                    .accept_transfer(transfer, &mut DumbResolver)
+                    .expect("invalid transfer");
+                eprintln!("Transfer accepted into the stash");
             }
         }
 

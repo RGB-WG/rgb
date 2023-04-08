@@ -28,6 +28,7 @@ use std::path::PathBuf;
 
 use bitcoin::bip32::ExtendedPubKey;
 use rgbfs::StockFs;
+use rgbstd::containers::LoadError;
 use rgbstd::persistence::Stock;
 use rgbstd::Chain;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
@@ -49,6 +50,9 @@ pub enum RuntimeError {
 
     #[from]
     Deserialize(DeserializeError),
+
+    #[from]
+    Load(LoadError),
 
     #[display(doc_comments)]
     /// wallet with id '{0}' is not know to the system

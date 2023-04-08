@@ -1025,7 +1025,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#2f21496a906c1717b103f83bc5d5c8939322f34a"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#55c3f6648d81d75058e6b0630cc93f9bef0c5a45"
 dependencies = [
  "amplify",
  "baid58 0.3.1",
@@ -1043,7 +1043,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#2f21496a906c1717b103f83bc5d5c8939322f34a"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=v0.10.0-release#55c3f6648d81d75058e6b0630cc93f9bef0c5a45"
 dependencies = [
  "amplify",
  "baid58 0.3.1",

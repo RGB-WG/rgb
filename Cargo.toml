@@ -75,6 +75,7 @@ features = [ "all" ]
 
 [patch.crates-io]
 aluvm = { git = "https://github.com/aluvm/rust-aluvm", branch = "bytestr-debug" }
+bp-primitives = { git = "https://github.com/BP-WG/bp-core", branch = "v0.10.0-release" }
 bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.10.0-release" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.10.0-release" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
