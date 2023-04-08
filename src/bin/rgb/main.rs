@@ -32,8 +32,10 @@ mod loglevel;
 mod opts;
 mod command;
 
+use std::process::{exit, ExitCode};
+
 use clap::Parser;
-use rgb::Runtime;
+use rgb::{Runtime, RuntimeError};
 
 pub use crate::command::Command;
 pub use crate::loglevel::LogLevel;
@@ -52,14 +54,23 @@ pub const RGB_DATA_DIR: &str = "~/Documents";
 #[cfg(target_os = "android")]
 pub const RGB_DATA_DIR: &str = ".";
 
-fn main() {
+fn main() -> ExitCode {
+    if let Err(err) = run() {
+        eprintln!("Error: {err}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn run() -> Result<(), RuntimeError> {
     let mut opts = Opts::parse();
     opts.process();
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    let mut runtime =
-        Runtime::load(opts.data_dir.clone(), opts.chain).expect("unable to load runtime");
+    let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain)?;
     debug!("Executing command: {}", opts.command);
     opts.command.exec(&mut runtime);
+    Ok(())
 }
