@@ -56,10 +56,14 @@ pub struct Opts {
         long,
         global = true,
         alias = "network",
-        default_value = "signet",
+        default_value = "testnet",
         env = "RGB_NETWORK"
     )]
     pub chain: Chain,
+
+    /// Electrum server to use.
+    #[clap(short, long, env = "RGB_ELECTRUM_SERVER")]
+    pub electrum: Option<String>,
 
     /// Command to execute.
     #[clap(subcommand)]

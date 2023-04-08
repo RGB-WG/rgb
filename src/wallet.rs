@@ -20,105 +20,127 @@
 // limitations under the License.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{self, Display, Formatter};
 
-use bitcoin::bip32::{ChildNumber, ExtendedPubKey};
-use bitcoin::secp256k1::SECP256K1;
+use amplify::RawArray;
+use bitcoin::hashes::Hash;
 use bitcoin::ScriptBuf;
-use bp::dbc::tapret::{TapretCommitment, TapretPathProof, TapretProof};
-use bp::{ScriptPubkey, TapNodeHash};
-use commit_verify::ConvolveCommit;
+use bp::{Outpoint, Txid};
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
-#[display("{app}/{index}")]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TerminalPath {
-    pub app: u32,
-    pub index: u32,
+use crate::descriptor::DeriveInfo;
+use crate::{RgbDescr, SpkDescriptor};
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+pub enum MiningStatus {
+    Mempool,
+    Blockchain(u32),
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Tapret {
-    pub xpub: ExtendedPubKey,
-    // pub script: Option<>,
-    pub taprets: BTreeMap<TerminalPath, BTreeSet<TapretCommitment>>,
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+pub struct Utxo {
+    pub outpoint: Outpoint,
+    pub status: MiningStatus,
+    pub amount: u64,
+    pub derivation: DeriveInfo,
 }
 
-impl Display for Tapret {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("tapret(")?;
-        Display::fmt(&self.xpub, f)?;
-        let mut first = true;
-        if f.alternate() {
-            for (terminal, taprets) in &self.taprets {
-                if first {
-                    f.write_str(",")?;
-                    first = false;
-                } else {
-                    f.write_str(" ")?;
+pub trait Resolver {
+    fn resolve_utxo<'s>(
+        &mut self,
+        scripts: BTreeMap<DeriveInfo, ScriptBuf>,
+    ) -> Result<BTreeSet<Utxo>, String>;
+}
+
+#[derive(Clone, Debug)]
+pub struct RgbWallet {
+    pub descr: RgbDescr,
+    pub utxos: BTreeSet<Utxo>,
+}
+
+impl RgbWallet {
+    pub fn with(descr: RgbDescr, resolver: &mut impl Resolver) -> Result<Self, String> {
+        let mut utxos = BTreeSet::new();
+
+        const STEP: u32 = 20;
+        for app in [0, 1, 10, 20, 30, 40, 50, 60] {
+            let mut index = 0;
+            loop {
+                debug!("Requesting {STEP} scripts from the Electrum server");
+                let scripts = descr.derive(app, index..(index + STEP));
+                let set = resolver.resolve_utxo(scripts)?;
+                if set.is_empty() {
+                    break;
                 }
-                Display::fmt(terminal, f)?;
-                for tapret in taprets {
-                    f.write_str("&")?;
-                    Display::fmt(tapret, f)?;
+                debug!("Electrum server returned {} UTXOs", set.len());
+                utxos.extend(set);
+                index += STEP;
+            }
+        }
+
+        Ok(Self { descr, utxos })
+    }
+
+    pub fn utxo(&self, outpoint: Outpoint) -> Option<&Utxo> {
+        self.utxos.iter().find(|utxo| utxo.outpoint == outpoint)
+    }
+}
+
+pub trait DefaultResolver {
+    fn default_resolver(&self) -> String;
+}
+
+#[cfg(feature = "electrum")]
+mod _electrum {
+    use bitcoin::ScriptBuf;
+    use bp::Chain;
+    use electrum_client::{ElectrumApi, ListUnspentRes};
+
+    use super::*;
+
+    impl DefaultResolver for bp::Chain {
+        fn default_resolver(&self) -> String {
+            match self {
+                Chain::Bitcoin => s!("blockstream.info:110"),
+                Chain::Testnet3 => s!("blockstream.info:143"),
+                chain => {
+                    panic!("no default server is known for {chain}, please provide a custom URL")
                 }
             }
-        } else {
-            f.write_str(", ...")?;
         }
-        f.write_str(")")
     }
-}
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Display)]
-#[display(inner)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum RgbDescr {
-    Tapret(Tapret),
-}
-
-pub trait SpkDescriptor {
-    // TODO: Replace index with UnhardenedIndex
-    fn derive(&self, terminal: TerminalPath) -> Vec<ScriptBuf>;
-}
-
-impl SpkDescriptor for Tapret {
-    fn derive(&self, terminal: TerminalPath) -> Vec<ScriptBuf> {
-        let key = self
-            .xpub
-            .derive_pub(&SECP256K1, &[
-                ChildNumber::from_normal_idx(terminal.app)
-                    .expect("application index must be unhardened"),
-                ChildNumber::from_normal_idx(terminal.index)
-                    .expect("derivation index must be unhardened"),
-            ])
-            .expect("unhardened derivation");
-
-        let xonly = key.to_x_only_pub();
-        let mut spks = vec![ScriptBuf::new_v1_p2tr(&SECP256K1, xonly, None)];
-        for tweak in self.taprets.get(&terminal).into_iter().flatten() {
-            let script = ScriptPubkey::p2tr(xonly.into(), None::<TapNodeHash>);
-            let proof = TapretProof {
-                path_proof: TapretPathProof::root(tweak.nonce),
-                internal_pk: xonly.into(),
-            };
-            let (spk, _) = script
-                .convolve_commit(&proof, &tweak.mpc)
-                .expect("malicious tapret value - an inverse of a key");
-            spks.push(ScriptBuf::from_bytes(spk.to_inner()));
+    impl Resolver for electrum_client::Client {
+        fn resolve_utxo<'s>(
+            &mut self,
+            scripts: BTreeMap<DeriveInfo, ScriptBuf>,
+        ) -> Result<BTreeSet<Utxo>, String> {
+            Ok(self
+                .batch_script_list_unspent(scripts.values().map(ScriptBuf::as_script))
+                .map_err(|err| err.to_string())?
+                .into_iter()
+                .zip(scripts.into_keys())
+                .flat_map(|(list, derivation)| {
+                    list.into_iter()
+                        .map(move |res| Utxo::with(derivation.clone(), res))
+                })
+                .collect())
         }
-        spks
     }
-}
 
-impl SpkDescriptor for RgbDescr {
-    fn derive(&self, terminal: TerminalPath) -> Vec<ScriptBuf> {
-        match self {
-            RgbDescr::Tapret(tapret) => tapret.derive(terminal),
+    impl Utxo {
+        fn with(derivation: DeriveInfo, res: ListUnspentRes) -> Self {
+            Utxo {
+                status: if res.height == 0 {
+                    MiningStatus::Mempool
+                } else {
+                    MiningStatus::Blockchain(res.height as u32)
+                },
+                outpoint: Outpoint::new(
+                    Txid::from_raw_array(res.tx_hash.to_byte_array()),
+                    res.tx_pos as u32,
+                ),
+                derivation,
+                amount: res.value,
+            }
         }
     }
 }

@@ -110,6 +110,9 @@ pub enum Command {
 
     /// Reports information about state of a contact.
     State {
+        /// Wallet to filter the state.
+        #[clap(short, long, default_value = "default")]
+        wallet: Ident,
         /// Contract identifier.
         contract_id: ContractId,
         /// Interface to interpret the state data.
@@ -267,7 +270,13 @@ impl Command {
                 }
             }
             Command::Export { armored, file } => {}
-            Command::State { contract_id, iface } => {
+            Command::State {
+                wallet,
+                contract_id,
+                iface,
+            } => {
+                let wallet = runtime.wallet(&wallet)?;
+
                 let iface = runtime
                     .iface_by_name(&tn!(iface))
                     .expect("invalid interface name")
@@ -276,16 +285,37 @@ impl Command {
                     .contract_iface(contract_id, iface.iface_id())
                     .expect("unknown contract");
 
-                let nominal = contract.global("Nominal").unwrap();
-                let allocations = contract.fungible("Assets").unwrap();
-                eprintln!("Global state:\nNominal:={}\n", nominal[0]);
+                println!("Global:");
+                for global in &contract.iface.global_state {
+                    if let Ok(values) = contract.global(global.name.clone()) {
+                        for val in values {
+                            println!("  {} := {}", global.name, val);
+                        }
+                    }
+                }
 
-                eprintln!("Owned state:");
-                for allocation in allocations {
-                    eprintln!(
-                        "  (amount={}, owner={}, witness={})",
-                        allocation.value, allocation.owner, allocation.witness
-                    );
+                println!("\nOwned:");
+                for owned in &contract.iface.assignments {
+                    println!("  {}:", owned.name);
+                    if let Ok(allocations) = contract.fungible(owned.name.clone()) {
+                        for allocation in allocations {
+                            if let Some(utxo) = wallet.utxo(allocation.owner) {
+                                println!(
+                                    "    amount={}, utxo={}, witness={}, derivation={}",
+                                    allocation.value,
+                                    allocation.owner,
+                                    allocation.witness,
+                                    utxo.derivation
+                                );
+                            } else {
+                                println!(
+                                    "    amount={}, utxo={}, witness={} # owner unknown",
+                                    allocation.value, allocation.owner, allocation.witness
+                                );
+                            }
+                        }
+                    }
+                    // TODO: Print out other types of state
                 }
             }
             Command::Issue {

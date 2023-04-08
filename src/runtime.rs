@@ -32,8 +32,8 @@ use rgbstd::persistence::Stock;
 use rgbstd::Chain;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
-use crate::wallet::RgbDescr;
-use crate::Tapret;
+use crate::descriptor::RgbDescr;
+use crate::{RgbWallet, Tapret};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -50,11 +50,18 @@ pub enum RuntimeError {
     #[from]
     Deserialize(DeserializeError),
 
+    #[display(doc_comments)]
+    /// wallet with id '{0}' is not know to the system
+    WalletUnknown(Ident),
+
+    #[from]
+    Electrum(electrum_client::Error),
+
     #[from]
     Custom(String),
 }
 
-#[derive(Debug, Getters)]
+#[derive(Getters)]
 pub struct Runtime {
     stock_path: PathBuf,
     wallets_path: PathBuf,
@@ -62,6 +69,7 @@ pub struct Runtime {
     wallets: HashMap<Ident, RgbDescr>,
     #[getter(as_copy)]
     chain: Chain,
+    electrum: electrum_client::Client,
 }
 
 impl Deref for Runtime {
@@ -74,7 +82,7 @@ impl DerefMut for Runtime {
 }
 
 impl Runtime {
-    pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
+    pub fn load(mut data_dir: PathBuf, chain: Chain, electrum: &str) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
         debug!("Using data directory '{}'", data_dir.display());
         fs::create_dir_all(&data_dir)?;
@@ -83,7 +91,7 @@ impl Runtime {
         stock_path.push("stock.dat");
         debug!("Reading stock from '{}'", stock_path.display());
         let stock = if !stock_path.exists() {
-            info!("Stock file not found, creating default stock");
+            eprintln!("Stock file not found, creating default stock");
             let stock = Stock::default();
             stock.store(&stock_path)?;
             stock
@@ -94,13 +102,15 @@ impl Runtime {
         let mut wallets_path = data_dir.clone();
         wallets_path.push("wallets.yml");
         debug!("Reading wallets from '{}'", wallets_path.display());
-        let wallets_fd = if !wallets_path.exists() {
-            info!("Wallet file not found, creating new wallet list");
-            File::create(&wallets_path)?
+        let wallets = if !wallets_path.exists() {
+            eprintln!("Wallet file not found, creating new wallet list");
+            empty!()
         } else {
-            File::open(&wallets_path)?
+            let wallets_fd = File::open(&wallets_path)?;
+            serde_yaml::from_reader(&wallets_fd)?
         };
-        let wallets = serde_yaml::from_reader(&wallets_fd)?;
+
+        let electrum = electrum_client::Client::new(electrum)?;
 
         Ok(Self {
             stock_path,
@@ -108,6 +118,7 @@ impl Runtime {
             stock,
             wallets,
             chain,
+            electrum,
         })
     }
 
@@ -127,6 +138,14 @@ impl Runtime {
             Entry::Vacant(entry) => entry.insert(descr),
         };
         Ok(entry)
+    }
+
+    pub fn wallet(&mut self, name: &Ident) -> Result<RgbWallet, RuntimeError> {
+        let descr = self
+            .wallets
+            .get(name)
+            .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
+        RgbWallet::with(descr.clone(), &mut self.electrum).map_err(RuntimeError::from)
     }
 }
 

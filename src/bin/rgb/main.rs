@@ -35,7 +35,7 @@ mod command;
 use std::process::ExitCode;
 
 use clap::Parser;
-use rgb::{Runtime, RuntimeError};
+use rgb::{DefaultResolver, Runtime, RuntimeError};
 
 pub use crate::command::Command;
 pub use crate::loglevel::LogLevel;
@@ -69,7 +69,9 @@ fn run() -> Result<(), RuntimeError> {
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain)?;
+    let electrum = opts.electrum.unwrap_or(opts.chain.default_resolver());
+
+    let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain, &electrum)?;
     debug!("Executing command: {}", opts.command);
     opts.command.exec(&mut runtime)?;
     Ok(())
