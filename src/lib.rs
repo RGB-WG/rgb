@@ -21,5 +21,13 @@
 
 #[macro_use]
 extern crate amplify;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde;
 
 mod wallet;
+mod runtime;
+
+pub use runtime::{Runtime, RuntimeError};
+pub use wallet::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};

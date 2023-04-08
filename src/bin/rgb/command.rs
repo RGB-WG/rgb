@@ -28,14 +28,15 @@ use amplify::confinement::U16;
 use bitcoin::psbt::Psbt;
 use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use bp::Tx;
+use rgb::Runtime;
 use rgbstd::containers::UniversalBindle;
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces};
-use rgbstd::persistence::{Inventory, Stash, Stock};
+use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
-use rgbstd::{Chain, Txid};
+use rgbstd::Txid;
 use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
 use strict_types::encoding::TypeName;
 use strict_types::{StrictDumb, StrictVal};
@@ -165,20 +166,20 @@ impl ResolveHeight for DumbResolver {
 }
 
 impl Command {
-    pub fn exec(self, stock: &mut Stock, chain: Chain) {
+    pub fn exec(self, runtime: &mut Runtime) {
         match self {
             Self::Info => {
                 println!("Schemata:");
                 println!("---------");
-                for id in stock.schema_ids().expect("infallible") {
+                for id in runtime.schema_ids().expect("infallible") {
                     print!("{id:-}: ");
-                    for iimpl in stock
+                    for iimpl in runtime
                         .schema(id)
                         .expect("internal inconsistency")
                         .iimpls
                         .values()
                     {
-                        let iface = stock
+                        let iface = runtime
                             .iface_by_id(iimpl.iface_id)
                             .expect("interface not found");
                         print!("{} ", iface.name);
@@ -188,13 +189,13 @@ impl Command {
 
                 println!("\nInterfaces:");
                 println!("---------");
-                for (id, name) in stock.ifaces().expect("infallible") {
+                for (id, name) in runtime.ifaces().expect("infallible") {
                     println!("{} {id:-}", name);
                 }
 
                 println!("\nContracts:");
                 println!("---------");
-                for id in stock.contract_ids().expect("infallible") {
+                for id in runtime.contract_ids().expect("infallible") {
                     println!("{id::<}");
                 }
             }
@@ -205,12 +206,12 @@ impl Command {
                     let bindle = UniversalBindle::load(file).expect("invalid RGB file");
                     match bindle {
                         UniversalBindle::Iface(iface) => {
-                            stock.import_iface(iface).expect("invalid interface")
+                            runtime.import_iface(iface).expect("invalid interface")
                         }
                         UniversalBindle::Schema(schema) => {
-                            stock.import_schema(schema).expect("invalid schema")
+                            runtime.import_schema(schema).expect("invalid schema")
                         }
-                        UniversalBindle::Impl(iimpl) => stock
+                        UniversalBindle::Impl(iimpl) => runtime
                             .import_iface_impl(iimpl)
                             .expect("invalid interface implementation"),
                         UniversalBindle::Contract(bindle) => {
@@ -218,7 +219,7 @@ impl Command {
                                 .unbindle()
                                 .validate(&mut DumbResolver)
                                 .expect("invalid contract");
-                            stock
+                            runtime
                                 .import_contract(contract, &mut DumbResolver)
                                 .expect("invalid contract")
                         }
@@ -227,7 +228,7 @@ impl Command {
                                 .unbindle()
                                 .validate(&mut DumbResolver)
                                 .expect("invalid transfer");
-                            stock
+                            runtime
                                 .accept_transfer(transfer, &mut DumbResolver)
                                 .expect("invalid transfer")
                         }
@@ -236,11 +237,11 @@ impl Command {
             }
             Command::Export { armored, file } => {}
             Command::State { contract_id, iface } => {
-                let iface = stock
+                let iface = runtime
                     .iface_by_name(&tn!(iface))
                     .expect("invalid interface name")
                     .clone();
-                let contract = stock
+                let contract = runtime
                     .contract_iface(contract_id, iface.iface_id())
                     .expect("unknown contract");
 
@@ -264,8 +265,8 @@ impl Command {
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
-                } = stock.schema(schema).expect("unknown schema");
-                let iface = stock
+                } = runtime.schema(schema).expect("unknown schema");
+                let iface = runtime
                     .iface_by_name(&tn!(iface))
                     .expect("invalid interface name")
                     .clone();
@@ -279,7 +280,7 @@ impl Command {
 
                 let mut builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())
                     .expect("schema fails to implement RGB20 interface")
-                    .set_chain(chain);
+                    .set_chain(runtime.chain());
 
                 let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)
                     .expect("invalid contract definition");
@@ -377,7 +378,7 @@ impl Command {
                 let validated_contract = contract
                     .validate(&mut DumbResolver)
                     .expect("internal error: failed validating self-issued contract");
-                stock
+                runtime
                     .import_contract(validated_contract, &mut DumbResolver)
                     .expect("failure importing issued contract");
             }
@@ -400,7 +401,9 @@ impl Command {
                     chain: None,
                     unknown_query: none!(),
                 };
-                stock.store_seal_secret(seal.blinding).expect("infallible");
+                runtime
+                    .store_seal_secret(seal.blinding)
+                    .expect("infallible");
                 println!("{invoice}");
             }
             Command::Transfer {
@@ -412,7 +415,7 @@ impl Command {
                 // TODO: Check PSBT format
                 let psbt_data = fs::read(&psbt_file).expect("unable to read PSBT file");
                 let mut psbt = Psbt::deserialize(&psbt_data).expect("unable to parse PSBT file");
-                let transfer = stock
+                let transfer = runtime
                     .pay(invoice, &mut psbt, method)
                     .expect("error paying invoice");
                 fs::write(psbt_file, psbt.serialize()).expect("unable to write to PSBT file");

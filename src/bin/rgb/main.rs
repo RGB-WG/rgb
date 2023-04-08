@@ -32,11 +32,8 @@ mod loglevel;
 mod opts;
 mod command;
 
-use std::fs;
-
 use clap::Parser;
-use rgbfs::StockFs;
-use rgbstd::persistence::Stock;
+use rgb::Runtime;
 
 pub use crate::command::Command;
 pub use crate::loglevel::LogLevel;
@@ -61,19 +58,9 @@ fn main() {
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    let mut data_dir = opts.data_dir.clone();
-    data_dir.push(opts.chain.to_string());
-    debug!("Using data directory '{}'", data_dir.display());
-    fs::create_dir_all(&data_dir).unwrap();
-    data_dir.push("stock.dat");
-    debug!("Reading stock from '{}'", data_dir.display());
-    let mut stock = Stock::load(&data_dir)
-        .map_err(|_| warn!("stock file can't be read; re-creating"))
-        .unwrap_or_default();
-
+    let mut runtime =
+        Runtime::load(opts.data_dir.clone(), opts.chain).expect("unable to load runtime");
     let command = opts.command.unwrap_or_default();
     debug!("Executing command: {}", command);
-    command.exec(&mut stock, opts.chain);
-
-    stock.store(data_dir).expect("unable to save stock");
+    command.exec(&mut runtime);
 }

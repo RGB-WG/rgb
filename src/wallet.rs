@@ -20,23 +20,27 @@
 // limitations under the License.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{self, Display, Formatter, Write};
+use std::fmt::{self, Display, Formatter};
 
 use bitcoin::bip32::{ChildNumber, ExtendedPubKey};
 use bitcoin::secp256k1::SECP256K1;
 use bitcoin::ScriptBuf;
 use bp::dbc::tapret::{TapretCommitment, TapretPathProof, TapretProof};
-use bp::{InternalPk, ScriptPubkey, TapNodeHash, TapScript};
-use commit_verify::{CommitVerify, ConvolveCommit};
+use bp::{ScriptPubkey, TapNodeHash};
+use commit_verify::ConvolveCommit;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
 #[display("{app}/{index}")]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TerminalPath {
     pub app: u32,
     pub index: u32,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Tapret {
     pub xpub: ExtendedPubKey,
     // pub script: Option<>,
@@ -67,6 +71,8 @@ impl Display for Tapret {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[display(inner)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum RgbDescr {
     Tapret(Tapret),
 }
