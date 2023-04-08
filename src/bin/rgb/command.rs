@@ -25,10 +25,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
+use bitcoin::bip32::ExtendedPubKey;
 use bitcoin::psbt::Psbt;
 use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use bp::Tx;
-use rgb::Runtime;
+use rgb::{Runtime, RuntimeError};
 use rgbstd::containers::UniversalBindle;
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces};
@@ -38,7 +39,7 @@ use rgbstd::schema::SchemaId;
 use rgbstd::validation::{ResolveTx, TxResolverError};
 use rgbstd::Txid;
 use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
-use strict_types::encoding::TypeName;
+use strict_types::encoding::{Ident, TypeName};
 use strict_types::{StrictDumb, StrictVal};
 
 // TODO: For now, serde implementation doesn't work for consignments due to
@@ -71,6 +72,16 @@ pub enum Command {
         /// Print out full descriptor with all tapret commitments.
         #[clap(short, long)]
         long: bool,
+    },
+
+    /// Create a new wallet (only key-spent only taproot wallets are supported).
+    Create {
+        /// Name of the new wallet
+        name: Ident,
+
+        /// Extended public key (account-level) to create a new wallet using
+        /// key-only taproot descriptor.
+        xpub: ExtendedPubKey,
     },
 
     /// Imports RGB data into the stash: contracts, schema, interfaces etc.
@@ -174,7 +185,7 @@ impl ResolveHeight for DumbResolver {
 }
 
 impl Command {
-    pub fn exec(self, runtime: &mut Runtime) {
+    pub fn exec(self, runtime: &mut Runtime) -> Result<(), RuntimeError> {
         match self {
             Command::Schemata => {
                 for id in runtime.schema_ids().expect("infallible") {
@@ -212,6 +223,11 @@ impl Command {
                         println!("{name} {descriptor}");
                     }
                 }
+            }
+
+            Command::Create { name, xpub } => {
+                let descr = runtime.create_wallet(&name, xpub)?;
+                println!("New wallet {name} with descriptor {descr} is created");
             }
 
             Command::Import { armored, file } => {
@@ -462,5 +478,7 @@ impl Command {
                 println!("{bindle:#?}");
             }
         }
+
+        Ok(())
     }
 }

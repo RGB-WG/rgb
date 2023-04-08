@@ -32,7 +32,7 @@ mod loglevel;
 mod opts;
 mod command;
 
-use std::process::{exit, ExitCode};
+use std::process::ExitCode;
 
 use clap::Parser;
 use rgb::{Runtime, RuntimeError};
@@ -71,6 +71,6 @@ fn run() -> Result<(), RuntimeError> {
 
     let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain)?;
     debug!("Executing command: {}", opts.command);
-    opts.command.exec(&mut runtime);
+    opts.command.exec(&mut runtime)?;
     Ok(())
 }
