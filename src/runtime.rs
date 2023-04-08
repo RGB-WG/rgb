@@ -28,7 +28,7 @@ use std::path::PathBuf;
 use rgbfs::StockFs;
 use rgbstd::persistence::Stock;
 use rgbstd::Chain;
-use strict_types::encoding::{Ident, SerializeError};
+use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::wallet::RgbDescr;
 
@@ -43,6 +43,9 @@ pub enum RuntimeError {
 
     #[from]
     Serialize(SerializeError),
+
+    #[from]
+    Deserialize(DeserializeError),
 }
 
 #[derive(Debug, Getters)]
@@ -73,10 +76,13 @@ impl Runtime {
         let mut stock_path = data_dir.clone();
         stock_path.push("stock.dat");
         debug!("Reading stock from '{}'", stock_path.display());
-        let stock = Stock::load(&data_dir)
-            .map_err(|_| warn!("stock file can't be read; re-creating"))
-            .unwrap_or_default();
-        stock.store(&stock_path)?;
+        let stock = if !stock_path.exists() {
+            let stock = Stock::default();
+            stock.store(&stock_path)?;
+            stock
+        } else {
+            Stock::load(&stock_path)?
+        };
 
         let mut wallet_path = data_dir.clone();
         wallet_path.push("wallets.yml");

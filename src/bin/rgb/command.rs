@@ -70,7 +70,7 @@ pub enum Command {
     Wallets {
         /// Print out full descriptor with all tapret commitments.
         #[clap(short, long)]
-        details: bool,
+        long: bool,
     },
 
     /// Imports RGB data into the stash: contracts, schema, interfaces etc.
@@ -204,7 +204,7 @@ impl Command {
                 }
             }
 
-            Command::Wallets { details } => {
+            Command::Wallets { long: details } => {
                 for (name, descriptor) in runtime.wallets() {
                     if details {
                         println!("{name} {descriptor:#}");
