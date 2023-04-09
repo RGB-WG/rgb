@@ -188,11 +188,12 @@ pub enum Command {
     },
 
     /// Debug-dump all stash and inventory data.
-    ///
-    /// Creates subdirectory `rgb-dump` in the current directory and writes
-    /// debug information about stash and inventory into files there.
     #[display("dump")]
-    Dump,
+    Dump {
+        /// Directory to put the dump into.
+        #[clap(default_value = "./rgb-dump")]
+        root_dir: String,
+    },
 
     /// Validate transfer consignment.
     #[display("validate")]
@@ -563,57 +564,58 @@ impl Command {
                  */
                 println!("{bindle:#?}");
             }
-            Command::Dump => {
-                fs::create_dir_all("rgb-dump/stash/schemata")?;
-                fs::create_dir_all("rgb-dump/stash/ifaces")?;
-                fs::create_dir_all("rgb-dump/stash/contracts")?;
-                fs::create_dir_all("rgb-dump/stash/bundles")?;
-                fs::create_dir_all("rgb-dump/stash/anchors")?;
-                fs::create_dir_all("rgb-dump/stash/extensions")?;
-                fs::create_dir_all("rgb-dump/state")?;
-                fs::create_dir_all("rgb-dump/index")?;
+            Command::Dump { root_dir } => {
+                fs::remove_dir_all(&root_dir).ok();
+                fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/contracts"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/anchors"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
+                fs::create_dir_all(format!("{root_dir}/state"))?;
+                fs::create_dir_all(format!("{root_dir}/index"))?;
 
                 // Stash
                 for id in runtime.schema_ids()? {
                     fs::write(
-                        format!("rgb-dump/stash/schemata/{id}.debug"),
+                        format!("{root_dir}/stash/schemata/{id}.debug"),
                         format!("{:#?}", runtime.schema(id)?),
                     )?;
                 }
                 for (id, name) in runtime.ifaces()? {
                     fs::write(
-                        format!("rgb-dump/stash/ifaces/{id}.{name}.debug"),
+                        format!("{root_dir}/stash/ifaces/{id}.{name}.debug"),
                         format!("{:#?}", runtime.iface_by_id(id)?),
                     )?;
                 }
                 for id in runtime.contract_ids()? {
                     fs::write(
-                        format!("rgb-dump/stash/contracts/{id}.debug"),
+                        format!("{root_dir}/stash/contracts/{id}.debug"),
                         format!("{:#?}", runtime.genesis(id)?),
                     )?;
                     for (no, suppl) in runtime.contract_suppl(id).into_iter().flatten().enumerate()
                     {
                         fs::write(
-                            format!("rgb-dump/stash/contracts/{id}.suppl.{no:03}.debug"),
+                            format!("{root_dir}/stash/contracts/{id}.suppl.{no:03}.debug"),
                             format!("{:#?}", suppl),
                         )?;
                     }
                 }
                 for id in runtime.bundle_ids()? {
                     fs::write(
-                        format!("rgb-dump/stash/bundles/{id}.debug"),
+                        format!("{root_dir}/stash/bundles/{id}.debug"),
                         format!("{:#?}", runtime.bundle(id)?),
                     )?;
                 }
                 for id in runtime.anchor_ids()? {
                     fs::write(
-                        format!("rgb-dump/stash/anchors/{id}.debug"),
+                        format!("{root_dir}/stash/anchors/{id}.debug"),
                         format!("{:#?}", runtime.anchor(id)?),
                     )?;
                 }
                 for id in runtime.extension_ids()? {
                     fs::write(
-                        format!("rgb-dump/stash/extensions/{id}.debug"),
+                        format!("{root_dir}/stash/extensions/{id}.debug"),
                         format!("{:#?}", runtime.extension(id)?),
                     )?;
                 }
@@ -621,28 +623,28 @@ impl Command {
 
                 // State
                 for (id, history) in runtime.debug_history() {
-                    fs::write(format!("rgb-dump/state/{id}.debug"), format!("{:#?}", history))?;
+                    fs::write(format!("{root_dir}/state/{id}.debug"), format!("{:#?}", history))?;
                 }
 
                 // Index
                 fs::write(
-                    format!("rgb-dump/index/op-to-bundle.debug"),
+                    format!("{root_dir}/index/op-to-bundle.debug"),
                     format!("{:#?}", runtime.debug_bundle_op_index()),
                 )?;
                 fs::write(
-                    format!("rgb-dump/index/bundle-to-anchor.debug"),
+                    format!("{root_dir}/index/bundle-to-anchor.debug"),
                     format!("{:#?}", runtime.debug_anchor_bundle_index()),
                 )?;
                 fs::write(
-                    format!("rgb-dump/index/contracts.debug"),
+                    format!("{root_dir}/index/contracts.debug"),
                     format!("{:#?}", runtime.debug_contract_index()),
                 )?;
                 fs::write(
-                    format!("rgb-dump/index/terminals.debug"),
+                    format!("{root_dir}/index/terminals.debug"),
                     format!("{:#?}", runtime.debug_terminal_index()),
                 )?;
                 fs::write(
-                    format!("rgb-dump/seal-secret.debug"),
+                    format!("{root_dir}/seal-secret.debug"),
                     format!("{:#?}", runtime.debug_seal_secrets()),
                 )?;
             }
