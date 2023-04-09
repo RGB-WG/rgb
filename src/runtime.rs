@@ -21,6 +21,7 @@
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::fs::{self, File};
 use std::io;
 use std::ops::{Deref, DerefMut};
@@ -29,7 +30,7 @@ use std::path::PathBuf;
 use bitcoin::bip32::ExtendedPubKey;
 use rgbfs::StockFs;
 use rgbstd::containers::LoadError;
-use rgbstd::persistence::Stock;
+use rgbstd::persistence::{StashError, Stock};
 use rgbstd::Chain;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
@@ -54,6 +55,9 @@ pub enum RuntimeError {
     #[from]
     Load(LoadError),
 
+    #[from]
+    Stash(StashError<Infallible>),
+
     #[display(doc_comments)]
     /// wallet with id '{0}' is not know to the system
     WalletUnknown(Ident),
@@ -63,6 +67,10 @@ pub enum RuntimeError {
 
     #[from]
     Custom(String),
+}
+
+impl From<Infallible> for RuntimeError {
+    fn from(_: Infallible) -> Self { unreachable!() }
 }
 
 #[derive(Getters)]
