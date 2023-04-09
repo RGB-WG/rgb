@@ -246,7 +246,7 @@ impl Command {
 
             Command::Create { name, xpub } => {
                 let descr = runtime.create_wallet(&name, xpub)?;
-                println!("New wallet {name} with descriptor {descr} is created");
+                println!("Created new wallet '{name}' with descriptor '{descr}'");
             }
 
             Command::Utxos { wallet } => {

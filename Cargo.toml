@@ -20,13 +20,13 @@ license = "Apache-2.0"
 amplify = "4.0.0-beta.22"
 baid58 = "0.3.1"
 strict_encoding = "2.0.1"
-strict_types = "1.0.0-rc.1"
-rgb-std = { version = "0.10.0-rc.1", features = ["fs"] }
-rgb-wallet = { version = "0.10.0-beta.1", features = ["fs"] }
+strict_types = "1.0.0"
+rgb-std = { version = "0.10.0-rc.2", features = ["fs"] }
+rgb-wallet = { version = "0.10.0-rc.1", features = ["fs"] }
 
 [package]
 name = "rgb-contracts"
-version = "0.10.0-beta.1"
+version = "0.10.0-rc.1"
 description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
@@ -51,10 +51,10 @@ amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
 commit_verify = "0.10.0"
-bp-core = { version = "0.10.0-rc.2", features = ["serde"] }
+bp-core = { version = "0.10.0", features = ["serde"] }
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
-rgb-persist-fs = { version = "0.10.0-rc.1", path = "fs" }
+rgb-persist-fs = { version = "0.10.0", path = "fs" }
 bitcoin = { version = "0.30.0", features = ["serde"] }
 electrum-client = { version = "0.13.0", optional = true }
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
@@ -74,10 +74,4 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 features = [ "all" ]
 
 [patch.crates-io]
-aluvm = { git = "https://github.com/aluvm/rust-aluvm", branch = "bytestr-debug" }
-bp-primitives = { git = "https://github.com/BP-WG/bp-core", branch = "v0.10.0-release" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.10.0-release" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.10.0-release" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
-rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "v0.10.0-release" }
 electrum-client = { git = "https://github.com/RCasatta/rust-electrum-client", branch = "bitcoin_0_30" }
