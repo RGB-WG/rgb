@@ -91,14 +91,31 @@ pub trait DefaultResolver {
 }
 
 #[cfg(feature = "electrum")]
+#[derive(Wrapper, WrapperMut, From)]
+#[wrapper(Deref)]
+#[wrapper_mut(DerefMut)]
+pub struct BlockchainResolver(electrum_client::Client);
+
+impl BlockchainResolver {
+    #[cfg(feature = "electrum")]
+    pub fn with(url: &str) -> Result<Self, electrum_client::Error> {
+        electrum_client::Client::new(url).map(Self)
+    }
+}
+
+#[cfg(feature = "electrum")]
 mod _electrum {
+    use std::convert::Infallible;
+
     use bitcoin::ScriptBuf;
-    use bp::Chain;
-    use electrum_client::{ElectrumApi, ListUnspentRes};
+    use bp::{Chain, Tx, TxIn, TxOut, VarIntArray};
+    use electrum_client::{ElectrumApi, Error, ListUnspentRes};
+    use rgbstd::resolvers::ResolveHeight;
+    use rgbstd::validation::{ResolveTx, TxResolverError};
 
     use super::*;
 
-    impl DefaultResolver for bp::Chain {
+    impl DefaultResolver for Chain {
         fn default_resolver(&self) -> String {
             match self {
                 Chain::Bitcoin => s!("blockstream.info:110"),
@@ -110,7 +127,7 @@ mod _electrum {
         }
     }
 
-    impl Resolver for electrum_client::Client {
+    impl Resolver for BlockchainResolver {
         fn resolve_utxo<'s>(
             &mut self,
             scripts: BTreeMap<DeriveInfo, ScriptBuf>,
@@ -125,6 +142,46 @@ mod _electrum {
                         .map(move |res| Utxo::with(derivation.clone(), res))
                 })
                 .collect())
+        }
+    }
+
+    impl ResolveTx for BlockchainResolver {
+        fn resolve_tx(&self, txid: Txid) -> Result<Tx, TxResolverError> {
+            let tx = self
+                .0
+                .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_raw_array()))
+                .map_err(|err| match err {
+                    Error::Message(_) | Error::Protocol(_) => TxResolverError::Unknown(txid),
+                    err => TxResolverError::Other(txid, err.to_string()),
+                })?;
+            Ok(Tx {
+                version: (tx.version as u8)
+                    .try_into()
+                    .expect("non-consensus tx version"),
+                inputs: VarIntArray::try_from_iter(tx.input.into_iter().map(|txin| TxIn {
+                    prev_output: Outpoint::new(
+                        txin.previous_output.txid.to_byte_array().into(),
+                        txin.previous_output.vout,
+                    ),
+                    sig_script: txin.script_sig.to_bytes().into(),
+                    sequence: txin.sequence.0.into(),
+                }))
+                .expect("consensus-invalid transaction"),
+                outputs: VarIntArray::try_from_iter(tx.output.into_iter().map(|txout| TxOut {
+                    value: txout.value.into(),
+                    script_pubkey: txout.script_pubkey.to_bytes().into(),
+                }))
+                .expect("consensus-invalid transaction"),
+                lock_time: tx.lock_time.to_consensus_u32().into(),
+            })
+        }
+    }
+
+    impl ResolveHeight for BlockchainResolver {
+        type Error = Infallible;
+        fn resolve_height(&mut self, _txid: Txid) -> Result<u32, Self::Error> {
+            // TODO: find a way how to resolve transaction height
+            Ok(0)
         }
     }
 

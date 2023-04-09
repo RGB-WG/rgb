@@ -29,12 +29,14 @@ use std::path::PathBuf;
 
 use bitcoin::bip32::ExtendedPubKey;
 use rgbfs::StockFs;
-use rgbstd::containers::LoadError;
-use rgbstd::persistence::{StashError, Stock};
-use rgbstd::Chain;
+use rgbstd::containers::{Contract, LoadError, Transfer};
+use rgbstd::interface::BuilderError;
+use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgbstd::{validation, Chain};
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::descriptor::RgbDescr;
+use crate::wallet::BlockchainResolver;
 use crate::{RgbWallet, Tapret};
 
 #[derive(Debug, Display, Error, From)]
@@ -58,10 +60,21 @@ pub enum RuntimeError {
     #[from]
     Stash(StashError<Infallible>),
 
+    #[from]
+    #[from(InventoryDataError<Infallible>)]
+    Inventory(InventoryError<Infallible>),
+
+    #[from]
+    Builder(BuilderError),
+
     #[display(doc_comments)]
     /// wallet with id '{0}' is not know to the system
     WalletUnknown(Ident),
 
+    #[from]
+    Psbt(bitcoin::psbt::Error),
+
+    #[cfg(feature = "electrum")]
     #[from]
     Electrum(electrum_client::Error),
 
@@ -77,11 +90,13 @@ impl From<Infallible> for RuntimeError {
 pub struct Runtime {
     stock_path: PathBuf,
     wallets_path: PathBuf,
+    #[getter(skip)]
     stock: Stock,
     wallets: HashMap<Ident, RgbDescr>,
     #[getter(as_copy)]
     chain: Chain,
-    electrum: electrum_client::Client,
+    #[getter(skip)]
+    resolver: BlockchainResolver,
 }
 
 impl Deref for Runtime {
@@ -122,7 +137,7 @@ impl Runtime {
             serde_yaml::from_reader(&wallets_fd)?
         };
 
-        let electrum = electrum_client::Client::new(electrum)?;
+        let resolver = BlockchainResolver::with(electrum)?;
 
         Ok(Self {
             stock_path,
@@ -130,11 +145,13 @@ impl Runtime {
             stock,
             wallets,
             chain,
-            electrum,
+            resolver,
         })
     }
 
     pub fn unload(self) -> () {}
+
+    pub fn resolver(&mut self) -> &mut BlockchainResolver { &mut self.resolver }
 
     pub fn create_wallet(
         &mut self,
@@ -157,7 +174,25 @@ impl Runtime {
             .wallets
             .get(name)
             .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
-        RgbWallet::with(descr.clone(), &mut self.electrum).map_err(RuntimeError::from)
+        RgbWallet::with(descr.clone(), &mut self.resolver).map_err(RuntimeError::from)
+    }
+
+    pub fn import_contract(
+        &mut self,
+        contract: Contract,
+    ) -> Result<validation::Status, RuntimeError> {
+        self.stock
+            .import_contract(contract, &mut self.resolver)
+            .map_err(RuntimeError::from)
+    }
+
+    pub fn accept_transfer(
+        &mut self,
+        transfer: Transfer,
+    ) -> Result<validation::Status, RuntimeError> {
+        self.stock
+            .accept_transfer(transfer, &mut self.resolver)
+            .map_err(RuntimeError::from)
     }
 }
 

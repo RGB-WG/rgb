@@ -19,7 +19,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::convert::Infallible;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -28,19 +27,16 @@ use amplify::confinement::U16;
 use bitcoin::bip32::ExtendedPubKey;
 use bitcoin::psbt::Psbt;
 use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use bp::Tx;
 use rgb::{Runtime, RuntimeError};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
-use rgbstd::resolvers::ResolveHeight;
 use rgbstd::schema::SchemaId;
-use rgbstd::validation::{ResolveTx, TxResolverError};
 use rgbstd::Txid;
 use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
 use strict_types::encoding::{Ident, TypeName};
-use strict_types::{StrictDumb, StrictVal};
+use strict_types::StrictVal;
 
 // TODO: For now, serde implementation doesn't work for consignments due to
 //       some of the keys which can't be serialized to strings. Once this fixed,
@@ -210,44 +206,26 @@ pub enum Command {
     },
 }
 
-struct DumbResolver;
-
-impl ResolveTx for DumbResolver {
-    fn resolve_tx(&self, _txid: Txid) -> Result<Tx, TxResolverError> { Ok(Tx::strict_dumb()) }
-}
-
-impl ResolveHeight for DumbResolver {
-    type Error = Infallible;
-    fn resolve_height(&mut self, _txid: Txid) -> Result<u32, Self::Error> { Ok(0) }
-}
-
 impl Command {
     pub fn exec(self, runtime: &mut Runtime) -> Result<(), RuntimeError> {
         match self {
             Command::Schemata => {
-                for id in runtime.schema_ids().expect("infallible") {
+                for id in runtime.schema_ids()? {
                     print!("{id} ");
-                    for iimpl in runtime
-                        .schema(id)
-                        .expect("internal inconsistency")
-                        .iimpls
-                        .values()
-                    {
-                        let iface = runtime
-                            .iface_by_id(iimpl.iface_id)
-                            .expect("interface not found");
+                    for iimpl in runtime.schema(id)?.iimpls.values() {
+                        let iface = runtime.iface_by_id(iimpl.iface_id)?;
                         print!("{} ", iface.name);
                     }
                     println!();
                 }
             }
             Command::Interfaces => {
-                for (id, name) in runtime.ifaces().expect("infallible") {
+                for (id, name) in runtime.ifaces()? {
                     println!("{} {id}", name);
                 }
             }
             Command::Contracts => {
-                for id in runtime.contract_ids().expect("infallible") {
+                for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
             }
@@ -283,23 +261,18 @@ impl Command {
                 } else {
                     let bindle = UniversalBindle::load(file)?;
                     match bindle {
-                        UniversalBindle::Iface(iface) => {
-                            runtime.import_iface(iface).expect("invalid interface")
-                        }
-                        UniversalBindle::Schema(schema) => {
-                            runtime.import_schema(schema).expect("invalid schema")
-                        }
-                        UniversalBindle::Impl(iimpl) => runtime
-                            .import_iface_impl(iimpl)
-                            .expect("invalid interface implementation"),
+                        UniversalBindle::Iface(iface) => runtime.import_iface(iface)?,
+                        UniversalBindle::Schema(schema) => runtime.import_schema(schema)?,
+                        UniversalBindle::Impl(iimpl) => runtime.import_iface_impl(iimpl)?,
                         UniversalBindle::Contract(bindle) => {
-                            let contract = bindle
-                                .unbindle()
-                                .validate(&mut DumbResolver)
-                                .expect("invalid contract");
-                            runtime
-                                .import_contract(contract, &mut DumbResolver)
-                                .expect("invalid contract")
+                            let contract =
+                                bindle
+                                    .unbindle()
+                                    .validate(runtime.resolver())
+                                    .map_err(|c| {
+                                        c.validation_status().expect("just validated").to_string()
+                                    })?;
+                            runtime.import_contract(contract)?
                         }
                         UniversalBindle::Transfer(_) => {
                             return Err(s!("use `validate` and `accept` commands to work with \
@@ -310,7 +283,7 @@ impl Command {
                 }
             }
             Command::Export {
-                armored,
+                armored: _,
                 contract,
                 file,
             } => {
@@ -332,13 +305,8 @@ impl Command {
             } => {
                 let wallet = wallet.map(|w| runtime.wallet(&w)).transpose()?;
 
-                let iface = runtime
-                    .iface_by_name(&tn!(iface))
-                    .expect("invalid interface name")
-                    .clone();
-                let contract = runtime
-                    .contract_iface(contract_id, iface.iface_id())
-                    .expect("unknown contract");
+                let iface = runtime.iface_by_name(&tn!(iface))?.clone();
+                let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
 
                 println!("Global:");
                 for global in &contract.iface.global_state {
@@ -377,31 +345,29 @@ impl Command {
             }
             Command::Issue {
                 schema,
-                iface,
+                iface: iface_name,
                 contract,
             } => {
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
-                } = runtime.schema(schema).expect("unknown schema");
-                let iface = runtime
-                    .iface_by_name(&tn!(iface))
-                    .expect("invalid interface name")
-                    .clone();
+                } = runtime.schema(schema)?;
+                let iface_name = tn!(iface_name);
+                let iface = runtime.iface_by_name(&iface_name)?.clone();
                 let iface_id = iface.iface_id();
-                let iface_impl = iimpls
-                    .get(&iface_id)
-                    .expect("unknown interface implementation");
+                let iface_impl = iimpls.get(&iface_id).ok_or_else(|| {
+                    RuntimeError::Custom(format!(
+                        "no known interface implementation for {iface_name}"
+                    ))
+                })?;
                 let types = &schema.type_system;
 
-                let file = fs::File::open(contract).expect("invalid contract file");
+                let file = fs::File::open(contract)?;
 
-                let mut builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())
-                    .expect("schema fails to implement RGB20 interface")
+                let mut builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())?
                     .set_chain(runtime.chain());
 
-                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)
-                    .expect("invalid contract definition");
+                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
 
                 let code = code
                     .as_mapping()
@@ -494,10 +460,10 @@ impl Command {
 
                 let contract = builder.issue_contract().expect("failure issuing contract");
                 let validated_contract = contract
-                    .validate(&mut DumbResolver)
+                    .validate(runtime.resolver())
                     .expect("internal error: failed validating self-issued contract");
                 runtime
-                    .import_contract(validated_contract, &mut DumbResolver)
+                    .import_contract(validated_contract)
                     .expect("failure importing issued contract");
             }
             Command::Invoice {
@@ -519,9 +485,7 @@ impl Command {
                     chain: None,
                     unknown_query: none!(),
                 };
-                runtime
-                    .store_seal_secret(seal.blinding)
-                    .expect("infallible");
+                runtime.store_seal_secret(seal.blinding)?;
                 println!("{invoice}");
             }
             Command::Transfer {
@@ -531,16 +495,14 @@ impl Command {
                 out_file,
             } => {
                 // TODO: Check PSBT format
-                let psbt_data = fs::read(&psbt_file).expect("unable to read PSBT file");
-                let mut psbt = Psbt::deserialize(&psbt_data).expect("unable to parse PSBT file");
+                let psbt_data = fs::read(&psbt_file)?;
+                let mut psbt = Psbt::deserialize(&psbt_data)?;
                 let transfer = runtime
                     .pay(invoice, &mut psbt, method)
-                    .expect("error paying invoice");
-                fs::write(psbt_file, psbt.serialize()).expect("unable to write to PSBT file");
+                    .map_err(|err| err.to_string())?;
+                fs::write(psbt_file, psbt.serialize())?;
                 // TODO: Print PSBT as Base64
-                transfer
-                    .save(out_file)
-                    .expect("unable to write consignment to OUT_FILE");
+                transfer.save(out_file)?;
             }
             Command::Inspect { file } => {
                 let bindle = UniversalBindle::load(file)?;
@@ -650,7 +612,7 @@ impl Command {
             }
             Command::Validate { file } => {
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let status = match bindle.unbindle().validate(&mut DumbResolver) {
+                let status = match bindle.unbindle().validate(runtime.resolver()) {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err(consignment) => consignment.into_validation_status(),
                 }
@@ -662,7 +624,7 @@ impl Command {
                 let transfer =
                     bindle
                         .unbindle()
-                        .validate(&mut DumbResolver)
+                        .validate(runtime.resolver())
                         .map_err(|consignment| {
                             format!(
                                 "consignment is invalid.\n{}",
@@ -670,9 +632,7 @@ impl Command {
                             )
                         })?;
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
-                runtime
-                    .accept_transfer(transfer, &mut DumbResolver)
-                    .expect("invalid transfer");
+                runtime.accept_transfer(transfer)?;
                 eprintln!("Transfer accepted into the stash");
             }
         }

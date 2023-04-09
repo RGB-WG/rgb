@@ -32,4 +32,4 @@ mod wallet;
 
 pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
 pub use runtime::{Runtime, RuntimeError};
-pub use wallet::{DefaultResolver, RgbWallet};
+pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};
