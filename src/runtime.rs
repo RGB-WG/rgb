@@ -68,7 +68,7 @@ pub enum RuntimeError {
     Builder(BuilderError),
 
     #[display(doc_comments)]
-    /// wallet with id '{0}' is not know to the system
+    /// wallet with id '{0}' is not known to the system
     WalletUnknown(Ident),
 
     #[from]
@@ -189,9 +189,10 @@ impl Runtime {
     pub fn accept_transfer(
         &mut self,
         transfer: Transfer,
+        force: bool,
     ) -> Result<validation::Status, RuntimeError> {
         self.stock
-            .accept_transfer(transfer, &mut self.resolver)
+            .accept_transfer(transfer, &mut self.resolver, force)
             .map_err(RuntimeError::from)
     }
 }

@@ -201,6 +201,10 @@ pub enum Command {
     /// Validate transfer consignment & accept to the stash.
     #[display("accept")]
     Accept {
+        /// Force accepting consignments with non-mined terminal witness.
+        #[clap(short, long)]
+        force: bool,
+
         /// File with the transfer consignment.
         file: PathBuf,
     },
@@ -261,10 +265,29 @@ impl Command {
                 } else {
                     let bindle = UniversalBindle::load(file)?;
                     match bindle {
-                        UniversalBindle::Iface(iface) => runtime.import_iface(iface)?,
-                        UniversalBindle::Schema(schema) => runtime.import_schema(schema)?,
-                        UniversalBindle::Impl(iimpl) => runtime.import_iface_impl(iimpl)?,
+                        UniversalBindle::Iface(iface) => {
+                            let id = iface.id();
+                            let name = iface.name.clone();
+                            runtime.import_iface(iface)?;
+                            eprintln!("Interface {id} with name {name} imported to the stash");
+                        }
+                        UniversalBindle::Schema(schema) => {
+                            let id = schema.id();
+                            runtime.import_schema(schema)?;
+                            eprintln!("Schema {id} imported to the stash");
+                        }
+                        UniversalBindle::Impl(iimpl) => {
+                            let iface_id = iimpl.iface_id;
+                            let schema_id = iimpl.schema_id;
+                            let id = iimpl.id();
+                            runtime.import_iface_impl(iimpl)?;
+                            eprintln!(
+                                "Implementation {id} of interface {iface_id} for schema \
+                                 {schema_id} imported to the stash"
+                            );
+                        }
                         UniversalBindle::Contract(bindle) => {
+                            let id = bindle.id();
                             let contract =
                                 bindle
                                     .unbindle()
@@ -272,7 +295,8 @@ impl Command {
                                     .map_err(|c| {
                                         c.validation_status().expect("just validated").to_string()
                                     })?;
-                            runtime.import_contract(contract)?
+                            runtime.import_contract(contract)?;
+                            eprintln!("Contract {id} imported to the stash");
                         }
                         UniversalBindle::Transfer(_) => {
                             return Err(s!("use `validate` and `accept` commands to work with \
@@ -292,7 +316,8 @@ impl Command {
                     .map_err(|err| err.to_string())?;
                 if let Some(file) = file {
                     // TODO: handle armored flag
-                    bindle.save(file)?;
+                    bindle.save(&file)?;
+                    eprintln!("Contract {contract} exported to '{}'", file.display());
                 } else {
                     println!("{bindle}");
                 }
@@ -459,12 +484,17 @@ impl Command {
                 }
 
                 let contract = builder.issue_contract().expect("failure issuing contract");
+                let id = contract.contract_id();
                 let validated_contract = contract
                     .validate(runtime.resolver())
                     .expect("internal error: failed validating self-issued contract");
                 runtime
                     .import_contract(validated_contract)
                     .expect("failure importing issued contract");
+                eprintln!(
+                    "A new contract {id} is issued and added to the stash.\nUse `export` command \
+                     to export the contract."
+                );
             }
             Command::Invoice {
                 contract_id,
@@ -485,7 +515,7 @@ impl Command {
                     chain: None,
                     unknown_query: none!(),
                 };
-                runtime.store_seal_secret(seal.blinding)?;
+                runtime.store_seal_secret(seal)?;
                 println!("{invoice}");
             }
             Command::Transfer {
@@ -500,9 +530,16 @@ impl Command {
                 let transfer = runtime
                     .pay(invoice, &mut psbt, method)
                     .map_err(|err| err.to_string())?;
-                fs::write(psbt_file, psbt.serialize())?;
+                fs::write(&psbt_file, psbt.serialize())?;
                 // TODO: Print PSBT as Base64
-                transfer.save(out_file)?;
+                transfer.save(&out_file)?;
+                eprintln!("Transfer is created and saved into '{}'.", out_file.display());
+                eprintln!(
+                    "PSBT file '{}' is updated with all required commitments and ready to be \
+                     signed.",
+                    psbt_file.display()
+                );
+                eprintln!("Stash data are updated.");
             }
             Command::Inspect { file } => {
                 let bindle = UniversalBindle::load(file)?;
@@ -609,6 +646,7 @@ impl Command {
                     format!("{root_dir}/seal-secret.debug"),
                     format!("{:#?}", runtime.debug_seal_secrets()),
                 )?;
+                eprintln!("Dump is successfully generated and saved to '{root_dir}'");
             }
             Command::Validate { file } => {
                 let bindle = Bindle::<Transfer>::load(file)?;
@@ -619,20 +657,14 @@ impl Command {
                 .expect("just validated");
                 eprintln!("{status}");
             }
-            Command::Accept { file } => {
+            Command::Accept { force, file } => {
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let transfer =
-                    bindle
-                        .unbindle()
-                        .validate(runtime.resolver())
-                        .map_err(|consignment| {
-                            format!(
-                                "consignment is invalid.\n{}",
-                                consignment.validation_status().expect("just validated")
-                            )
-                        })?;
+                let transfer = bindle
+                    .unbindle()
+                    .validate(runtime.resolver())
+                    .unwrap_or_else(|c| c);
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
-                runtime.accept_transfer(transfer)?;
+                runtime.accept_transfer(transfer, force)?;
                 eprintln!("Transfer accepted into the stash");
             }
         }
