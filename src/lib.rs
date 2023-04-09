@@ -18,3 +18,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#[macro_use]
+extern crate amplify;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde;
+
+mod descriptor;
+mod runtime;
+mod wallet;
+
+pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
+pub use runtime::{Runtime, RuntimeError};
+pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};

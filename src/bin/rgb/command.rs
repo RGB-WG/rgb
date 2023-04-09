@@ -19,34 +19,73 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::convert::Infallible;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
+use bitcoin::bip32::ExtendedPubKey;
 use bitcoin::psbt::Psbt;
 use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use bp::Tx;
-use rgbstd::containers::UniversalBindle;
+use rgb::{Runtime, RuntimeError};
+use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces};
-use rgbstd::persistence::{Inventory, Stash, Stock};
-use rgbstd::resolvers::ResolveHeight;
+use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
-use rgbstd::validation::{ResolveTx, TxResolverError};
-use rgbstd::{Chain, Txid};
+use rgbstd::Txid;
 use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
-use strict_types::encoding::TypeName;
-use strict_types::{StrictDumb, StrictVal};
+use strict_types::encoding::{Ident, TypeName};
+use strict_types::StrictVal;
 
-#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display, Default)]
+// TODO: For now, serde implementation doesn't work for consignments due to
+//       some of the keys which can't be serialized to strings. Once this fixed,
+//       allow this inspect formats option
+/*
+#[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Hash, Debug, Display, Default)]
+#[display(lowercase)]
+pub enum InspectFormat {
+    #[default]
+    Yaml,
+    Toml,
+    Json,
+    Debug,
+    Contractum,
+}
+ */
+
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
 pub enum Command {
-    /// Prints out detailed information about RGB stash.
-    #[default]
-    #[clap(alias = "stash")]
-    Info,
+    /// Prints out list of known RGB schemata.
+    Schemata,
+    /// Prints out list of known RGB interfaces.
+    Interfaces,
+    /// Prints out list of known RGB contracts.
+    Contracts,
+    /// Prints out list of wallets.
+    Wallets {
+        /// Print out full descriptor with all tapret commitments.
+        #[clap(short, long)]
+        long: bool,
+    },
+
+    /// Create a new wallet (only key-spent only taproot wallets are supported).
+    Create {
+        /// Name of the new wallet
+        name: Ident,
+
+        /// Extended public key (account-level) to create a new wallet using
+        /// key-only taproot descriptor.
+        xpub: ExtendedPubKey,
+    },
+
+    /// Display list of UTXOs for a given wallet.
+    Utxos {
+        /// Wallet to filter the state.
+        #[clap(short, long, default_value = "default")]
+        wallet: Ident,
+    },
 
     /// Imports RGB data into the stash: contracts, schema, interfaces etc.
     #[display("import")]
@@ -60,12 +99,15 @@ pub enum Command {
         file: PathBuf,
     },
 
-    /// Exports existing RGB data from the stash.
+    /// Exports existing RGB contract.
     #[display("export")]
     Export {
         /// Use BASE64 ASCII armoring for binary data.
         #[clap(short)]
         armored: bool,
+
+        /// Contract to export.
+        contract: ContractId,
 
         /// File with RGB data. If not provided, assumes `-a` and reads the data
         /// from STDIN.
@@ -73,7 +115,12 @@ pub enum Command {
     },
 
     /// Reports information about state of a contact.
+    #[display("state")]
     State {
+        /// Wallet to filter the state.
+        #[clap(short, long)]
+        wallet: Option<Ident>,
+
         /// Contract identifier.
         contract_id: ContractId,
         /// Interface to interpret the state data.
@@ -125,138 +172,227 @@ pub enum Command {
         /// Filename to save transfer consignment.
         out_file: PathBuf,
     },
-}
 
-struct DumbResolver;
+    /// Inspects any RGB data file.
+    #[display("inspect")]
+    Inspect {
+        // #[clap(short, long, default_value = "yaml")]
+        // /// Format used for data inspection
+        // format: InspectFormat,
+        /// RGB file to inspect.
+        file: PathBuf,
+    },
 
-impl ResolveTx for DumbResolver {
-    fn resolve_tx(&self, _txid: Txid) -> Result<Tx, TxResolverError> { Ok(Tx::strict_dumb()) }
-}
+    /// Debug-dump all stash and inventory data.
+    #[display("dump")]
+    Dump {
+        /// Directory to put the dump into.
+        #[clap(default_value = "./rgb-dump")]
+        root_dir: String,
+    },
 
-impl ResolveHeight for DumbResolver {
-    type Error = Infallible;
-    fn resolve_height(&mut self, _txid: Txid) -> Result<u32, Self::Error> { Ok(0) }
+    /// Validate transfer consignment.
+    #[display("validate")]
+    Validate {
+        /// File with the transfer consignment.
+        file: PathBuf,
+    },
+
+    /// Validate transfer consignment & accept to the stash.
+    #[display("accept")]
+    Accept {
+        /// Force accepting consignments with non-mined terminal witness.
+        #[clap(short, long)]
+        force: bool,
+
+        /// File with the transfer consignment.
+        file: PathBuf,
+    },
 }
 
 impl Command {
-    pub fn exec(self, stock: &mut Stock, chain: Chain) {
+    pub fn exec(self, runtime: &mut Runtime) -> Result<(), RuntimeError> {
         match self {
-            Self::Info => {
-                println!("Schemata:");
-                println!("---------");
-                for id in stock.schema_ids().expect("infallible") {
-                    print!("{id:-}: ");
-                    for iimpl in stock
-                        .schema(id)
-                        .expect("internal inconsistency")
-                        .iimpls
-                        .values()
-                    {
-                        let iface = stock
-                            .iface_by_id(iimpl.iface_id)
-                            .expect("interface not found");
+            Command::Schemata => {
+                for id in runtime.schema_ids()? {
+                    print!("{id} ");
+                    for iimpl in runtime.schema(id)?.iimpls.values() {
+                        let iface = runtime.iface_by_id(iimpl.iface_id)?;
                         print!("{} ", iface.name);
                     }
                     println!();
                 }
-
-                println!("\nInterfaces:");
-                println!("---------");
-                for (id, name) in stock.ifaces().expect("infallible") {
-                    println!("{} {id:-}", name);
-                }
-
-                println!("\nContracts:");
-                println!("---------");
-                for id in stock.contract_ids().expect("infallible") {
-                    println!("{id::<}");
+            }
+            Command::Interfaces => {
+                for (id, name) in runtime.ifaces()? {
+                    println!("{} {id}", name);
                 }
             }
+            Command::Contracts => {
+                for id in runtime.contract_ids()? {
+                    println!("{id}");
+                }
+            }
+
+            Command::Wallets { long: details } => {
+                for (name, descriptor) in runtime.wallets() {
+                    if details {
+                        println!("{name} {descriptor:#}");
+                    } else {
+                        println!("{name} {descriptor}");
+                    }
+                }
+            }
+
+            Command::Create { name, xpub } => {
+                let descr = runtime.create_wallet(&name, xpub)?;
+                println!("Created new wallet '{name}' with descriptor '{descr}'");
+            }
+
+            Command::Utxos { wallet } => {
+                let wallet = runtime.wallet(&wallet)?;
+                for utxo in &wallet.utxos {
+                    println!(
+                        "outpoint={}, height={}, amount={}, derivation={}",
+                        utxo.outpoint, utxo.status, utxo.amount, utxo.derivation
+                    );
+                }
+            }
+
             Command::Import { armored, file } => {
                 if armored {
                     todo!()
                 } else {
-                    let bindle = UniversalBindle::load(file).expect("invalid RGB file");
+                    let bindle = UniversalBindle::load(file)?;
                     match bindle {
                         UniversalBindle::Iface(iface) => {
-                            stock.import_iface(iface).expect("invalid interface")
+                            let id = iface.id();
+                            let name = iface.name.clone();
+                            runtime.import_iface(iface)?;
+                            eprintln!("Interface {id} with name {name} imported to the stash");
                         }
                         UniversalBindle::Schema(schema) => {
-                            stock.import_schema(schema).expect("invalid schema")
+                            let id = schema.id();
+                            runtime.import_schema(schema)?;
+                            eprintln!("Schema {id} imported to the stash");
                         }
-                        UniversalBindle::Impl(iimpl) => stock
-                            .import_iface_impl(iimpl)
-                            .expect("invalid interface implementation"),
+                        UniversalBindle::Impl(iimpl) => {
+                            let iface_id = iimpl.iface_id;
+                            let schema_id = iimpl.schema_id;
+                            let id = iimpl.id();
+                            runtime.import_iface_impl(iimpl)?;
+                            eprintln!(
+                                "Implementation {id} of interface {iface_id} for schema \
+                                 {schema_id} imported to the stash"
+                            );
+                        }
                         UniversalBindle::Contract(bindle) => {
-                            let contract = bindle
-                                .unbindle()
-                                .validate(&mut DumbResolver)
-                                .expect("invalid contract");
-                            stock
-                                .import_contract(contract, &mut DumbResolver)
-                                .expect("invalid contract")
+                            let id = bindle.id();
+                            let contract =
+                                bindle
+                                    .unbindle()
+                                    .validate(runtime.resolver())
+                                    .map_err(|c| {
+                                        c.validation_status().expect("just validated").to_string()
+                                    })?;
+                            runtime.import_contract(contract)?;
+                            eprintln!("Contract {id} imported to the stash");
                         }
-                        UniversalBindle::Transfer(bindle) => {
-                            let transfer = bindle
-                                .unbindle()
-                                .validate(&mut DumbResolver)
-                                .expect("invalid transfer");
-                            stock
-                                .accept_transfer(transfer, &mut DumbResolver)
-                                .expect("invalid transfer")
+                        UniversalBindle::Transfer(_) => {
+                            return Err(s!("use `validate` and `accept` commands to work with \
+                                           transfer consignments")
+                            .into());
                         }
                     };
                 }
             }
-            Command::Export { .. } => {}
-            Command::State { contract_id, iface } => {
-                let iface = stock
-                    .iface_by_name(&tn!(iface))
-                    .expect("invalid interface name")
-                    .clone();
-                let contract = stock
-                    .contract_iface(contract_id, iface.iface_id())
-                    .expect("unknown contract");
+            Command::Export {
+                armored: _,
+                contract,
+                file,
+            } => {
+                let bindle = runtime
+                    .export_contract(contract)
+                    .map_err(|err| err.to_string())?;
+                if let Some(file) = file {
+                    // TODO: handle armored flag
+                    bindle.save(&file)?;
+                    eprintln!("Contract {contract} exported to '{}'", file.display());
+                } else {
+                    println!("{bindle}");
+                }
+            }
 
-                let nominal = contract.global("Nominal").unwrap();
-                let allocations = contract.fungible("Assets").unwrap();
-                eprintln!("Global state:\nNominal:={}\n", nominal[0]);
+            Command::State {
+                wallet,
+                contract_id,
+                iface,
+            } => {
+                let wallet = wallet.map(|w| runtime.wallet(&w)).transpose()?;
 
-                eprintln!("Owned state:");
-                for allocation in allocations {
-                    eprintln!(
-                        "  (amount={}, owner={}, witness={})",
-                        allocation.value, allocation.owner, allocation.witness
-                    );
+                let iface = runtime.iface_by_name(&tn!(iface))?.clone();
+                let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
+
+                println!("Global:");
+                for global in &contract.iface.global_state {
+                    if let Ok(values) = contract.global(global.name.clone()) {
+                        for val in values {
+                            println!("  {} := {}", global.name, val);
+                        }
+                    }
+                }
+
+                println!("\nOwned:");
+                for owned in &contract.iface.assignments {
+                    println!("  {}:", owned.name);
+                    if let Ok(allocations) = contract.fungible(owned.name.clone()) {
+                        for allocation in allocations {
+                            if let Some(utxo) =
+                                wallet.as_ref().and_then(|w| w.utxo(allocation.owner))
+                            {
+                                println!(
+                                    "    amount={}, utxo={}, witness={}, derivation={}",
+                                    allocation.value,
+                                    allocation.owner,
+                                    allocation.witness,
+                                    utxo.derivation
+                                );
+                            } else {
+                                println!(
+                                    "    amount={}, utxo={}, witness={} # owner unknown",
+                                    allocation.value, allocation.owner, allocation.witness
+                                );
+                            }
+                        }
+                    }
+                    // TODO: Print out other types of state
                 }
             }
             Command::Issue {
                 schema,
-                iface,
+                iface: iface_name,
                 contract,
             } => {
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
-                } = stock.schema(schema).expect("unknown schema");
-                let iface = stock
-                    .iface_by_name(&tn!(iface))
-                    .expect("invalid interface name")
-                    .clone();
+                } = runtime.schema(schema)?;
+                let iface_name = tn!(iface_name);
+                let iface = runtime.iface_by_name(&iface_name)?.clone();
                 let iface_id = iface.iface_id();
-                let iface_impl = iimpls
-                    .get(&iface_id)
-                    .expect("unknown interface implementation");
+                let iface_impl = iimpls.get(&iface_id).ok_or_else(|| {
+                    RuntimeError::Custom(format!(
+                        "no known interface implementation for {iface_name}"
+                    ))
+                })?;
                 let types = &schema.type_system;
 
-                let file = fs::File::open(contract).expect("invalid contract file");
+                let file = fs::File::open(contract)?;
 
-                let mut builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())
-                    .expect("schema fails to implement RGB20 interface")
-                    .set_chain(chain);
+                let mut builder = ContractBuilder::with(iface, schema.clone(), iface_impl.clone())?
+                    .set_chain(runtime.chain());
 
-                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)
-                    .expect("invalid contract definition");
+                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
 
                 let code = code
                     .as_mapping()
@@ -348,12 +484,17 @@ impl Command {
                 }
 
                 let contract = builder.issue_contract().expect("failure issuing contract");
+                let id = contract.contract_id();
                 let validated_contract = contract
-                    .validate(&mut DumbResolver)
+                    .validate(runtime.resolver())
                     .expect("internal error: failed validating self-issued contract");
-                stock
-                    .import_contract(validated_contract, &mut DumbResolver)
+                runtime
+                    .import_contract(validated_contract)
                     .expect("failure importing issued contract");
+                eprintln!(
+                    "A new contract {id} is issued and added to the stash.\nUse `export` command \
+                     to export the contract."
+                );
             }
             Command::Invoice {
                 contract_id,
@@ -374,7 +515,7 @@ impl Command {
                     chain: None,
                     unknown_query: none!(),
                 };
-                stock.store_seal_secret(seal.blinding).expect("infallible");
+                runtime.store_seal_secret(seal)?;
                 println!("{invoice}");
             }
             Command::Transfer {
@@ -384,17 +525,150 @@ impl Command {
                 out_file,
             } => {
                 // TODO: Check PSBT format
-                let psbt_data = fs::read(&psbt_file).expect("unable to read PSBT file");
-                let mut psbt = Psbt::deserialize(&psbt_data).expect("unable to parse PSBT file");
-                let transfer = stock
+                let psbt_data = fs::read(&psbt_file)?;
+                let mut psbt = Psbt::deserialize(&psbt_data)?;
+                let transfer = runtime
                     .pay(invoice, &mut psbt, method)
-                    .expect("error paying invoice");
-                fs::write(psbt_file, psbt.serialize()).expect("unable to write to PSBT file");
+                    .map_err(|err| err.to_string())?;
+                fs::write(&psbt_file, psbt.serialize())?;
                 // TODO: Print PSBT as Base64
-                transfer
-                    .save(out_file)
-                    .expect("unable to write consignment to OUT_FILE");
+                transfer.save(&out_file)?;
+                eprintln!("Transfer is created and saved into '{}'.", out_file.display());
+                eprintln!(
+                    "PSBT file '{}' is updated with all required commitments and ready to be \
+                     signed.",
+                    psbt_file.display()
+                );
+                eprintln!("Stash data are updated.");
+            }
+            Command::Inspect { file } => {
+                let bindle = UniversalBindle::load(file)?;
+                // TODO: For now, serde implementation doesn't work for consignments due to
+                //       some of the keys which can't be serialized to strings. Once this fixed,
+                //       allow this inspect formats option
+                /* let s = match format {
+                    InspectFormat::Yaml => {
+                        serde_yaml::to_string(&bindle).expect("unable to present as YAML")
+                    }
+                    InspectFormat::Toml => {
+                        toml::to_string(&bindle).expect("unable to present as TOML")
+                    }
+                    InspectFormat::Json => {
+                        serde_json::to_string(&bindle).expect("unable to present as JSON")
+                    }
+                    InspectFormat::Debug => format!("{bindle:#?}"),
+                    InspectFormat::Contractum => todo!("contractum representation"),
+                };
+                println!("{s}");
+                 */
+                println!("{bindle:#?}");
+            }
+            Command::Dump { root_dir } => {
+                fs::remove_dir_all(&root_dir).ok();
+                fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/contracts"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/anchors"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
+                fs::create_dir_all(format!("{root_dir}/state"))?;
+                fs::create_dir_all(format!("{root_dir}/index"))?;
+
+                // Stash
+                for id in runtime.schema_ids()? {
+                    fs::write(
+                        format!("{root_dir}/stash/schemata/{id}.debug"),
+                        format!("{:#?}", runtime.schema(id)?),
+                    )?;
+                }
+                for (id, name) in runtime.ifaces()? {
+                    fs::write(
+                        format!("{root_dir}/stash/ifaces/{id}.{name}.debug"),
+                        format!("{:#?}", runtime.iface_by_id(id)?),
+                    )?;
+                }
+                for id in runtime.contract_ids()? {
+                    fs::write(
+                        format!("{root_dir}/stash/contracts/{id}.debug"),
+                        format!("{:#?}", runtime.genesis(id)?),
+                    )?;
+                    for (no, suppl) in runtime.contract_suppl(id).into_iter().flatten().enumerate()
+                    {
+                        fs::write(
+                            format!("{root_dir}/stash/contracts/{id}.suppl.{no:03}.debug"),
+                            format!("{:#?}", suppl),
+                        )?;
+                    }
+                }
+                for id in runtime.bundle_ids()? {
+                    fs::write(
+                        format!("{root_dir}/stash/bundles/{id}.debug"),
+                        format!("{:#?}", runtime.bundle(id)?),
+                    )?;
+                }
+                for id in runtime.anchor_ids()? {
+                    fs::write(
+                        format!("{root_dir}/stash/anchors/{id}.debug"),
+                        format!("{:#?}", runtime.anchor(id)?),
+                    )?;
+                }
+                for id in runtime.extension_ids()? {
+                    fs::write(
+                        format!("{root_dir}/stash/extensions/{id}.debug"),
+                        format!("{:#?}", runtime.extension(id)?),
+                    )?;
+                }
+                // TODO: Add sigs debugging
+
+                // State
+                for (id, history) in runtime.debug_history() {
+                    fs::write(format!("{root_dir}/state/{id}.debug"), format!("{:#?}", history))?;
+                }
+
+                // Index
+                fs::write(
+                    format!("{root_dir}/index/op-to-bundle.debug"),
+                    format!("{:#?}", runtime.debug_bundle_op_index()),
+                )?;
+                fs::write(
+                    format!("{root_dir}/index/bundle-to-anchor.debug"),
+                    format!("{:#?}", runtime.debug_anchor_bundle_index()),
+                )?;
+                fs::write(
+                    format!("{root_dir}/index/contracts.debug"),
+                    format!("{:#?}", runtime.debug_contract_index()),
+                )?;
+                fs::write(
+                    format!("{root_dir}/index/terminals.debug"),
+                    format!("{:#?}", runtime.debug_terminal_index()),
+                )?;
+                fs::write(
+                    format!("{root_dir}/seal-secret.debug"),
+                    format!("{:#?}", runtime.debug_seal_secrets()),
+                )?;
+                eprintln!("Dump is successfully generated and saved to '{root_dir}'");
+            }
+            Command::Validate { file } => {
+                let bindle = Bindle::<Transfer>::load(file)?;
+                let status = match bindle.unbindle().validate(runtime.resolver()) {
+                    Ok(consignment) => consignment.into_validation_status(),
+                    Err(consignment) => consignment.into_validation_status(),
+                }
+                .expect("just validated");
+                eprintln!("{status}");
+            }
+            Command::Accept { force, file } => {
+                let bindle = Bindle::<Transfer>::load(file)?;
+                let transfer = bindle
+                    .unbindle()
+                    .validate(runtime.resolver())
+                    .unwrap_or_else(|c| c);
+                eprintln!("{}", transfer.validation_status().expect("just validated"));
+                runtime.accept_transfer(transfer, force)?;
+                eprintln!("Transfer accepted into the stash");
             }
         }
+
+        Ok(())
     }
 }

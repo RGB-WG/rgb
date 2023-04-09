@@ -13,9 +13,9 @@ dependencies = [
 
 [[package]]
 name = "aluvm"
-version = "0.10.0-rc.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c8b31faf1f2667ba122c49112d3c643588d11e7a999585192c2d492d697bb46"
+checksum = "bd4cfe45ca7f2d3aab1de4a8868f80d8bddb5755f034b6af0e629b03345f86b9"
 dependencies = [
  "amplify",
  "baid58",
@@ -28,9 +28,9 @@ dependencies = [
 
 [[package]]
 name = "amplify"
-version = "4.0.0-beta.20"
+version = "4.0.0-beta.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da67d736b18002e654099c6b393ebb3058825513baefec514cf7725c2088ced7"
+checksum = "63ee47f02478dc742201353a504cba65c7ca0959b4830c9324e7e95c8f98b3fa"
 dependencies = [
  "amplify_apfloat",
  "amplify_derive",
@@ -165,9 +165,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "baid58"
-version = "0.2.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a05192bd44b6cced6d9f89b98d82fba5d1df844332e34d4888ec6ba5b28a487"
+checksum = "5dce38f6b284b55ab61c1efe2143ac5ca2fcc6090536884e55921f4e002894de"
 dependencies = [
  "base58",
  "blake3",
@@ -209,6 +209,7 @@ dependencies = [
  "bitcoin_hashes",
  "hex_lit",
  "secp256k1 0.27.0",
+ "serde",
 ]
 
 [[package]]
@@ -224,6 +225,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d7066118b13d4b20b23645932dfb3a81ce7e29f95726c2036fa33cd7b092501"
 dependencies = [
  "bitcoin-private",
+ "serde",
 ]
 
 [[package]]
@@ -257,49 +259,53 @@ dependencies = [
 
 [[package]]
 name = "bp-core"
-version = "0.10.0-rc.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6feca907cebbd73759a7be15ca039b43d3f01d2221ca20c9082e6967a9a6cc4c"
+checksum = "ed709a7fc8897c5bf9e013b83b2495dc3d386efaf4b227efba8eea952077aa16"
 dependencies = [
  "amplify",
  "bp-dbc",
  "bp-primitives",
  "bp-seals",
  "commit_verify",
+ "serde",
  "single_use_seals",
  "strict_encoding",
 ]
 
 [[package]]
 name = "bp-dbc"
-version = "0.10.0-rc.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c91baad4c7a18ecb24261a2482bf87b0628011b724913b29d2dbbc003a65f82"
+checksum = "4416e203e2ef0853db5c4bb9d057d708866a27207eaba5cd915331ee7f85d8bb"
 dependencies = [
  "amplify",
+ "baid58",
  "bp-primitives",
  "commit_verify",
  "secp256k1 0.27.0",
+ "serde",
  "strict_encoding",
 ]
 
 [[package]]
 name = "bp-primitives"
-version = "0.10.0-rc.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a4d444dbcc3df9f92c361d76edec7f9a33d323ab3c3f001bd75711f8be56a9d"
+checksum = "995ee52ede9d035e15646bfece4d4a09b4e4bf4fe9523e6f3388f67cb1d4d3cf"
 dependencies = [
  "amplify",
  "commit_verify",
  "secp256k1 0.27.0",
+ "serde",
  "strict_encoding",
 ]
 
 [[package]]
 name = "bp-seals"
-version = "0.10.0-rc.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24f0598dcb7c3c8c8b983eca9ef0dbfdc86503e5b258918122ac90d88030dcea"
+checksum = "1e99c62130e9b9e8422f69c84a492494b637247b0c13ba463b78fdfd34bbe887"
 dependencies = [
  "amplify",
  "baid58",
@@ -307,6 +313,7 @@ dependencies = [
  "bp-primitives",
  "commit_verify",
  "rand",
+ "serde",
  "single_use_seals",
  "strict_encoding",
 ]
@@ -408,6 +415,7 @@ checksum = "a517ba2f2008e980c6cefe0553a7b56541b0a129e9e809d36770c9b1c6429c1b"
 dependencies = [
  "amplify",
  "rand",
+ "serde",
  "strict_encoding",
 ]
 
@@ -565,6 +573,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "electrum-client"
+version = "0.13.0"
+source = "git+https://github.com/RCasatta/rust-electrum-client?branch=bitcoin_0_30#c925a9179e6497ed33e8c759bc526d5448be418d"
+dependencies = [
+ "bitcoin",
+ "bitcoin-private",
+ "byteorder",
+ "libc",
+ "log",
+ "rustls",
+ "serde",
+ "serde_json",
+ "webpki",
+ "webpki-roots",
+ "winapi",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,13 +605,13 @@ dependencies = [
 
 [[package]]
 name = "errno"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50d6a0976c999d473fe89ad888d5a284e55366d9dc9038b1ba2aa15128c4afa0"
+checksum = "4bcfec3a70f97c962c307b2d2c56e358cf1d00b558d74262b5f929ee8cc7e73a"
 dependencies = [
  "errno-dragonfly",
  "libc",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -625,9 +651,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
+checksum = "c85e1d9ab2eadba7e5040d4e09cbd6d072b76a557ad64e797c2cb9d4da21d7e4"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -735,14 +761,14 @@ dependencies = [
 
 [[package]]
 name = "is-terminal"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "256017f749ab3117e93acb91063009e1f1bb56d03965b14c2c8df4eb02c524d8"
+checksum = "adcf93614601c8129ddf72e2d5633df827ba6551541c6d8c59520a371475be1f"
 dependencies = [
  "hermit-abi",
  "io-lifetimes",
  "rustix",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -942,18 +968,21 @@ checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
 name = "rgb-contracts"
-version = "0.10.0-beta.1"
+version = "0.10.0-rc.1"
 dependencies = [
  "amplify",
  "baid58",
  "bitcoin",
  "bp-core",
  "clap",
+ "commit_verify",
+ "electrum-client",
  "env_logger",
  "log",
  "rgb-persist-fs",
  "rgb-std",
  "rgb-wallet",
+ "serde",
  "serde_yaml",
  "shellexpand",
  "strict_types",
@@ -961,9 +990,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-core"
-version = "0.10.0-rc.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "922f39cecd9570931a66b810954952fcce33c7a7cab9d6cf0dbd878c20d48fc1"
+checksum = "ae047f5ae6434761d68b488bd72c573d6c27ad1700a73f5a633f495e9c071b13"
 dependencies = [
  "aluvm",
  "amplify",
@@ -981,7 +1010,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-persist-fs"
-version = "0.10.0-rc.1"
+version = "0.10.0"
 dependencies = [
  "amplify",
  "rgb-std",
@@ -990,9 +1019,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-std"
-version = "0.10.0-rc.1"
+version = "0.10.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5c15060e897349ee8aa09e3bdea0630b36a530e2657cefd6d262078cfca478d"
+checksum = "cd5873e0dbc479dc5ae66a08c0d58e4016381823b7b298c171008a2816d06693"
 dependencies = [
  "amplify",
  "baid58",
@@ -1009,9 +1038,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-wallet"
-version = "0.10.0-beta.1"
+version = "0.10.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5157775eea3a372a674a1aa4111a8fa12ed07e901e59d1a5ce6bb8d607077989"
+checksum = "85b6dbacdf8a1f3b33750fc8296ebf3016aa48eb9b78c7531482118278522497"
 dependencies = [
  "amplify",
  "baid58",
@@ -1028,17 +1057,44 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustix"
-version = "0.37.7"
+name = "ring"
+version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2aae838e49b3d63e9274e1c01833cc8139d3fec468c3b84688c628f44b1ae11d"
+checksum = "3053cf52e236a3ed746dfc745aa9cacf1b791d846bdaf412f60a8d7d6e17c8fc"
+dependencies = [
+ "cc",
+ "libc",
+ "once_cell",
+ "spin",
+ "untrusted",
+ "web-sys",
+ "winapi",
+]
+
+[[package]]
+name = "rustix"
+version = "0.37.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85597d61f83914ddeba6a47b3b8ffe7365107221c2e557ed94426489fefb5f77"
 dependencies = [
  "bitflags",
  "errno",
  "io-lifetimes",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "rustls"
+version = "0.20.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fff78fc74d175294f4e83b28343315ffcfb114b156f0185e9741cb5570f50e2f"
+dependencies = [
+ "log",
+ "ring",
+ "sct",
+ "webpki",
 ]
 
 [[package]]
@@ -1052,6 +1108,16 @@ name = "scratch"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1792db035ce95be60c3f8853017b3999209281c24e2ba5bc8e59bf97a0c590c1"
+
+[[package]]
+name = "sct"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
+dependencies = [
+ "ring",
+ "untrusted",
+]
 
 [[package]]
 name = "secp256k1"
@@ -1072,6 +1138,7 @@ dependencies = [
  "bitcoin_hashes",
  "rand",
  "secp256k1-sys 0.8.1",
+ "serde",
 ]
 
 [[package]]
@@ -1223,6 +1290,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "spin"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
 name = "strict_encoding"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1249,9 +1322,9 @@ dependencies = [
 
 [[package]]
 name = "strict_types"
-version = "1.0.0-rc.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "371701e525f77661673ef2dca749793000162c28eb9745e69499653f61f6a9e2"
+checksum = "393b6852bba3c81f9548e5bf4f562bea538a413222585d87e99dd1cdffdb12f8"
 dependencies = [
  "amplify",
  "baid58",
@@ -1434,6 +1507,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1865806a559042e51ab5414598446a5871b561d21b6764f2eabb0dd481d880a6"
 
 [[package]]
+name = "untrusted"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
+
+[[package]]
 name = "utf8parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1504,6 +1583,35 @@ name = "wasm-bindgen-shared"
 version = "0.2.84"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0046fef7e28c3804e5e38bfa31ea2a0f73905319b677e57ebe37e49358989b5d"
+
+[[package]]
+name = "web-sys"
+version = "0.3.61"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e33b99f4b23ba3eec1a53ac264e35a755f00e966e0065077d6027c0f575b0b97"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "webpki"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.22.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
+dependencies = [
+ "webpki",
+]
 
 [[package]]
 name = "winapi"

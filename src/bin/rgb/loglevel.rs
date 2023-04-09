@@ -20,6 +20,7 @@
 // limitations under the License.
 
 use std::env;
+
 use log::LevelFilter;
 
 /// Represents desired logging verbosity level
