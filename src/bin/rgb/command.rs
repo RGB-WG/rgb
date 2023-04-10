@@ -30,7 +30,7 @@ use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use rgb::{Runtime, RuntimeError};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, SchemaIfaces};
+use rgbstd::interface::{ContractBuilder, SchemaIfaces, TypedState};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::Txid;
@@ -511,7 +511,7 @@ impl Command {
                     operation: None,
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
-                    value,
+                    owned_state: TypedState::Amount(value),
                     chain: None,
                     unknown_query: none!(),
                 };
