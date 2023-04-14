@@ -120,6 +120,7 @@ mod _electrum {
             match self {
                 Chain::Bitcoin => s!("blockstream.info:110"),
                 Chain::Testnet3 => s!("blockstream.info:143"),
+                Chain::Regtest => s!("localhost:50001"),
                 chain => {
                     panic!("no default server is known for {chain}, please provide a custom URL")
                 }
