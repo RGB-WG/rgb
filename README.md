@@ -48,7 +48,7 @@ Next, you need to install developer components, which are OS-specific:
   brew install cmake pkg-config
   ```
 
-* Windows: download and install the latest [Visual Studio Redistributable][VS]
+* Windows: download and install the latest [Build Tools for Visual Studio](https://aka.ms/vs/17/release/vs_BuildTools.exe), including the 'Desktop development with C++' workflow and recommended optional features
 
 Finally, install RGB command-line utility shipped with this repo by running
 ```
