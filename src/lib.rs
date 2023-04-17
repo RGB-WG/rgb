@@ -30,6 +30,15 @@ mod descriptor;
 mod runtime;
 mod wallet;
 
-pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
-pub use runtime::{Runtime, RuntimeError};
-pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};
+pub mod prelude {
+    pub use super::*;
+
+    pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
+    pub use runtime::{Runtime, RuntimeError};
+    pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};
+
+    pub use rgbwallet::*;
+    pub use rgbstd::*;
+    pub use rgbfs::StockFs;
+}
+pub use prelude::*;
