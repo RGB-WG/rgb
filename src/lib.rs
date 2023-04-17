@@ -31,14 +31,13 @@ mod runtime;
 mod wallet;
 
 pub mod prelude {
-    pub use super::*;
-
     pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
+    pub use rgbfs::StockFs;
+    pub use rgbstd::*;
+    pub use rgbwallet::*;
     pub use runtime::{Runtime, RuntimeError};
     pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};
 
-    pub use rgbwallet::*;
-    pub use rgbstd::*;
-    pub use rgbfs::StockFs;
+    pub use super::*;
 }
 pub use prelude::*;
