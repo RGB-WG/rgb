@@ -79,6 +79,9 @@ pub enum RuntimeError {
     Electrum(electrum_client::Error),
 
     #[from]
+    InvalidConsignment(validation::Status),
+
+    #[from]
     Custom(String),
 }
 
@@ -183,6 +186,16 @@ impl Runtime {
     ) -> Result<validation::Status, RuntimeError> {
         self.stock
             .import_contract(contract, &mut self.resolver)
+            .map_err(RuntimeError::from)
+    }
+
+    pub fn validate_transfer<'transfer>(
+        &mut self,
+        transfer: Transfer,
+    ) -> Result<Transfer, RuntimeError> {
+        transfer
+            .validate(&mut self.resolver)
+            .map_err(|invalid| invalid.validation_status().expect("just validated").clone())
             .map_err(RuntimeError::from)
     }
 
