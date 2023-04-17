@@ -65,9 +65,9 @@ serde = "1.0.159"
 serde_yaml = "0.9.19"
 
 [features]
-default = []
+default = ["electrum", "log"]
 all = ["cli", "log"]
-electrum = ["electrum-client"]
+electrum = ["electrum-client", "log"]
 cli = ["clap", "shellexpand", "log", "electrum"]
 
 [package.metadata.docs.rs]
