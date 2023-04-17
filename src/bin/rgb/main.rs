@@ -69,7 +69,9 @@ fn run() -> Result<(), RuntimeError> {
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    let electrum = opts.electrum.unwrap_or(opts.chain.default_resolver());
+    let electrum = opts
+        .electrum
+        .unwrap_or_else(|| opts.chain.default_resolver());
 
     let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain, &electrum)?;
     debug!("Executing command: {}", opts.command);
