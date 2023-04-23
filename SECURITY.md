@@ -3,8 +3,8 @@
 We take the security of our software products and services seriously, which 
 includes all source code repositories managed through our GitHub organizations.
 
-If you believe you have found a security vulnerability in any of our repository 
-that meets [definition of a security vulnerability][definition], please report 
+If you believe you have found a security vulnerability in any of our repositories 
+that meet the [definition of a security vulnerability][definition], please report 
 it to us as described below.
 
 ## Reporting Security Issues

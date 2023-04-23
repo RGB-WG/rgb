@@ -87,7 +87,7 @@ pub enum Command {
         wallet: Ident,
     },
 
-    /// Imports RGB data into the stash: contracts, schema, interfaces etc.
+    /// Imports RGB data into the stash: contracts, schema, interfaces, etc.
     #[display("import")]
     Import {
         /// Use BASE64 ASCII armoring for binary data.
@@ -114,7 +114,7 @@ pub enum Command {
         file: Option<PathBuf>,
     },
 
-    /// Reports information about state of a contact.
+    /// Reports information about state of a contract.
     #[display("state")]
     State {
         /// Wallet to filter the state.
