@@ -1,7 +1,7 @@
 # Code of Conduct
 
 We do not apply any code of conduct expectations for contributors and
-maintainers in their live and behaviour outside the scope of this project.
+maintainers in their life and behaviour outside the scope of this project.
 We believe that a restriction is the word of sin: free people write code, take
 their decisions and act in a way they will, taking responsibility for the
 consequences.
