@@ -27,16 +27,22 @@ extern crate log;
 extern crate serde;
 
 mod descriptor;
+#[cfg(feature = "electrum")]
+mod electrum;
+#[cfg(feature = "cli")]
 mod runtime;
 mod wallet;
 
 pub mod prelude {
     pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
+    #[cfg(feature = "electrum")]
+    pub use electrum::BlockchainResolver;
     pub use rgbfs::StockFs;
     pub use rgbstd::*;
     pub use rgbwallet::*;
+    #[cfg(feature = "cli")]
     pub use runtime::{Runtime, RuntimeError};
-    pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};
+    pub use wallet::{DefaultResolver, Resolver, RgbWallet};
 
     pub use super::*;
 }

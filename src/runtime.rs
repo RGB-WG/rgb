@@ -36,8 +36,7 @@ use rgbstd::{validation, Chain};
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::descriptor::RgbDescr;
-use crate::wallet::BlockchainResolver;
-use crate::{RgbWallet, Tapret};
+use crate::{BlockchainResolver, RgbWallet, Tapret};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
