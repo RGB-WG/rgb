@@ -505,14 +505,15 @@ impl Command {
                 let iface = TypeName::try_from(iface).expect("invalid interface name");
                 let seal = GraphSeal::from(seal);
                 let invoice = RgbInvoice {
-                    transport: RgbTransport::UnspecifiedMeans,
-                    contract: contract_id,
-                    iface,
+                    transports: vec![RgbTransport::UnspecifiedMeans],
+                    contract: Some(contract_id),
+                    iface: Some(iface),
                     operation: None,
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
                     owned_state: TypedState::Amount(value),
                     chain: None,
+                    expiry: None,
                     unknown_query: none!(),
                 };
                 runtime.store_seal_secret(seal)?;

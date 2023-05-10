@@ -72,3 +72,7 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "master", features = ["fs"] }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "master", features = ["fs"] }
