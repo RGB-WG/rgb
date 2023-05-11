@@ -687,8 +687,7 @@ impl Command {
                 let mut psbt_modified = false;
                 match method {
                     CloseMethod::OpretFirst => {
-                        psbt
-                            .unsigned_tx
+                        psbt.unsigned_tx
                             .output
                             .iter()
                             .zip(&mut psbt.outputs)
@@ -701,8 +700,7 @@ impl Command {
                             });
                     }
                     CloseMethod::TapretFirst => {
-                        psbt
-                            .unsigned_tx
+                        psbt.unsigned_tx
                             .output
                             .iter()
                             .zip(&mut psbt.outputs)
