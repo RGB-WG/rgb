@@ -34,6 +34,8 @@ use rgbstd::interface::{ContractBuilder, SchemaIfaces, TypedState};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::Txid;
+use rgbwallet::psbt::opret::OutputOpret;
+use rgbwallet::psbt::tapret::OutputTapret;
 use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
 use strict_types::encoding::{Ident, TypeName};
 use strict_types::StrictVal;
@@ -207,6 +209,17 @@ pub enum Command {
 
         /// File with the transfer consignment.
         file: PathBuf,
+    },
+
+    /// Set first opret/tapret output to host a commitment
+    #[display("set-host")]
+    SetHost {
+        #[clap(long, default_value = "tapret1st")]
+        /// Method for single-use-seals.
+        method: CloseMethod,
+
+        /// PSBT file.
+        psbt_file: PathBuf,
     },
 }
 
@@ -505,14 +518,15 @@ impl Command {
                 let iface = TypeName::try_from(iface).expect("invalid interface name");
                 let seal = GraphSeal::from(seal);
                 let invoice = RgbInvoice {
-                    transport: RgbTransport::UnspecifiedMeans,
-                    contract: contract_id,
-                    iface,
+                    transports: vec![RgbTransport::UnspecifiedMeans],
+                    contract: Some(contract_id),
+                    iface: Some(iface),
                     operation: None,
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
                     owned_state: TypedState::Amount(value),
                     chain: None,
+                    expiry: None,
                     unknown_query: none!(),
                 };
                 runtime.store_seal_secret(seal)?;
@@ -666,6 +680,49 @@ impl Command {
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
                 runtime.accept_transfer(transfer, force)?;
                 eprintln!("Transfer accepted into the stash");
+            }
+            Command::SetHost { method, psbt_file } => {
+                let psbt_data = fs::read(&psbt_file)?;
+                let mut psbt = Psbt::deserialize(&psbt_data)?;
+                let mut psbt_modified = false;
+                match method {
+                    CloseMethod::OpretFirst => {
+                        psbt
+                            .unsigned_tx
+                            .output
+                            .iter()
+                            .zip(&mut psbt.outputs)
+                            .find(|(o, outp)| {
+                                o.script_pubkey.is_op_return() && !outp.is_opret_host()
+                            })
+                            .and_then(|(_, outp)| {
+                                psbt_modified = true;
+                                outp.set_opret_host().ok()
+                            });
+                    }
+                    CloseMethod::TapretFirst => {
+                        psbt
+                            .unsigned_tx
+                            .output
+                            .iter()
+                            .zip(&mut psbt.outputs)
+                            .find(|(o, outp)| {
+                                o.script_pubkey.is_v1_p2tr() && !outp.is_tapret_host()
+                            })
+                            .and_then(|(_, outp)| {
+                                psbt_modified = true;
+                                outp.set_tapret_host().ok()
+                            });
+                    }
+                    _ => {}
+                };
+                fs::write(&psbt_file, psbt.serialize())?;
+                if psbt_modified {
+                    eprintln!(
+                        "PSBT file '{}' is updated with {method} host now set.",
+                        psbt_file.display()
+                    );
+                }
             }
         }
 
