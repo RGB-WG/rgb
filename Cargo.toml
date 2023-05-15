@@ -56,7 +56,7 @@ rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0", path = "fs" }
 bitcoin = { version = "0.30.0", features = ["serde"] }
-electrum-client = { git = "https://github.com/RCasatta/rust-electrum-client", branch = "bitcoin_0_30", version = "0.13.0", optional = true }
+electrum-client = { version = "0.15.1", optional = true }
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
 env_logger = "0.10.0"
 clap = { version = "4.1.8", features = ["derive", "env"], optional = true }
