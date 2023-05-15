@@ -11,7 +11,7 @@ default-members = [
 [workspace.package]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
 homepage = "https://github.com/RGB-WG"
-repository = "https://github.com/RGB-WG/rgb-wallet"
+repository = "https://github.com/RGB-WG/rgb"
 rust-version = "1.66" # Due to strict encoding library (caused by GAD)
 edition = "2021"
 license = "Apache-2.0"
