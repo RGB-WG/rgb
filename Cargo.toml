@@ -19,10 +19,10 @@ license = "Apache-2.0"
 [workspace.dependencies]
 amplify = "4.0.0"
 baid58 = "0.3.1"
-strict_encoding = "2.1.1"
-strict_types = "1.1.0"
-rgb-std = { version = "0.10.0", features = ["fs"] }
-rgb-wallet = { version = "0.10.0", features = ["fs"] }
+strict_encoding = "2.2.0"
+strict_types = "1.2.0"
+rgb-std = { version = "0.10.1", features = ["fs"] }
+rgb-wallet = { version = "0.10.1", features = ["fs"] }
 
 [package]
 name = "rgb-contracts"
@@ -72,3 +72,7 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }

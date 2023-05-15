@@ -37,7 +37,7 @@ use rgbstd::Txid;
 use rgbwallet::psbt::opret::OutputOpret;
 use rgbwallet::psbt::tapret::OutputTapret;
 use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
-use strict_types::encoding::{Ident, TypeName};
+use strict_types::encoding::{FieldName, Ident, TypeName};
 use strict_types::StrictVal;
 
 // TODO: For now, serde implementation doesn't work for consignments due to
@@ -438,10 +438,10 @@ impl Command {
                             .strict_serialize_type::<U16>(&typed_val)
                             .expect("internal error");
                         // Workaround for borrow checker:
-                        let type_name =
-                            TypeName::try_from(name.to_owned()).expect("invalid type name");
+                        let field_name =
+                            FieldName::try_from(name.to_owned()).expect("invalid type name");
                         builder = builder
-                            .add_global_state(type_name, serialized)
+                            .add_global_state(field_name, serialized)
                             .expect("invalid global state data");
                     }
                 }
@@ -476,8 +476,8 @@ impl Command {
                         let seal = GenesisSeal::from(seal);
 
                         // Workaround for borrow checker:
-                        let type_name =
-                            TypeName::try_from(name.to_owned()).expect("invalid type name");
+                        let field_name =
+                            FieldName::try_from(name.to_owned()).expect("invalid type name");
                         match state_schema.state_type() {
                             StateType::Void => todo!(),
                             StateType::Fungible => {
@@ -487,7 +487,7 @@ impl Command {
                                     .as_u64()
                                     .expect("fungible state must be an integer");
                                 builder = builder
-                                    .add_fungible_state(type_name, seal, amount)
+                                    .add_fungible_state(field_name, seal, amount)
                                     .expect("invalid global state data");
                             }
                             StateType::Structured => todo!(),
