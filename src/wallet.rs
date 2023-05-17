@@ -105,9 +105,7 @@ impl BlockchainResolver {
 
 #[cfg(feature = "electrum")]
 mod _electrum {
-    use std::convert::Infallible;
-
-    use bitcoin::ScriptBuf;
+    use bitcoin::{Script, ScriptBuf};
     use bp::{Chain, LockTime, SeqNo, Tx, TxIn, TxOut, TxVer, VarIntArray, Witness};
     use electrum_client::{ElectrumApi, Error, ListUnspentRes};
     use rgbstd::resolvers::ResolveHeight;
@@ -180,10 +178,40 @@ mod _electrum {
     }
 
     impl ResolveHeight for BlockchainResolver {
-        type Error = Infallible;
-        fn resolve_height(&mut self, _txid: Txid) -> Result<u32, Self::Error> {
-            // TODO: find a way how to resolve transaction height
-            Ok(0)
+        type Error = TxResolverError;
+        fn resolve_height(&mut self, txid: Txid) -> Result<u32, Self::Error> {
+            let resp = self
+                .0
+                .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_raw_array()))
+                .map_err(|err| match err {
+                    Error::Message(_) | Error::Protocol(_) => TxResolverError::Unknown(txid),
+                    err => TxResolverError::Other(txid, err.to_string()),
+                })?;
+
+            let scripts: Vec<&Script> = resp
+                .output
+                .iter()
+                .map(|out| out.script_pubkey.as_script())
+                .collect();
+
+            let mut hists = vec![];
+            self.0
+                .batch_script_get_history(scripts)
+                .map_err(|err| match err {
+                    Error::Message(_) | Error::Protocol(_) => TxResolverError::Unknown(txid),
+                    err => TxResolverError::Other(txid, err.to_string()),
+                })?
+                .into_iter()
+                .for_each(|h| hists.extend(h));
+            let transactions: BTreeMap<bitcoin::Txid, u32> = hists
+                .into_iter()
+                .map(|h| (h.tx_hash, if h.height > 0 { h.height as u32 } else { 0 }))
+                .collect();
+
+            let min_height = transactions.into_values().min();
+            let min_height = min_height.unwrap_or_default();
+
+            Ok(min_height)
         }
     }
 
