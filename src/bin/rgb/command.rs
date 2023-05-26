@@ -500,7 +500,7 @@ impl Command {
                 let id = contract.contract_id();
                 let validated_contract = contract
                     .validate(runtime.resolver())
-                    .expect("internal error: failed validating self-issued contract");
+                    .map_err(|_| RuntimeError::IncompleteContract)?;
                 runtime
                     .import_contract(validated_contract)
                     .expect("failure importing issued contract");

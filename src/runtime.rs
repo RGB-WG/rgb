@@ -81,6 +81,11 @@ pub enum RuntimeError {
     #[from]
     InvalidConsignment(validation::Status),
 
+    /// the contract source doesn't provide all state information required by
+    /// the schema. This means that some of the global fields or assignments are
+    /// missed.
+    IncompleteContract,
+
     #[from]
     Custom(String),
 }
