@@ -581,7 +581,7 @@ impl Command {
                 fs::remove_dir_all(&root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
-                fs::create_dir_all(format!("{root_dir}/stash/contracts"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/geneses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/anchors"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
@@ -603,13 +603,13 @@ impl Command {
                 }
                 for id in runtime.contract_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/contracts/{id}.debug"),
+                        format!("{root_dir}/stash/geneses/{id}.debug"),
                         format!("{:#?}", runtime.genesis(id)?),
                     )?;
                     for (no, suppl) in runtime.contract_suppl(id).into_iter().flatten().enumerate()
                     {
                         fs::write(
-                            format!("{root_dir}/stash/contracts/{id}.suppl.{no:03}.debug"),
+                            format!("{root_dir}/stash/geneses/{id}.suppl.{no:03}.debug"),
                             format!("{:#?}", suppl),
                         )?;
                     }
