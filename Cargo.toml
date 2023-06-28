@@ -19,8 +19,8 @@ license = "Apache-2.0"
 [workspace.dependencies]
 amplify = "4.0.0"
 baid58 = "0.3.1"
-strict_encoding = "2.2.0"
-strict_types = "1.2.0"
+strict_encoding = "2.4.0"
+strict_types = "1.4.0"
 rgb-std = { version = "0.10.2", features = ["fs"] }
 rgb-wallet = { version = "0.10.2", features = ["fs"] }
 
@@ -50,8 +50,8 @@ required-features = ["cli"]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
-commit_verify = "0.10.0"
-bp-core = { version = "0.10.1", features = ["serde"] }
+commit_verify = "0.10.2"
+bp-core = { version = "0.10.3", features = ["serde"] }
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0", path = "fs" }
@@ -74,8 +74,6 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 features = [ "all" ]
 
 [patch.crates-io]
-strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "ascii-char" }
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "restricted-keys" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "develop" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "develop" }
-rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "develop" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet" }
