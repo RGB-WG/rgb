@@ -358,7 +358,7 @@ impl Command {
                 println!("\nOwned:");
                 for owned in &contract.iface.assignments {
                     println!("  {}:", owned.name);
-                    if let Ok(allocations) = contract.fungible(owned.name.clone()) {
+                    if let Ok(allocations) = contract.fungible(owned.name.clone(), &None) {
                         for allocation in allocations {
                             if let Some(utxo) =
                                 wallet.as_ref().and_then(|w| w.utxo(allocation.owner))

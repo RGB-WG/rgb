@@ -74,9 +74,8 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 features = [ "all" ]
 
 [patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types" }
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation" }
-bp-core = { git = "https://github.com/BP-WG/bp-core" }
-aluvm = { git = "https://github.com/AluVM/rust-aluvm" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
+strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "ascii-char" }
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "restricted-keys" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "develop" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "develop" }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "develop" }
