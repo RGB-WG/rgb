@@ -67,8 +67,8 @@ pub enum RuntimeError {
     #[from]
     Builder(BuilderError),
 
-    #[display(doc_comments)]
     /// wallet with id '{0}' is not known to the system
+    #[display(doc_comments)]
     WalletUnknown(Ident),
 
     #[from]
@@ -84,6 +84,7 @@ pub enum RuntimeError {
     /// the contract source doesn't provide all state information required by
     /// the schema. This means that some of the global fields or assignments are
     /// missed.
+    #[display(doc_comments)]
     IncompleteContract,
 
     #[from]
