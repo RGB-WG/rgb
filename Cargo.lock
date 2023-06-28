@@ -390,9 +390,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.8"
+version = "4.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9394150f5b4273a1763355bd1c2ec54cc5a2593f790587bcd6b2c947cfa9211"
+checksum = "bba77a07e4489fb41bd90e8d4201c3eb246b3c2c9ea2ba0bddd6c1d1df87db7d"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -401,9 +401,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.8"
+version = "4.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a78fbdd3cc2914ddf37ba444114bc7765bbdcb55ec9cbe6fa054f0137400717"
+checksum = "2c9b4a88bb4bc35d3d6f65a21b0f0bafe9c894fa00978de242c555ec28bea1c0"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1028,7 +1028,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.10.2"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=develop#693eb7339af1778dd531d105b14c1ca31e920fe4"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=develop#1ae90fbcc65f3c950cc737406602ab62cce021a1"
 dependencies = [
  "amplify",
  "baid58",
@@ -1046,7 +1046,7 @@ dependencies = [
 [[package]]
 name = "rgb-wallet"
 version = "0.10.2"
-source = "git+https://github.com/RGB-WG/rgb-wallet?branch=develop#693eb7339af1778dd531d105b14c1ca31e920fe4"
+source = "git+https://github.com/RGB-WG/rgb-wallet?branch=develop#1ae90fbcc65f3c950cc737406602ab62cce021a1"
 dependencies = [
  "amplify",
  "baid58",
@@ -1302,7 +1302,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 [[package]]
 name = "strict_encoding"
 version = "2.3.1"
-source = "git+https://github.com/strict-types/strict-encoding?branch=ascii-char#a5020b0e5576d13984327221ad2fa53e67c38c4a"
+source = "git+https://github.com/strict-types/strict-encoding?branch=ascii-char#b75e490ad1dd54fb05a8ab06b5def6cbb0144e3c"
 dependencies = [
  "amplify",
  "half",
@@ -1313,7 +1313,7 @@ dependencies = [
 [[package]]
 name = "strict_encoding_derive"
 version = "2.0.0"
-source = "git+https://github.com/strict-types/strict-encoding?branch=ascii-char#a5020b0e5576d13984327221ad2fa53e67c38c4a"
+source = "git+https://github.com/strict-types/strict-encoding?branch=ascii-char#b75e490ad1dd54fb05a8ab06b5def6cbb0144e3c"
 dependencies = [
  "amplify_syn",
  "heck",
@@ -1325,7 +1325,7 @@ dependencies = [
 [[package]]
 name = "strict_types"
 version = "1.3.0"
-source = "git+https://github.com/strict-types/strict-types?branch=restricted-keys#793a2810cb3f7a65e2a415a3b2087dccc0fbd272"
+source = "git+https://github.com/strict-types/strict-types?branch=restricted-keys#02dadff461d14e7f3026aabd61da31fae0b3864f"
 dependencies = [
  "amplify",
  "baid58",
