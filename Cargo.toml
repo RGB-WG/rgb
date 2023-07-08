@@ -74,6 +74,6 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 features = [ "all" ]
 
 [patch.crates-io]
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "preserve-historic-state" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "fix/80" }
 rgb-wallet = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "fix/80" }
