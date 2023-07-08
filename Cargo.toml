@@ -19,8 +19,8 @@ license = "Apache-2.0"
 [workspace.dependencies]
 amplify = "4.0.0"
 baid58 = "0.3.1"
-strict_encoding = "2.4.0"
-strict_types = "1.4.0"
+strict_encoding = "2.4.1"
+strict_types = "1.4.1"
 rgb-std = { version = "0.10.2", features = ["fs"] }
 rgb-wallet = { version = "0.10.2", features = ["fs"] }
 
