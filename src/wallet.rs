@@ -108,6 +108,7 @@ mod _electrum {
     use bitcoin::{Script, ScriptBuf};
     use bp::{Chain, LockTime, SeqNo, Tx, TxIn, TxOut, TxVer, VarIntArray, Witness};
     use electrum_client::{ElectrumApi, Error, ListUnspentRes};
+    use rgbstd::contract::WitnessOrd;
     use rgbstd::resolvers::ResolveHeight;
     use rgbstd::validation::{ResolveTx, TxResolverError};
 
@@ -179,16 +180,17 @@ mod _electrum {
 
     impl ResolveHeight for BlockchainResolver {
         type Error = TxResolverError;
-        fn resolve_height(&mut self, txid: Txid) -> Result<u32, Self::Error> {
-            let resp = self
+        fn resolve_height(&mut self, txid: Txid) -> Result<WitnessOrd, Self::Error> {
+            let tx = match self
                 .0
                 .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_raw_array()))
-                .map_err(|err| match err {
-                    Error::Message(_) | Error::Protocol(_) => TxResolverError::Unknown(txid),
-                    err => TxResolverError::Other(txid, err.to_string()),
-                })?;
+            {
+                Ok(tx) => tx,
+                Err(Error::Message(_) | Error::Protocol(_)) => return Ok(WitnessOrd::OffChain),
+                Err(err) => return Err(TxResolverError::Other(txid, err.to_string())),
+            };
 
-            let scripts: Vec<&Script> = resp
+            let scripts: Vec<&Script> = tx
                 .output
                 .iter()
                 .map(|out| out.script_pubkey.as_script())
@@ -208,8 +210,11 @@ mod _electrum {
                 .map(|h| (h.tx_hash, if h.height > 0 { h.height as u32 } else { 0 }))
                 .collect();
 
-            let min_height = transactions.into_values().min();
-            let min_height = min_height.unwrap_or_default();
+            let min_height = transactions
+                .into_values()
+                .min()
+                .map(WitnessOrd::from_electrum_height)
+                .unwrap_or(WitnessOrd::OffChain);
 
             Ok(min_height)
         }
