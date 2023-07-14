@@ -431,7 +431,7 @@ impl Command {
                             .global_state
                             .iter()
                             .find(|info| info.name.as_str() == name)
-                            .expect("unknown type name")
+                            .expect(&format!("unknown type name '{name}'"))
                             .id;
                         let sem_id = schema
                             .global_types
