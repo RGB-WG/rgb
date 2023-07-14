@@ -26,7 +26,7 @@ rgb-wallet = { version = "0.10.3", features = ["fs"] }
 
 [package]
 name = "rgb-contracts"
-version = "0.10.0-beta.2"
+version = "0.10.0-rc.2"
 description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
