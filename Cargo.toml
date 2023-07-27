@@ -18,15 +18,15 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.0.0"
-baid58 = "0.4.1"
+baid58 = "0.4.4"
 strict_encoding = "2.5.0"
 strict_types = "1.6.0"
-rgb-std = { version = "0.10.4", features = ["fs"] }
-rgb-wallet = { version = "0.10.4", features = ["fs"] }
+rgb-std = { version = "0.10.5", features = ["fs"] }
+rgb-wallet = { version = "0.10.5", features = ["fs"] }
 
 [package]
 name = "rgb-contracts"
-version = "0.10.0-rc.3"
+version = "0.10.0-rc.4"
 description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
@@ -51,7 +51,7 @@ amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
 commit_verify = "0.10.5"
-bp-core = { version = "0.10.6", features = ["serde"] }
+bp-core = { version = "0.10.7", features = ["serde"] }
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0", path = "fs" }
