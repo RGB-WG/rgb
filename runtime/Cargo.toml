@@ -17,6 +17,7 @@ name = "rgb_rt"
 
 [dependencies]
 amplify = { workspace = true }
+bp-dbc = { workspace = true }
 bp-std = { workspace = true }
 bp-esplora = { workspace = true, optional = true }
 rgb-std = { workspace = true }

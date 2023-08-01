@@ -1,4 +1,4 @@
-// RGB smart contracts for Bitcoin & Lightning
+// RGB smart contract wallet runtime
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -27,17 +27,14 @@ use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
-use bitcoin::bip32::ExtendedPubKey;
+use rgb::containers::{Contract, LoadError, Transfer};
+use rgb::interface::BuilderError;
+use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgb::{validation, Chain};
 use rgbfs::StockFs;
-use rgbstd::containers::{Contract, LoadError, Transfer};
-use rgbstd::interface::BuilderError;
-use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
-use rgbstd::{validation, Chain};
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
-use crate::descriptor::RgbDescr;
-use crate::wallet::BlockchainResolver;
-use crate::{RgbWallet, Tapret};
+use crate::{RgbDescr, RgbWallet, Tapret};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -72,13 +69,6 @@ pub enum RuntimeError {
     WalletUnknown(Ident),
 
     #[from]
-    Psbt(bitcoin::psbt::Error),
-
-    #[cfg(feature = "electrum")]
-    #[from]
-    Electrum(electrum_client::Error),
-
-    #[from]
     InvalidConsignment(validation::Status),
 
     /// the contract source doesn't provide all state information required by
@@ -98,21 +88,8 @@ impl From<Infallible> for RuntimeError {
 #[derive(Getters)]
 pub struct Runtime {
     stock_path: PathBuf,
-    wallets_path: PathBuf,
-    #[getter(skip)]
     stock: Stock,
-    wallets: HashMap<Ident, RgbDescr>,
-    #[getter(as_copy)]
-    chain: Chain,
-}
-
-impl Deref for Runtime {
-    type Target = Stock;
-    fn deref(&self) -> &Self::Target { &self.stock }
-}
-
-impl DerefMut for Runtime {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
+    wallet: Optional<bp::Runtime<DescriptorRgb>>,
 }
 
 impl Runtime {
@@ -155,6 +132,7 @@ impl Runtime {
 
     pub fn unload(self) -> () {}
 
+    /*
     pub fn create_wallet(
         &mut self,
         name: &Ident,
@@ -210,8 +188,10 @@ impl Runtime {
             .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
     }
+     */
 }
 
+/*
 impl Drop for Runtime {
     fn drop(&mut self) {
         self.stock
@@ -222,3 +202,4 @@ impl Drop for Runtime {
         serde_yaml::to_writer(wallets_fd, &self.wallets).expect("unable to save wallets");
     }
 }
+*/

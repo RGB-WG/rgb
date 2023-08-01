@@ -1192,6 +1192,7 @@ name = "rgb-runtime"
 version = "0.11.0-alpha"
 dependencies = [
  "amplify",
+ "bp-dbc",
  "bp-esplora",
  "bp-std",
  "rgb-std",
