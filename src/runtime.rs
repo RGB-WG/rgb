@@ -32,11 +32,12 @@ use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer};
 use rgbstd::interface::BuilderError;
 use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgbstd::resolvers::ResolveHeight;
+use rgbstd::validation::ResolveTx;
 use rgbstd::{validation, Chain};
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::descriptor::RgbDescr;
-use crate::wallet::BlockchainResolver;
 use crate::{RgbWallet, Tapret};
 
 #[derive(Debug, Display, Error, From)]
@@ -118,14 +119,19 @@ impl DerefMut for Runtime {
 impl Runtime {
     pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
+        #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
         fs::create_dir_all(&data_dir)?;
 
         let mut stock_path = data_dir.clone();
         stock_path.push("stock.dat");
+        #[cfg(feature = "log")]
         debug!("Reading stock from '{}'", stock_path.display());
         let stock = if !stock_path.exists() {
+            #[cfg(feature = "log")]
             info!("Stock file not found, creating default stock");
+            #[cfg(feature = "cli")]
+            eprintln!("Stock file not found, creating default stock");
             let stock = Stock::default();
             stock.store(&stock_path)?;
             stock
@@ -135,9 +141,13 @@ impl Runtime {
 
         let mut wallets_path = data_dir.clone();
         wallets_path.push("wallets.yml");
+        #[cfg(feature = "log")]
         debug!("Reading wallets from '{}'", wallets_path.display());
         let wallets = if !wallets_path.exists() {
+            #[cfg(feature = "log")]
             info!("Wallet file not found, creating new wallet list");
+            #[cfg(feature = "cli")]
+            eprintln!("Wallet file not found, creating new wallet list");
             empty!()
         } else {
             let wallets_fd = File::open(&wallets_path)?;
@@ -179,11 +189,14 @@ impl Runtime {
         Ok(RgbWallet::new(descr.clone()))
     }
 
-    pub fn import_contract(
+    pub fn import_contract<R: ResolveHeight>(
         &mut self,
         contract: Contract,
-        resolver: &mut BlockchainResolver,
-    ) -> Result<validation::Status, RuntimeError> {
+        resolver: &mut R,
+    ) -> Result<validation::Status, RuntimeError>
+    where
+        R::Error: 'static,
+    {
         self.stock
             .import_contract(contract, resolver)
             .map_err(RuntimeError::from)
@@ -192,7 +205,7 @@ impl Runtime {
     pub fn validate_transfer<'transfer>(
         &mut self,
         transfer: Transfer,
-        resolver: &mut BlockchainResolver,
+        resolver: &mut impl ResolveTx,
     ) -> Result<Transfer, RuntimeError> {
         transfer
             .validate(resolver)
@@ -200,12 +213,15 @@ impl Runtime {
             .map_err(RuntimeError::from)
     }
 
-    pub fn accept_transfer(
+    pub fn accept_transfer<R: ResolveHeight>(
         &mut self,
         transfer: Transfer,
-        resolver: &mut BlockchainResolver,
+        resolver: &mut R,
         force: bool,
-    ) -> Result<validation::Status, RuntimeError> {
+    ) -> Result<validation::Status, RuntimeError>
+    where
+        R::Error: 'static,
+    {
         self.stock
             .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
