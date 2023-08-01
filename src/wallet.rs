@@ -63,7 +63,7 @@ impl RgbWallet {
         let mut utxos = BTreeSet::new();
 
         const STEP: u32 = 20;
-        for app in [0, 1, 10, 20, 30, 40, 50, 60] {
+        for app in [0, 1, 9, 10] {
             let mut index = 0;
             loop {
                 debug!("Requesting {STEP} scripts from the Electrum server");
