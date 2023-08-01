@@ -32,11 +32,12 @@ use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer};
 use rgbstd::interface::BuilderError;
 use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgbstd::resolvers::ResolveHeight;
+use rgbstd::validation::ResolveTx;
 use rgbstd::{validation, Chain};
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::descriptor::RgbDescr;
-use crate::wallet::BlockchainResolver;
 use crate::{RgbWallet, Tapret};
 
 #[derive(Debug, Display, Error, From)]
@@ -104,8 +105,6 @@ pub struct Runtime {
     wallets: HashMap<Ident, RgbDescr>,
     #[getter(as_copy)]
     chain: Chain,
-    #[getter(skip)]
-    resolver: BlockchainResolver,
 }
 
 impl Deref for Runtime {
@@ -118,15 +117,20 @@ impl DerefMut for Runtime {
 }
 
 impl Runtime {
-    pub fn load(mut data_dir: PathBuf, chain: Chain, electrum: &str) -> Result<Self, RuntimeError> {
+    pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
+        #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
         fs::create_dir_all(&data_dir)?;
 
         let mut stock_path = data_dir.clone();
         stock_path.push("stock.dat");
+        #[cfg(feature = "log")]
         debug!("Reading stock from '{}'", stock_path.display());
         let stock = if !stock_path.exists() {
+            #[cfg(feature = "log")]
+            info!("Stock file not found, creating default stock");
+            #[cfg(feature = "cli")]
             eprintln!("Stock file not found, creating default stock");
             let stock = Stock::default();
             stock.store(&stock_path)?;
@@ -137,8 +141,12 @@ impl Runtime {
 
         let mut wallets_path = data_dir.clone();
         wallets_path.push("wallets.yml");
+        #[cfg(feature = "log")]
         debug!("Reading wallets from '{}'", wallets_path.display());
         let wallets = if !wallets_path.exists() {
+            #[cfg(feature = "log")]
+            info!("Wallet file not found, creating new wallet list");
+            #[cfg(feature = "cli")]
             eprintln!("Wallet file not found, creating new wallet list");
             empty!()
         } else {
@@ -146,21 +154,16 @@ impl Runtime {
             serde_yaml::from_reader(&wallets_fd)?
         };
 
-        let resolver = BlockchainResolver::with(electrum)?;
-
         Ok(Self {
             stock_path,
             wallets_path,
             stock,
             wallets,
             chain,
-            resolver,
         })
     }
 
     pub fn unload(self) -> () {}
-
-    pub fn resolver(&mut self) -> &mut BlockchainResolver { &mut self.resolver }
 
     pub fn create_wallet(
         &mut self,
@@ -183,35 +186,44 @@ impl Runtime {
             .wallets
             .get(name)
             .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
-        RgbWallet::with(descr.clone(), &mut self.resolver).map_err(RuntimeError::from)
+        Ok(RgbWallet::new(descr.clone()))
     }
 
-    pub fn import_contract(
+    pub fn import_contract<R: ResolveHeight>(
         &mut self,
         contract: Contract,
-    ) -> Result<validation::Status, RuntimeError> {
+        resolver: &mut R,
+    ) -> Result<validation::Status, RuntimeError>
+    where
+        R::Error: 'static,
+    {
         self.stock
-            .import_contract(contract, &mut self.resolver)
+            .import_contract(contract, resolver)
             .map_err(RuntimeError::from)
     }
 
     pub fn validate_transfer<'transfer>(
         &mut self,
         transfer: Transfer,
+        resolver: &mut impl ResolveTx,
     ) -> Result<Transfer, RuntimeError> {
         transfer
-            .validate(&mut self.resolver)
+            .validate(resolver)
             .map_err(|invalid| invalid.validation_status().expect("just validated").clone())
             .map_err(RuntimeError::from)
     }
 
-    pub fn accept_transfer(
+    pub fn accept_transfer<R: ResolveHeight>(
         &mut self,
         transfer: Transfer,
+        resolver: &mut R,
         force: bool,
-    ) -> Result<validation::Status, RuntimeError> {
+    ) -> Result<validation::Status, RuntimeError>
+    where
+        R::Error: 'static,
+    {
         self.stock
-            .accept_transfer(transfer, &mut self.resolver, force)
+            .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
     }
 }

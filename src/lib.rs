@@ -21,6 +21,7 @@
 
 #[macro_use]
 extern crate amplify;
+#[cfg(feature = "log")]
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -36,7 +37,9 @@ pub mod prelude {
     pub use rgbstd::*;
     pub use rgbwallet::*;
     pub use runtime::{Runtime, RuntimeError};
-    pub use wallet::{BlockchainResolver, DefaultResolver, RgbWallet};
+    #[cfg(feature = "electrum")]
+    pub use wallet::BlockchainResolver;
+    pub use wallet::{DefaultResolver, RgbWallet};
 
     pub use super::*;
 }
