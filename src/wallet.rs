@@ -21,10 +21,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use amplify::RawArray;
-use bitcoin::hashes::Hash;
 use bitcoin::ScriptBuf;
-use bp::{Outpoint, Txid};
+use bp::Outpoint;
 
 use crate::descriptor::DeriveInfo;
 use crate::{RgbDescr, SpkDescriptor};
@@ -59,26 +57,33 @@ pub struct RgbWallet {
 }
 
 impl RgbWallet {
-    pub fn with(descr: RgbDescr, resolver: &mut impl Resolver) -> Result<Self, String> {
-        let mut utxos = BTreeSet::new();
+    pub fn new(descr: RgbDescr) -> Self {
+        Self {
+            descr,
+            utxos: empty!(),
+        }
+    }
 
+    pub fn update(&mut self, resolver: &mut impl Resolver) -> Result<(), String> {
         const STEP: u32 = 20;
-        for app in [0, 1, 10, 20, 30, 40, 50, 60] {
+        for app in [0, 1, 9, 10] {
             let mut index = 0;
             loop {
+                #[cfg(feature = "log")]
                 debug!("Requesting {STEP} scripts from the Electrum server");
-                let scripts = descr.derive(app, index..(index + STEP));
+                let scripts = self.descr.derive(app, index..(index + STEP));
                 let set = resolver.resolve_utxo(scripts)?;
                 if set.is_empty() {
                     break;
                 }
+                #[cfg(feature = "log")]
                 debug!("Electrum server returned {} UTXOs", set.len());
-                utxos.extend(set);
+                self.utxos.extend(set);
                 index += STEP;
             }
         }
 
-        Ok(Self { descr, utxos })
+        Ok(())
     }
 
     pub fn utxo(&self, outpoint: Outpoint) -> Option<&Utxo> {
@@ -96,8 +101,8 @@ pub trait DefaultResolver {
 #[wrapper_mut(DerefMut)]
 pub struct BlockchainResolver(electrum_client::Client);
 
+#[cfg(feature = "electrum")]
 impl BlockchainResolver {
-    #[cfg(feature = "electrum")]
     pub fn with(url: &str) -> Result<Self, electrum_client::Error> {
         electrum_client::Client::new(url).map(Self)
     }
@@ -105,8 +110,10 @@ impl BlockchainResolver {
 
 #[cfg(feature = "electrum")]
 mod _electrum {
+    use amplify::RawArray;
+    use bitcoin::hashes::Hash;
     use bitcoin::{Script, ScriptBuf};
-    use bp::{Chain, LockTime, SeqNo, Tx, TxIn, TxOut, TxVer, VarIntArray, Witness};
+    use bp::{Chain, LockTime, SeqNo, Tx, TxIn, TxOut, TxVer, Txid, VarIntArray, Witness};
     use electrum_client::{ElectrumApi, Error, ListUnspentRes};
     use rgbstd::contract::WitnessOrd;
     use rgbstd::resolvers::ResolveHeight;

@@ -24,6 +24,20 @@ jobs:
         with:
           command: check
           args: --workspace
+  no-default:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: No features
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --workspace --no-default-features
   features:
     runs-on: ubuntu-latest
     strategy:

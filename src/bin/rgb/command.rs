@@ -27,7 +27,7 @@ use amplify::confinement::U16;
 use bitcoin::bip32::ExtendedPubKey;
 use bitcoin::psbt::Psbt;
 use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use rgb::{Runtime, RuntimeError};
+use rgb::{BlockchainResolver, Runtime, RuntimeError};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, SchemaIfaces, TypedState};
@@ -224,7 +224,11 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn exec(self, runtime: &mut Runtime) -> Result<(), RuntimeError> {
+    pub fn exec(
+        self,
+        runtime: &mut Runtime,
+        resolver: &mut BlockchainResolver,
+    ) -> Result<(), RuntimeError> {
         match self {
             Command::Schemata => {
                 for id in runtime.schema_ids()? {
@@ -301,14 +305,10 @@ impl Command {
                         }
                         UniversalBindle::Contract(bindle) => {
                             let id = bindle.id();
-                            let contract =
-                                bindle
-                                    .unbindle()
-                                    .validate(runtime.resolver())
-                                    .map_err(|c| {
-                                        c.validation_status().expect("just validated").to_string()
-                                    })?;
-                            runtime.import_contract(contract)?;
+                            let contract = bindle.unbindle().validate(resolver).map_err(|c| {
+                                c.validation_status().expect("just validated").to_string()
+                            })?;
+                            runtime.import_contract(contract, resolver)?;
                             eprintln!("Contract {id} imported to the stash");
                         }
                         UniversalBindle::Transfer(_) => {
@@ -341,7 +341,13 @@ impl Command {
                 contract_id,
                 iface,
             } => {
-                let wallet = wallet.map(|w| runtime.wallet(&w)).transpose()?;
+                let wallet = wallet
+                    .map(|w| -> Result<_, RuntimeError> {
+                        let mut wallet = runtime.wallet(&w)?;
+                        wallet.update(resolver)?;
+                        Ok(wallet)
+                    })
+                    .transpose()?;
 
                 let iface = runtime.iface_by_name(&tn!(iface))?.clone();
                 let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
@@ -516,10 +522,10 @@ impl Command {
                 let contract = builder.issue_contract().expect("failure issuing contract");
                 let id = contract.contract_id();
                 let validated_contract = contract
-                    .validate(runtime.resolver())
+                    .validate(resolver)
                     .map_err(|_| RuntimeError::IncompleteContract)?;
                 runtime
-                    .import_contract(validated_contract)
+                    .import_contract(validated_contract, resolver)
                     .expect("failure importing issued contract");
                 eprintln!(
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
@@ -681,7 +687,7 @@ impl Command {
             }
             Command::Validate { file } => {
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let status = match bindle.unbindle().validate(runtime.resolver()) {
+                let status = match bindle.unbindle().validate(resolver) {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err(consignment) => consignment.into_validation_status(),
                 }
@@ -690,12 +696,9 @@ impl Command {
             }
             Command::Accept { force, file } => {
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let transfer = bindle
-                    .unbindle()
-                    .validate(runtime.resolver())
-                    .unwrap_or_else(|c| c);
+                let transfer = bindle.unbindle().validate(resolver).unwrap_or_else(|c| c);
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
-                runtime.accept_transfer(transfer, force)?;
+                runtime.accept_transfer(transfer, resolver, force)?;
                 eprintln!("Transfer accepted into the stash");
             }
             Command::SetHost { method, psbt_file } => {
