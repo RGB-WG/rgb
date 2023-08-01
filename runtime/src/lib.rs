@@ -23,11 +23,15 @@
 extern crate amplify;
 #[cfg(feature = "log")]
 #[macro_use]
-extern crate serde_crate as serde;
+extern crate log;
 
 mod descriptors;
-/*
 mod runtime;
+
+pub use descriptors::DescriptorRgb;
+pub use runtime::{Runtime, RuntimeError};
+
+/*
 mod descriptor;
 
 pub mod prelude {
@@ -36,8 +40,6 @@ pub mod prelude {
     pub use rgbstd::*;
     pub use rgbwallet::*;
     pub use runtime::{Runtime, RuntimeError};
-    #[cfg(feature = "electrum")]
-    pub use wallet::BlockchainResolver;
     pub use wallet::{DefaultResolver, RgbWallet};
 
     pub use super::*;

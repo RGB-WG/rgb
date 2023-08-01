@@ -313,6 +313,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-runtime"
+version = "0.11.0"
+source = "git+https://github.com/BP-WG/bp-wallet#a666e98f23516be63a0ca6c6cc2ec1ea22b16643"
+dependencies = [
+ "amplify",
+ "bp-esplora",
+ "bp-std",
+ "serde",
+]
+
+[[package]]
 name = "bp-seals"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1188,15 +1199,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "rgb-persist-fs"
+version = "0.11.0"
+dependencies = [
+ "amplify",
+ "rgb-std",
+ "strict_encoding",
+]
+
+[[package]]
 name = "rgb-runtime"
 version = "0.11.0-alpha"
 dependencies = [
  "amplify",
  "bp-dbc",
  "bp-esplora",
+ "bp-runtime",
  "bp-std",
+ "log",
+ "rgb-persist-fs",
  "rgb-std",
  "serde",
+ "strict_types",
 ]
 
 [[package]]

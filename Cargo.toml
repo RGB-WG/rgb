@@ -1,9 +1,11 @@
 [workspace]
 members = [
     "runtime",
+    "fs",
 ]
 default-members = [
     "runtime",
+    "fs",
 ]
 
 [workspace.package]
@@ -24,6 +26,7 @@ strict_encoding = "2.5.0"
 strict_types = "1.6.0"
 bp-dbc = "0.10.9"
 bp-std = "0.11.0"
+bp-runtime = "0.11.0"
 bp-esplora = "0.11.0"
 rgb-std = { version = "0.11.0-alpha", features = ["fs"] }
 rgb-invoice = "0.11.0-alpha"
@@ -75,5 +78,6 @@ log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug
 
 [patch.crates-io]
 bp-std = { git = "https://github.com/BP-WG/bp-std" }
+bp-runtime = { git = "https://github.com/BP-WG/bp-wallet" }
 bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }

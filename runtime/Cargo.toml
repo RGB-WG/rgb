@@ -17,14 +17,18 @@ name = "rgb_rt"
 
 [dependencies]
 amplify = { workspace = true }
+strict_types = { workspace = true }
 bp-dbc = { workspace = true }
 bp-std = { workspace = true }
+bp-runtime = { workspace = true }
 bp-esplora = { workspace = true, optional = true }
 rgb-std = { workspace = true }
+rgb-persist-fs = { version = "0.11.0-alpha", path = "../fs" }
 serde_crate = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
 
 [features]
-default = ["esplora"]
-all = ["esplora",  "serde"]
-esplora = ["bp-esplora"]
-serde = ["serde_crate", "bp-std/serde"]
+default = []
+all = ["esplora",  "serde", "log"]
+esplora = ["bp-esplora", "bp-runtime/esplora"]
+serde = ["serde_crate", "bp-std/serde", "bp-runtime/serde"]

@@ -19,31 +19,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
 use std::convert::Infallible;
-use std::fs::{self, File};
-use std::io;
-use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+use std::{fs, io};
 
-use rgb::containers::{Contract, LoadError, Transfer};
+use rgb::containers::LoadError;
 use rgb::interface::BuilderError;
-use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgb::persistence::{InventoryDataError, InventoryError, StashError, Stock};
 use rgb::{validation, Chain};
 use rgbfs::StockFs;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
-use crate::{RgbDescr, RgbWallet, Tapret};
+use crate::DescriptorRgb;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
 pub enum RuntimeError {
     #[from]
     Io(io::Error),
-
-    #[from]
-    Yaml(serde_yaml::Error),
 
     #[from]
     Serialize(SerializeError),
@@ -89,17 +82,20 @@ impl From<Infallible> for RuntimeError {
 pub struct Runtime {
     stock_path: PathBuf,
     stock: Stock,
-    wallet: Optional<bp::Runtime<DescriptorRgb>>,
+    wallet: Option<bp_rt::Runtime<DescriptorRgb>>,
+    chain: Chain,
 }
 
 impl Runtime {
     pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
+        #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
         fs::create_dir_all(&data_dir)?;
 
         let mut stock_path = data_dir.clone();
         stock_path.push("stock.dat");
+        #[cfg(feature = "log")]
         debug!("Reading stock from '{}'", stock_path.display());
         let stock = if !stock_path.exists() {
             eprintln!("Stock file not found, creating default stock");
@@ -110,24 +106,20 @@ impl Runtime {
             Stock::load(&stock_path)?
         };
 
-        let mut wallets_path = data_dir.clone();
-        wallets_path.push("wallets.yml");
-        debug!("Reading wallets from '{}'", wallets_path.display());
-        let wallets = if !wallets_path.exists() {
-            eprintln!("Wallet file not found, creating new wallet list");
-            empty!()
-        } else {
-            let wallets_fd = File::open(&wallets_path)?;
-            serde_yaml::from_reader(&wallets_fd)?
-        };
-
         Ok(Self {
             stock_path,
-            wallets_path,
             stock,
-            wallets,
+            wallet: None,
             chain,
         })
+    }
+
+    pub fn attach(&mut self, wallet: bp_rt::Runtime<DescriptorRgb>) { self.wallet = Some(wallet) }
+
+    pub fn detach(mut self) -> (Self, Option<bp_rt::Runtime<DescriptorRgb>>) {
+        let wallet = self.wallet;
+        self.wallet = None;
+        (self, wallet)
     }
 
     pub fn unload(self) -> () {}

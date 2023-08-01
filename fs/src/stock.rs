@@ -22,7 +22,7 @@
 use std::path::Path;
 
 use amplify::confinement::U32;
-use rgbstd::persistence::Stock;
+use rgb::persistence::Stock;
 use strict_encoding::{DeserializeError, SerializeError, StrictDeserialize, StrictSerialize};
 
 pub trait StockFs: Sized {
