@@ -125,7 +125,7 @@ impl Runtime {
         stock_path.push("stock.dat");
         debug!("Reading stock from '{}'", stock_path.display());
         let stock = if !stock_path.exists() {
-            eprintln!("Stock file not found, creating default stock");
+            info!("Stock file not found, creating default stock");
             let stock = Stock::default();
             stock.store(&stock_path)?;
             stock
@@ -137,7 +137,7 @@ impl Runtime {
         wallets_path.push("wallets.yml");
         debug!("Reading wallets from '{}'", wallets_path.display());
         let wallets = if !wallets_path.exists() {
-            eprintln!("Wallet file not found, creating new wallet list");
+            info!("Wallet file not found, creating new wallet list");
             empty!()
         } else {
             let wallets_fd = File::open(&wallets_path)?;
