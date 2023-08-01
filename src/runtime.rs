@@ -183,7 +183,9 @@ impl Runtime {
             .wallets
             .get(name)
             .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
-        RgbWallet::with(descr.clone(), &mut self.resolver).map_err(RuntimeError::from)
+        let mut wallet = RgbWallet::new(descr.clone());
+        wallet.update(&mut self.resolver)?;
+        Ok(wallet)
     }
 
     pub fn import_contract(

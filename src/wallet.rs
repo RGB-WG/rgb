@@ -59,26 +59,31 @@ pub struct RgbWallet {
 }
 
 impl RgbWallet {
-    pub fn with(descr: RgbDescr, resolver: &mut impl Resolver) -> Result<Self, String> {
-        let mut utxos = BTreeSet::new();
+    pub fn new(descr: RgbDescr) -> Self {
+        Self {
+            descr,
+            utxos: empty!(),
+        }
+    }
 
+    pub fn update(&mut self, resolver: &mut impl Resolver) -> Result<(), String> {
         const STEP: u32 = 20;
         for app in [0, 1, 9, 10] {
             let mut index = 0;
             loop {
                 debug!("Requesting {STEP} scripts from the Electrum server");
-                let scripts = descr.derive(app, index..(index + STEP));
+                let scripts = self.descr.derive(app, index..(index + STEP));
                 let set = resolver.resolve_utxo(scripts)?;
                 if set.is_empty() {
                     break;
                 }
                 debug!("Electrum server returned {} UTXOs", set.len());
-                utxos.extend(set);
+                self.utxos.extend(set);
                 index += STEP;
             }
         }
 
-        Ok(Self { descr, utxos })
+        Ok(())
     }
 
     pub fn utxo(&self, outpoint: Outpoint) -> Option<&Utxo> {
