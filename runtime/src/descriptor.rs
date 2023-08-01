@@ -30,15 +30,6 @@ use bp::dbc::tapret::{TapretCommitment, TapretPathProof, TapretProof};
 use bp::{ScriptPubkey, TapNodeHash};
 use commit_verify::ConvolveCommit;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
-#[display("*/{app}/{index}")]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TerminalPath {
-    pub app: u32,
-    pub index: u32,
-}
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct DeriveInfo {
     pub terminal: TerminalPath,

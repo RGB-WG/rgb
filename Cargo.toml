@@ -1,74 +1,78 @@
 [workspace]
 members = [
-    "fs",
-    ".",
+    "runtime",
 ]
 default-members = [
-    "fs",
-    "."
+    "runtime",
 ]
 
 [workspace.package]
+version = "0.11.0-alpha"
+keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
+categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
-homepage = "https://github.com/RGB-WG"
-repository = "https://github.com/RGB-WG/rgb"
+homepage = "https://lnp-bp.org"
+repository = "https://github.com/RGB-WG/rgb-wallet"
 rust-version = "1.67" # Due to strict encoding library
 edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.0.0"
+amplify = "4.0.1"
 baid58 = "0.4.4"
 strict_encoding = "2.5.0"
 strict_types = "1.6.0"
-rgb-std = { version = "0.10.5", features = ["fs"] }
-rgb-wallet = { version = "0.10.5", features = ["fs"] }
+bp-esplora = "0.11.0"
+bp-std = "0.11.0"
+rgb-std = { version = "0.11.0-alpha", features = ["fs"] }
+rgb-invoice = "0.11.0-alpha"
+serde_crate = { package = "serde", version = "1", features = ["derive"] }
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 
-[package]
-name = "rgb-contracts"
-version = "0.10.0-rc.4"
-description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
-keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
-categories = ["cryptography::cryptocurrencies"]
-authors = { workspace = true }
-repository = { workspace = true }
-homepage = { workspace = true }
-edition = { workspace = true }
-license = { workspace = true }
-rust-version = { workspace = true }
-readme = "README.md"
-exclude = [".github", "std"]
+# [package]
+# name = "rgb-wallet"
+# version = "0.11.0-alpha"
+# description = "RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
+# keywords = { workspace = true }
+# categories = { workspace = true }
+# authors = { workspace = true }
+# repository = { workspace = true }
+# homepage = { workspace = true }
+# edition = { workspace = true }
+# license = { workspace = true }
+# rust-version = { workspace = true }
+# readme = "README.md"
+# exclude = [".github"]
+# 
+# [[bin]]
+# name = "rgb"
+# path = "src/main.rs"
+# 
+# [dependencies]
+# amplify = { workspace = true }
+# baid58 = { workspace = true }
+# strict_types = { workspace = true, features = ["serde"] }
+# commit_verify = "0.10.5"
+# bp-std = { workspace = true, features = ["serde"] }
+# rgb-std = { workspace = true }
+# rgb-invoice = { workspace = true }
+# rgb-persist-fs = { version = "0.11.0-alpha", path = "fs" }
+# log = { workspace = true }
+# env_logger = "0.10.0"
+# clap = { version = "4.1.8", features = ["derive", "env"] }
+# shellexpand = "3.1.0"
+# serde_crate = { workspace = true }
+# serde_yaml = "0.9.19"
+# toml = "0.7.6"
+# 
+# [features]
+# default = ["log"]
+# all = ["log"]
+#
+# [package.metadata.docs.rs]
+# features = [ "all" ]
 
-[lib]
-name = "rgb"
-
-[[bin]]
-name = "rgb"
-required-features = ["cli"]
-
-[dependencies]
-amplify = { workspace = true }
-baid58 = { workspace = true }
-strict_types = { workspace = true, features = ["serde"] }
-commit_verify = "0.10.5"
-bp-core = { version = "0.10.7", features = ["serde"] }
-rgb-std = { workspace = true }
-rgb-wallet = { workspace = true }
-rgb-persist-fs = { version = "0.10.0", path = "fs" }
-bitcoin = { version = "0.30.0", features = ["serde"] }
-electrum-client = { version = "0.15.1", optional = true }
-log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
-env_logger = "0.10.0"
-clap = { version = "4.1.8", features = ["derive", "env"], optional = true }
-shellexpand = { version = "3.0.0", optional = true }
-serde = "1.0.159"
-serde_yaml = "0.9.19"
-
-[features]
-default = ["electrum", "log"]
-all = ["cli", "log"]
-electrum = ["electrum-client", "log"]
-cli = ["clap", "shellexpand", "log", "electrum"]
-
-[package.metadata.docs.rs]
-features = [ "all" ]
+[patch.crates-io]
+bp-std = { git = "https://github.com/BP-WG/bp-std" }
+bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }

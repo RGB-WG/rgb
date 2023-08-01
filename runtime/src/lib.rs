@@ -22,10 +22,9 @@
 #[macro_use]
 extern crate amplify;
 #[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
+extern crate serde_crate as serde;
 
+/*
 mod descriptor;
 mod runtime;
 mod wallet;
@@ -41,3 +40,4 @@ pub mod prelude {
     pub use super::*;
 }
 pub use prelude::*;
+ */

@@ -1,0 +1,29 @@
+[package]
+name = "rgb-runtime"
+version.workspace = true
+description = "RGB smart contracts wallet runtime"
+keywords.workspace = true
+categories.workspace = true
+readme = "../README.md"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "rgb_rt"
+
+[dependencies]
+amplify = { workspace = true }
+bp-std = { workspace = true }
+bp-esplora = { workspace = true, optional = true }
+rgb-std = { workspace = true }
+serde_crate = { workspace = true, optional = true }
+
+[features]
+default = ["esplora"]
+all = ["esplora",  "serde"]
+esplora = ["bp-esplora"]
+serde = ["serde_crate", "bp-std/serde"]
