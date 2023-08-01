@@ -21,10 +21,12 @@
 
 use std::path::PathBuf;
 
+use bp::XpubDescriptor;
 use clap::ValueHint;
-use rgbstd::Chain;
+use rgb::Chain;
+use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
 
-use crate::{Command, RGB_DATA_DIR};
+use crate::{Command, DEFAULT_ESPLORA, RGB_DATA_DIR};
 
 /// Command-line arguments
 #[derive(Parser)]
@@ -61,9 +63,32 @@ pub struct Opts {
     )]
     pub chain: Chain,
 
-    /// Electrum server to use.
-    #[clap(short, long, env = "RGB_ELECTRUM_SERVER")]
-    pub electrum: Option<String>,
+    /// Path to wallet directory.
+    #[clap(
+        short,
+        long,
+        global = true,
+        value_hint = ValueHint::DirPath,
+        conflicts_with = "tr_key_only",
+    )]
+    pub wallet_path: Option<PathBuf>,
+
+    /// Use tr(KEY) descriptor as wallet.
+    #[clap(long, global = true)]
+    pub tr_key_only: Option<XpubDescriptor>,
+
+    /// Esplora server to use.
+    #[clap(
+        short,
+        long,
+        global = true,
+        default_value = DEFAULT_ESPLORA,
+        env = "RGB_ESPLORA_SERVER"
+    )]
+    pub esplora: String,
+
+    #[clap(long, global = true)]
+    pub sync: bool,
 
     /// Command to execute.
     #[clap(subcommand)]
@@ -74,5 +99,48 @@ impl Opts {
     pub fn process(&mut self) {
         self.data_dir =
             PathBuf::from(shellexpand::tilde(&self.data_dir.display().to_string()).to_string());
+    }
+
+    pub fn runtime(&self) -> Result<Runtime, RuntimeError> {
+        eprint!("Loading stock ... ");
+        let mut runtime = Runtime::<DescriptorRgb>::load(self.data_dir.clone(), self.chain)?;
+        eprint!("success");
+
+        eprint!("Loading descriptor");
+        let wallet = if let Some(d) = self.tr_key_only.clone() {
+            eprint!(" from command-line argument ...");
+            Ok(Some(bp_rt::Runtime::new(TapretKey::new_unfunded(d).into(), self.chain)))
+        } else if let Some(wallet_path) = self.wallet_path.clone() {
+            eprint!(" from specified wallet directory ...");
+            bp_rt::Runtime::load(wallet_path).map(Some)
+        } else {
+            eprint!(" from wallet ...");
+            let mut data_dir = self.data_dir.clone();
+            data_dir.push(self.chain.to_string());
+            bp_rt::Runtime::load(data_dir).map(Some)
+        }?;
+        if let Some(wallet) = wallet {
+            runtime.attach(wallet)
+        }
+        eprintln!(" success");
+
+        if self.sync || self.tr_key_only.is_some() {
+            if let Some(wallet) = runtime.wallet_mut() {
+                eprint!("Syncing ...");
+                let indexer = esplora::Builder::new(&self.esplora)
+                    .build_blocking()
+                    .map_err(|err| RuntimeError::Custom(err.to_string()))?;
+                if let Err(errors) = wallet.sync(&indexer) {
+                    eprintln!(" partial, some requests has failed:");
+                    for err in errors {
+                        eprintln!("- {err}");
+                    }
+                } else {
+                    eprintln!(" success");
+                }
+            }
+        }
+
+        Ok(runtime)
     }
 }

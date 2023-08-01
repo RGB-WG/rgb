@@ -26,8 +26,17 @@ use dbc::tapret::TapretCommitment;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, From)]
 pub struct TapretKey<K: DeriveXOnly = XpubDescriptor> {
-    internal_key: K,
-    tweaks: BTreeMap<NormalIndex, TapretCommitment>,
+    pub internal_key: K,
+    pub tweaks: BTreeMap<NormalIndex, TapretCommitment>,
+}
+
+impl<K: DeriveXOnly> TapretKey<K> {
+    pub fn new_unfunded(internal_key: K) -> Self {
+        TapretKey {
+            internal_key,
+            tweaks: empty!(),
+        }
+    }
 }
 
 impl<K: DeriveXOnly> Derive<ScriptPubkey> for TapretKey<K> {

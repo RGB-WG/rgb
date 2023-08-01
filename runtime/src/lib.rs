@@ -28,21 +28,5 @@ extern crate log;
 mod descriptors;
 mod runtime;
 
-pub use descriptors::DescriptorRgb;
+pub use descriptors::{DescriptorRgb, TapretKey};
 pub use runtime::{Runtime, RuntimeError};
-
-/*
-mod descriptor;
-
-pub mod prelude {
-    pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
-    pub use rgbfs::StockFs;
-    pub use rgbstd::*;
-    pub use rgbwallet::*;
-    pub use runtime::{Runtime, RuntimeError};
-    pub use wallet::{DefaultResolver, RgbWallet};
-
-    pub use super::*;
-}
-pub use prelude::*;
- */

@@ -24,19 +24,17 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
-use bitcoin::bip32::ExtendedPubKey;
-use bitcoin::psbt::Psbt;
-use bp::seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use rgb::{BlockchainResolver, Runtime, RuntimeError};
-use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
-use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, SchemaIfaces, TypedState};
-use rgbstd::persistence::{Inventory, Stash};
-use rgbstd::schema::SchemaId;
-use rgbstd::Txid;
-use rgbwallet::psbt::opret::OutputOpret;
-use rgbwallet::psbt::tapret::OutputTapret;
-use rgbwallet::{InventoryWallet, RgbInvoice, RgbTransport};
+use rgb::containers::{Bindle, Transfer, UniversalBindle};
+use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
+use rgb::interface::{ContractBuilder, SchemaIfaces, TypedState};
+use rgb::persistence::{Inventory, Stash};
+use rgb::resolvers::ResolveHeight;
+use rgb::schema::SchemaId;
+use rgb::validation::ResolveTx;
+use rgb::Txid;
+use rgb_rt::{DescriptorRgb, Runtime, RuntimeError};
+use rgbinvoice::{RgbInvoice, RgbTransport};
+use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use strict_types::encoding::{FieldName, Ident, TypeName};
 use strict_types::StrictVal;
 
@@ -65,6 +63,8 @@ pub enum Command {
     Interfaces,
     /// Prints out list of known RGB contracts.
     Contracts,
+
+    /*
     /// Prints out list of wallets.
     Wallets {
         /// Print out full descriptor with all tapret commitments.
@@ -88,7 +88,7 @@ pub enum Command {
         #[clap(short, long, default_value = "default")]
         wallet: Ident,
     },
-
+     */
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc.
     #[display("import")]
     Import {
@@ -224,10 +224,10 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn exec(
+    pub fn exec<R: ResolveHeight + ResolveTx + 'static>(
         self,
         runtime: &mut Runtime,
-        resolver: &mut BlockchainResolver,
+        resolver: &mut R,
     ) -> Result<(), RuntimeError> {
         match self {
             Command::Schemata => {
@@ -251,6 +251,7 @@ impl Command {
                 }
             }
 
+            /*
             Command::Wallets { long: details } => {
                 for (name, descriptor) in runtime.wallets() {
                     if details {
@@ -275,7 +276,7 @@ impl Command {
                     );
                 }
             }
-
+             */
             Command::Import { armored, file } => {
                 if armored {
                     todo!()
@@ -341,13 +342,13 @@ impl Command {
                 contract_id,
                 iface,
             } => {
-                let wallet = wallet
+                let wallet = None::<bp_rt::Runtime<DescriptorRgb>>; /*wallet
                     .map(|w| -> Result<_, RuntimeError> {
                         let mut wallet = runtime.wallet(&w)?;
                         wallet.update(resolver)?;
                         Ok(wallet)
                     })
-                    .transpose()?;
+                    .transpose()?;*/
 
                 let iface = runtime.iface_by_name(&tn!(iface))?.clone();
                 let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
@@ -366,7 +367,7 @@ impl Command {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &None) {
                         for allocation in allocations {
-                            if let Some(utxo) =
+                            /*if let Some(utxo) =
                                 wallet.as_ref().and_then(|w| w.utxo(allocation.owner))
                             {
                                 println!(
@@ -377,11 +378,12 @@ impl Command {
                                     utxo.derivation
                                 );
                             } else {
-                                println!(
+                            */
+                            println!(
                                     "    amount={}, utxo={}, witness={} # owner unknown",
                                     allocation.value, allocation.owner, allocation.witness
                                 );
-                            }
+                            //}
                         }
                     }
                     // TODO: Print out other types of state
@@ -561,6 +563,8 @@ impl Command {
                 invoice,
                 out_file,
             } => {
+                todo!()
+                /*
                 // TODO: Check PSBT format
                 let psbt_data = fs::read(&psbt_file)?;
                 let mut psbt = Psbt::deserialize(&psbt_data)?;
@@ -577,6 +581,7 @@ impl Command {
                     psbt_file.display()
                 );
                 eprintln!("Stash data are updated.");
+                 */
             }
             Command::Inspect { file } => {
                 let bindle = UniversalBindle::load(file)?;
@@ -702,6 +707,8 @@ impl Command {
                 eprintln!("Transfer accepted into the stash");
             }
             Command::SetHost { method, psbt_file } => {
+                todo!();
+                /*
                 let psbt_data = fs::read(&psbt_file)?;
                 let mut psbt = Psbt::deserialize(&psbt_data)?;
                 let mut psbt_modified = false;
@@ -741,6 +748,7 @@ impl Command {
                         psbt_file.display()
                     );
                 }
+                 */
             }
         }
 

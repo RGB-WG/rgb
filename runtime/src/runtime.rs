@@ -20,9 +20,11 @@
 // limitations under the License.
 
 use std::convert::Infallible;
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
+use bp::DeriveSpk;
 use rgb::containers::LoadError;
 use rgb::interface::BuilderError;
 use rgb::persistence::{InventoryDataError, InventoryError, StashError, Stock};
@@ -71,6 +73,12 @@ pub enum RuntimeError {
     IncompleteContract,
 
     #[from]
+    Bp(bp_rt::LoadError),
+
+    #[from]
+    Yaml(serde_yaml::Error),
+
+    #[from]
     Custom(String),
 }
 
@@ -79,14 +87,26 @@ impl From<Infallible> for RuntimeError {
 }
 
 #[derive(Getters)]
-pub struct Runtime {
+pub struct Runtime<D: DeriveSpk = DescriptorRgb> {
     stock_path: PathBuf,
     stock: Stock,
-    wallet: Option<bp_rt::Runtime<DescriptorRgb>>,
+    #[getter(as_mut)]
+    wallet: Option<bp_rt::Runtime<D>>,
+    #[getter(as_copy)]
     chain: Chain,
 }
 
-impl Runtime {
+impl<D: DeriveSpk> Deref for Runtime<D> {
+    type Target = Stock;
+
+    fn deref(&self) -> &Self::Target { &self.stock }
+}
+
+impl<D: DeriveSpk> DerefMut for Runtime<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
+}
+
+impl<D: DeriveSpk> Runtime<D> {
     pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
         #[cfg(feature = "log")]
@@ -114,13 +134,9 @@ impl Runtime {
         })
     }
 
-    pub fn attach(&mut self, wallet: bp_rt::Runtime<DescriptorRgb>) { self.wallet = Some(wallet) }
+    pub fn attach(&mut self, wallet: bp_rt::Runtime<D>) { self.wallet = Some(wallet) }
 
-    pub fn detach(mut self) -> (Self, Option<bp_rt::Runtime<DescriptorRgb>>) {
-        let wallet = self.wallet;
-        self.wallet = None;
-        (self, wallet)
-    }
+    pub fn detach(&mut self) { self.wallet = None; }
 
     pub fn unload(self) -> () {}
 
@@ -183,15 +199,15 @@ impl Runtime {
      */
 }
 
-/*
-impl Drop for Runtime {
+impl<D: DeriveSpk> Drop for Runtime<D> {
     fn drop(&mut self) {
         self.stock
             .store(&self.stock_path)
             .expect("unable to save stock");
+        /*
         let wallets_fd = File::create(&self.wallets_path)
             .expect("unable to access wallet file; wallets are not saved");
         serde_yaml::to_writer(wallets_fd, &self.wallets).expect("unable to save wallets");
+         */
     }
 }
-*/
