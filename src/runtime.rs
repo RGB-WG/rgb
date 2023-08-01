@@ -104,8 +104,6 @@ pub struct Runtime {
     wallets: HashMap<Ident, RgbDescr>,
     #[getter(as_copy)]
     chain: Chain,
-    #[getter(skip)]
-    resolver: BlockchainResolver,
 }
 
 impl Deref for Runtime {
@@ -118,7 +116,7 @@ impl DerefMut for Runtime {
 }
 
 impl Runtime {
-    pub fn load(mut data_dir: PathBuf, chain: Chain, electrum: &str) -> Result<Self, RuntimeError> {
+    pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
         debug!("Using data directory '{}'", data_dir.display());
         fs::create_dir_all(&data_dir)?;
@@ -146,21 +144,16 @@ impl Runtime {
             serde_yaml::from_reader(&wallets_fd)?
         };
 
-        let resolver = BlockchainResolver::with(electrum)?;
-
         Ok(Self {
             stock_path,
             wallets_path,
             stock,
             wallets,
             chain,
-            resolver,
         })
     }
 
     pub fn unload(self) -> () {}
-
-    pub fn resolver(&mut self) -> &mut BlockchainResolver { &mut self.resolver }
 
     pub fn create_wallet(
         &mut self,
@@ -183,26 +176,26 @@ impl Runtime {
             .wallets
             .get(name)
             .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
-        let mut wallet = RgbWallet::new(descr.clone());
-        wallet.update(&mut self.resolver)?;
-        Ok(wallet)
+        Ok(RgbWallet::new(descr.clone()))
     }
 
     pub fn import_contract(
         &mut self,
         contract: Contract,
+        resolver: &mut BlockchainResolver,
     ) -> Result<validation::Status, RuntimeError> {
         self.stock
-            .import_contract(contract, &mut self.resolver)
+            .import_contract(contract, resolver)
             .map_err(RuntimeError::from)
     }
 
     pub fn validate_transfer<'transfer>(
         &mut self,
         transfer: Transfer,
+        resolver: &mut BlockchainResolver,
     ) -> Result<Transfer, RuntimeError> {
         transfer
-            .validate(&mut self.resolver)
+            .validate(resolver)
             .map_err(|invalid| invalid.validation_status().expect("just validated").clone())
             .map_err(RuntimeError::from)
     }
@@ -210,10 +203,11 @@ impl Runtime {
     pub fn accept_transfer(
         &mut self,
         transfer: Transfer,
+        resolver: &mut BlockchainResolver,
         force: bool,
     ) -> Result<validation::Status, RuntimeError> {
         self.stock
-            .accept_transfer(transfer, &mut self.resolver, force)
+            .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
     }
 }

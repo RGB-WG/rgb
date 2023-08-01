@@ -35,7 +35,7 @@ mod command;
 use std::process::ExitCode;
 
 use clap::Parser;
-use rgb::{DefaultResolver, Runtime, RuntimeError};
+use rgb::{BlockchainResolver, DefaultResolver, Runtime, RuntimeError};
 
 pub use crate::command::Command;
 pub use crate::loglevel::LogLevel;
@@ -73,8 +73,9 @@ fn run() -> Result<(), RuntimeError> {
         .electrum
         .unwrap_or_else(|| opts.chain.default_resolver());
 
-    let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain, &electrum)?;
+    let mut resolver = BlockchainResolver::with(&electrum)?;
+    let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain)?;
     debug!("Executing command: {}", opts.command);
-    opts.command.exec(&mut runtime)?;
+    opts.command.exec(&mut runtime, &mut resolver)?;
     Ok(())
 }
