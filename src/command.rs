@@ -29,7 +29,7 @@ use bp::{Tx, XpubDescriptor};
 use clap::ValueHint;
 use rgb::containers::{Bindle, Transfer, UniversalBindle};
 use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgb::interface::{ContractBuilder, SchemaIfaces, TypedState};
+use rgb::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
 use rgb::persistence::{Inventory, Stash};
 use rgb::resolvers::ResolveHeight;
 use rgb::schema::SchemaId;
@@ -38,7 +38,7 @@ use rgb::{Txid, WitnessOrd};
 use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
 use rgbinvoice::{RgbInvoice, RgbTransport};
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use strict_types::encoding::{FieldName, TypeName};
+use strict_types::encoding::{FieldName, Ident, TypeName};
 use strict_types::StrictVal;
 
 use crate::opts::Config;
@@ -78,9 +78,12 @@ pub struct ResolverOpt {
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 #[group(multiple = false)]
 pub struct WalletOpts {
+    #[arg(short = 'w', long = "wallet", global = true)]
+    pub name: Option<Ident>,
+
     /// Path to wallet directory.
     #[arg(
-        short,
+        short = 'W',
         long,
         global = true,
         value_hint = ValueHint::DirPath,
@@ -426,36 +429,42 @@ impl Command {
                 iface,
             } => {
                 eprint!("Loading descriptor");
-                let mut wallet: bp_rt::Runtime<DescriptorRgb, ()> =
-                    if let Some(d) = wallet.tr_key_only.clone() {
-                        eprint!(" from command-line argument ...");
-                        Ok(bp_rt::Runtime::new(TapretKey::new_unfunded(d).into(), config.chain))
-                    } else if let Some(wallet_path) = wallet.wallet_path.clone() {
-                        eprint!(" from specified wallet directory ...");
-                        bp_rt::Runtime::load(wallet_path)
-                    } else {
-                        eprint!(" from wallet ...");
-                        let mut data_dir = config.data_dir.clone();
-                        data_dir.push(config.chain.to_string());
-                        bp_rt::Runtime::load(data_dir)
-                    }?;
+                let wallet: Option<bp_rt::Runtime<DescriptorRgb, ()>> = if let Some(d) =
+                    wallet.tr_key_only
+                {
+                    eprint!(" from command-line argument ...");
+                    Ok(Some(bp_rt::Runtime::new(TapretKey::new_unfunded(d).into(), config.chain)))
+                } else if let Some(wallet_path) = wallet.wallet_path {
+                    eprint!(" from wallet directory '{}' ...", wallet_path.display());
+                    bp_rt::Runtime::load(wallet_path).map(Some)
+                } else if let Some(name) = wallet.name {
+                    eprint!(" from wallet '{name}' ...");
+                    let mut data_dir = config.data_dir.clone();
+                    data_dir.push(config.chain.to_string());
+                    data_dir.push(name.as_str());
+                    bp_rt::Runtime::load(data_dir).map(Some)
+                } else {
+                    Ok(None)
+                }?;
                 eprintln!(" success");
 
-                if sync {
-                    eprint!("Syncing ...");
-                    let indexer = esplora::Builder::new(&resolver.esplora)
-                        .build_blocking()
-                        .map_err(|err| RuntimeError::Custom(err.to_string()))?;
-                    if let Err(errors) = wallet.sync(&indexer) {
-                        eprintln!(" partial, some requests has failed:");
-                        for err in errors {
-                            eprintln!("- {err}");
+                if let Some(mut wallet) = wallet {
+                    if sync {
+                        eprint!("Syncing ...");
+                        let indexer = esplora::Builder::new(&resolver.esplora)
+                            .build_blocking()
+                            .map_err(|err| RuntimeError::Custom(err.to_string()))?;
+                        if let Err(errors) = wallet.sync(&indexer) {
+                            eprintln!(" partial, some requests has failed:");
+                            for err in errors {
+                                eprintln!("- {err}");
+                            }
+                        } else {
+                            eprintln!(" success");
                         }
-                    } else {
-                        eprintln!(" success");
                     }
+                    runtime.attach(wallet);
                 }
-                runtime.attach(wallet);
 
                 let iface = runtime.iface_by_name(&tn!(iface))?.clone();
                 let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
@@ -472,25 +481,22 @@ impl Command {
                 println!("\nOwned:");
                 for owned in &contract.iface.assignments {
                     println!("  {}:", owned.name);
-                    if let Ok(allocations) = contract.fungible(owned.name.clone(), &None) {
+                    if let Ok(allocations) = contract.fungible(owned.name.clone(), &runtime) {
                         for allocation in allocations {
-                            /*if let Some(utxo) =
-                                wallet.as_ref().and_then(|w| w.utxo(allocation.owner))
-                            {
-                                println!(
-                                    "    amount={}, utxo={}, witness={}, derivation={}",
-                                    allocation.value,
-                                    allocation.owner,
-                                    allocation.witness,
-                                    utxo.derivation
-                                );
-                            } else {
-                            */
+                            println!(
+                                "    amount={}, utxo={}, witness={} # owned by the wallet",
+                                allocation.value, allocation.owner, allocation.witness,
+                            );
+                        }
+                    }
+                    if let Ok(allocations) =
+                        contract.fungible(owned.name.clone(), &FilterExclude(&runtime))
+                    {
+                        for allocation in allocations {
                             println!(
                                 "    amount={}, utxo={}, witness={} # owner unknown",
                                 allocation.value, allocation.owner, allocation.witness
                             );
-                            //}
                         }
                     }
                     // TODO: Print out other types of state

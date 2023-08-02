@@ -24,9 +24,9 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
-use bp::DeriveSpk;
+use bp::{DeriveSpk, Outpoint};
 use rgb::containers::LoadError;
-use rgb::interface::BuilderError;
+use rgb::interface::{BuilderError, OutpointFilter};
 use rgb::persistence::{InventoryDataError, InventoryError, StashError, Stock};
 use rgb::{validation, Chain};
 use rgbfs::StockFs;
@@ -104,6 +104,15 @@ impl<D: DeriveSpk> Deref for Runtime<D> {
 
 impl<D: DeriveSpk> DerefMut for Runtime<D> {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
+}
+
+impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
+    fn include_outpoint(&self, outpoint: Outpoint) -> bool {
+        self.wallet
+            .as_ref()
+            .map(|rt| rt.wallet().coins().any(|utxo| utxo.outpoint == outpoint))
+            .unwrap_or_default()
+    }
 }
 
 impl<D: DeriveSpk> Runtime<D> {
