@@ -424,7 +424,7 @@ impl Command {
             Command::State {
                 resolver,
                 wallet,
-                sync,
+                mut sync,
                 contract_id,
                 iface,
             } => {
@@ -433,6 +433,7 @@ impl Command {
                     wallet.tr_key_only
                 {
                     eprint!(" from command-line argument ...");
+                    sync = true;
                     Ok(Some(bp_rt::Runtime::new(TapretKey::new_unfunded(d).into(), config.chain)))
                 } else if let Some(wallet_path) = wallet.wallet_path {
                     eprint!(" from wallet directory '{}' ...", wallet_path.display());

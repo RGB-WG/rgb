@@ -71,10 +71,11 @@ fn run() -> Result<(), RuntimeError> {
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    eprintln!("\nRGB: command-line wallet for RGB smart contracts");
+    eprintln!("RGB: command-line wallet for RGB smart contracts");
     eprintln!("     by LNP/BP Standards Association\n");
     let mut runtime = opts.runtime()?;
     debug!("Executing command: {}", opts.command);
     opts.command.exec(&mut runtime, &opts.config)?;
+    eprintln!();
     Ok(())
 }

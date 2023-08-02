@@ -84,7 +84,7 @@ impl Opts {
         eprint!("Loading stock ... ");
         let runtime =
             Runtime::<DescriptorRgb>::load(self.config.data_dir.clone(), self.config.chain)?;
-        eprint!("success");
+        eprintln!("success");
 
         Ok(runtime)
     }
