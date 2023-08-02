@@ -32,19 +32,14 @@ mod loglevel;
 mod opts;
 mod command;
 
-use std::convert::Infallible;
 use std::process::ExitCode;
 
-use bp::{Tx, Txid};
 use clap::Parser;
-use rgb::resolvers::ResolveHeight;
-use rgb::validation::{ResolveTx, TxResolverError};
-use rgb::WitnessOrd;
 use rgb_rt::RuntimeError;
 
 pub use crate::command::Command;
 pub use crate::loglevel::LogLevel;
-pub use crate::opts::Opts;
+pub use crate::opts::{Config, Opts};
 
 #[cfg(any(target_os = "linux"))]
 pub const RGB_DATA_DIR: &str = "~/.rgb";
@@ -76,23 +71,10 @@ fn run() -> Result<(), RuntimeError> {
     LogLevel::from_verbosity_flag_count(opts.verbose).apply();
     trace!("Command-line arguments: {:#?}", &opts);
 
-    #[derive(Default)]
-    struct DumbResolver();
-    impl ResolveHeight for DumbResolver {
-        type Error = Infallible;
-        fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
-            Ok(WitnessOrd::OffChain)
-        }
-    }
-    impl ResolveTx for DumbResolver {
-        fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> { todo!() }
-    }
-    let mut resolver = DumbResolver::default();
-
     eprintln!("\nRGB: command-line wallet for RGB smart contracts");
     eprintln!("     by LNP/BP Standards Association\n");
     let mut runtime = opts.runtime()?;
     debug!("Executing command: {}", opts.command);
-    opts.command.exec(&mut runtime, &mut resolver)?;
+    opts.command.exec(&mut runtime, &opts.config)?;
     Ok(())
 }

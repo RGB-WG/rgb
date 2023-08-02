@@ -19,24 +19,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::convert::Infallible;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
+use bp::{Tx, XpubDescriptor};
+use clap::ValueHint;
 use rgb::containers::{Bindle, Transfer, UniversalBindle};
 use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgb::interface::{ContractBuilder, SchemaIfaces, TypedState};
 use rgb::persistence::{Inventory, Stash};
 use rgb::resolvers::ResolveHeight;
 use rgb::schema::SchemaId;
-use rgb::validation::ResolveTx;
-use rgb::Txid;
-use rgb_rt::{DescriptorRgb, Runtime, RuntimeError};
+use rgb::validation::{ResolveTx, TxResolverError};
+use rgb::{Txid, WitnessOrd};
+use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
 use rgbinvoice::{RgbInvoice, RgbTransport};
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use strict_types::encoding::{FieldName, Ident, TypeName};
+use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
+
+use crate::opts::Config;
+use crate::DEFAULT_ESPLORA;
 
 // TODO: For now, serde implementation doesn't work for consignments due to
 //       some of the keys which can't be serialized to strings. Once this fixed,
@@ -53,6 +59,38 @@ pub enum InspectFormat {
     Contractum,
 }
  */
+
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct ResolverOpt {
+    /// Esplora server to use.
+    #[arg(
+        short,
+        long,
+        global = true,
+        default_value = DEFAULT_ESPLORA,
+        env = "RGB_ESPLORA_SERVER",
+        value_hint = ValueHint::Url,
+        value_name = "URL"
+    )]
+    pub esplora: String,
+}
+
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+#[group(multiple = false)]
+pub struct WalletOpts {
+    /// Path to wallet directory.
+    #[arg(
+        short,
+        long,
+        global = true,
+        value_hint = ValueHint::DirPath,
+    )]
+    pub wallet_path: Option<PathBuf>,
+
+    /// Use tr(KEY) descriptor as wallet.
+    #[arg(long, global = true)]
+    pub tr_key_only: Option<XpubDescriptor>,
+}
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
@@ -92,8 +130,11 @@ pub enum Command {
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc.
     #[display("import")]
     Import {
+        #[command(flatten)]
+        resolver: ResolverOpt,
+
         /// Use BASE64 ASCII armoring for binary data.
-        #[clap(short)]
+        #[arg(short)]
         armored: bool,
 
         /// File with RGB data. If not provided, assumes `-a` and prints out
@@ -105,7 +146,7 @@ pub enum Command {
     #[display("export")]
     Export {
         /// Use BASE64 ASCII armoring for binary data.
-        #[clap(short)]
+        #[arg(short)]
         armored: bool,
 
         /// Contract to export.
@@ -119,9 +160,12 @@ pub enum Command {
     /// Reports information about state of a contract.
     #[display("state")]
     State {
-        /// Wallet to filter the state.
-        #[clap(short, long)]
-        wallet: Option<Ident>,
+        #[command(flatten)]
+        resolver: ResolverOpt,
+        #[command(flatten)]
+        wallet: WalletOpts,
+        #[arg(long, global = true)]
+        sync: bool,
 
         /// Contract identifier.
         contract_id: ContractId,
@@ -189,13 +233,16 @@ pub enum Command {
     #[display("dump")]
     Dump {
         /// Directory to put the dump into.
-        #[clap(default_value = "./rgb-dump")]
+        #[arg(default_value = "./rgb-dump")]
         root_dir: String,
     },
 
     /// Validate transfer consignment.
     #[display("validate")]
     Validate {
+        #[command(flatten)]
+        resolver: ResolverOpt,
+
         /// File with the transfer consignment.
         file: PathBuf,
     },
@@ -203,8 +250,11 @@ pub enum Command {
     /// Validate transfer consignment & accept to the stash.
     #[display("accept")]
     Accept {
+        #[command(flatten)]
+        resolver: ResolverOpt,
+
         /// Force accepting consignments with non-mined terminal witness.
-        #[clap(short, long)]
+        #[arg(short, long)]
         force: bool,
 
         /// File with the transfer consignment.
@@ -214,7 +264,7 @@ pub enum Command {
     /// Set first opret/tapret output to host a commitment
     #[display("set-host")]
     SetHost {
-        #[clap(long, default_value = "tapret1st")]
+        #[arg(long, default_value = "tapret1st")]
         /// Method for single-use-seals.
         method: CloseMethod,
 
@@ -223,12 +273,37 @@ pub enum Command {
     },
 }
 
+// TODO: Embed in contract issuance builder
+struct PanickingResolver;
+impl ResolveHeight for PanickingResolver {
+    type Error = Infallible;
+    fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
+        unreachable!("PanickingResolver must be used only for newly issued contract validation")
+    }
+}
+impl ResolveTx for PanickingResolver {
+    fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> {
+        unreachable!("PanickingResolver must be used only for newly issued contract validation")
+    }
+}
+
 impl Command {
-    pub fn exec<R: ResolveHeight + ResolveTx + 'static>(
-        self,
-        runtime: &mut Runtime,
-        resolver: &mut R,
-    ) -> Result<(), RuntimeError> {
+    pub fn exec(self, runtime: &mut Runtime, config: &Config) -> Result<(), RuntimeError> {
+        fn resolver_init(_: &ResolverOpt) -> impl ResolveTx + ResolveHeight {
+            #[derive(Default)]
+            struct DumbResolver();
+            impl ResolveHeight for DumbResolver {
+                type Error = Infallible;
+                fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
+                    Ok(WitnessOrd::OffChain)
+                }
+            }
+            impl ResolveTx for DumbResolver {
+                fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> { todo!() }
+            }
+            DumbResolver::default()
+        }
+
         match self {
             Command::Schemata => {
                 for id in runtime.schema_ids()? {
@@ -277,7 +352,11 @@ impl Command {
                 }
             }
              */
-            Command::Import { armored, file } => {
+            Command::Import {
+                resolver,
+                armored,
+                file,
+            } => {
                 if armored {
                     todo!()
                 } else {
@@ -305,11 +384,13 @@ impl Command {
                             );
                         }
                         UniversalBindle::Contract(bindle) => {
+                            let mut resolver = resolver_init(&resolver);
                             let id = bindle.id();
-                            let contract = bindle.unbindle().validate(resolver).map_err(|c| {
-                                c.validation_status().expect("just validated").to_string()
-                            })?;
-                            runtime.import_contract(contract, resolver)?;
+                            let contract =
+                                bindle.unbindle().validate(&mut resolver).map_err(|c| {
+                                    c.validation_status().expect("just validated").to_string()
+                                })?;
+                            runtime.import_contract(contract, &mut resolver)?;
                             eprintln!("Contract {id} imported to the stash");
                         }
                         UniversalBindle::Transfer(_) => {
@@ -338,17 +419,43 @@ impl Command {
             }
 
             Command::State {
+                resolver,
                 wallet,
+                sync,
                 contract_id,
                 iface,
             } => {
-                let wallet = None::<bp_rt::Runtime<DescriptorRgb>>; /*wallet
-                    .map(|w| -> Result<_, RuntimeError> {
-                        let mut wallet = runtime.wallet(&w)?;
-                        wallet.update(resolver)?;
-                        Ok(wallet)
-                    })
-                    .transpose()?;*/
+                eprint!("Loading descriptor");
+                let mut wallet: bp_rt::Runtime<DescriptorRgb, ()> =
+                    if let Some(d) = wallet.tr_key_only.clone() {
+                        eprint!(" from command-line argument ...");
+                        Ok(bp_rt::Runtime::new(TapretKey::new_unfunded(d).into(), config.chain))
+                    } else if let Some(wallet_path) = wallet.wallet_path.clone() {
+                        eprint!(" from specified wallet directory ...");
+                        bp_rt::Runtime::load(wallet_path)
+                    } else {
+                        eprint!(" from wallet ...");
+                        let mut data_dir = config.data_dir.clone();
+                        data_dir.push(config.chain.to_string());
+                        bp_rt::Runtime::load(data_dir)
+                    }?;
+                eprintln!(" success");
+
+                if sync {
+                    eprint!("Syncing ...");
+                    let indexer = esplora::Builder::new(&resolver.esplora)
+                        .build_blocking()
+                        .map_err(|err| RuntimeError::Custom(err.to_string()))?;
+                    if let Err(errors) = wallet.sync(&indexer) {
+                        eprintln!(" partial, some requests has failed:");
+                        for err in errors {
+                            eprintln!("- {err}");
+                        }
+                    } else {
+                        eprintln!(" success");
+                    }
+                }
+                runtime.attach(wallet);
 
                 let iface = runtime.iface_by_name(&tn!(iface))?.clone();
                 let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
@@ -380,9 +487,9 @@ impl Command {
                             } else {
                             */
                             println!(
-                                    "    amount={}, utxo={}, witness={} # owner unknown",
-                                    allocation.value, allocation.owner, allocation.witness
-                                );
+                                "    amount={}, utxo={}, witness={} # owner unknown",
+                                allocation.value, allocation.owner, allocation.witness
+                            );
                             //}
                         }
                     }
@@ -523,11 +630,12 @@ impl Command {
 
                 let contract = builder.issue_contract().expect("failure issuing contract");
                 let id = contract.contract_id();
+                let mut resolver = PanickingResolver;
                 let validated_contract = contract
-                    .validate(resolver)
+                    .validate(&mut resolver)
                     .map_err(|_| RuntimeError::IncompleteContract)?;
                 runtime
-                    .import_contract(validated_contract, resolver)
+                    .import_contract(validated_contract, &mut resolver)
                     .expect("failure importing issued contract");
                 eprintln!(
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
@@ -690,20 +798,29 @@ impl Command {
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
             }
-            Command::Validate { file } => {
+            Command::Validate { resolver, file } => {
+                let mut resolver = resolver_init(&resolver);
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let status = match bindle.unbindle().validate(resolver) {
+                let status = match bindle.unbindle().validate(&mut resolver) {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err(consignment) => consignment.into_validation_status(),
                 }
                 .expect("just validated");
                 eprintln!("{status}");
             }
-            Command::Accept { force, file } => {
+            Command::Accept {
+                resolver,
+                force,
+                file,
+            } => {
+                let mut resolver = resolver_init(&resolver);
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let transfer = bindle.unbindle().validate(resolver).unwrap_or_else(|c| c);
+                let transfer = bindle
+                    .unbindle()
+                    .validate(&mut resolver)
+                    .unwrap_or_else(|c| c);
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
-                runtime.accept_transfer(transfer, resolver, force)?;
+                runtime.accept_transfer(transfer, &mut resolver, force)?;
                 eprintln!("Transfer accepted into the stash");
             }
             Command::SetHost { method, psbt_file } => {
