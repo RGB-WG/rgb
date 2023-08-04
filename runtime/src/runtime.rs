@@ -118,11 +118,14 @@ impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
 }
 
 impl<D: DeriveSpk> Runtime<D> {
-    pub fn load_or(
+    pub fn load_or<E>(
         mut data_dir: PathBuf,
         chain: Chain,
-        f: impl FnOnce(&mut Self),
-    ) -> Result<Self, RuntimeError> {
+        f: impl FnOnce(&mut Self) -> Result<(), E>,
+    ) -> Result<Self, RuntimeError>
+    where
+        RuntimeError: From<E>,
+    {
         data_dir.push(chain.to_string());
         #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
@@ -151,7 +154,7 @@ impl<D: DeriveSpk> Runtime<D> {
         };
 
         if created {
-            f(&mut me);
+            f(&mut me)?;
             me.stock.store(&me.stock_path)?;
         }
 
@@ -159,7 +162,7 @@ impl<D: DeriveSpk> Runtime<D> {
     }
 
     pub fn load(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
-        Self::load_or(data_dir, chain, |_| ())
+        Self::load_or::<RuntimeError>(data_dir, chain, |_| Ok(()))
     }
 
     fn store(&mut self) {
