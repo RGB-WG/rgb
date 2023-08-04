@@ -25,9 +25,11 @@ use std::path::PathBuf;
 use std::{fs, io};
 
 use bp::{DeriveSpk, Outpoint};
-use rgb::containers::LoadError;
+use rgb::containers::{Contract, LoadError, Transfer};
 use rgb::interface::{BuilderError, OutpointFilter};
-use rgb::persistence::{InventoryDataError, InventoryError, StashError, Stock};
+use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgb::resolvers::ResolveHeight;
+use rgb::validation::ResolveTx;
 use rgb::{validation, Chain};
 use rgbfs::StockFs;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
@@ -201,21 +203,25 @@ impl<D: DeriveSpk> Runtime<D> {
             .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
         Ok(RgbWallet::new(descr.clone()))
     }
+    */
 
-    pub fn import_contract(
+    pub fn import_contract<R: ResolveHeight>(
         &mut self,
         contract: Contract,
-        resolver: &mut BlockchainResolver,
-    ) -> Result<validation::Status, RuntimeError> {
+        resolver: &mut R,
+    ) -> Result<validation::Status, RuntimeError>
+    where
+        R::Error: 'static,
+    {
         self.stock
             .import_contract(contract, resolver)
             .map_err(RuntimeError::from)
     }
 
-    pub fn validate_transfer<'transfer>(
+    pub fn validate_transfer<R: ResolveTx>(
         &mut self,
         transfer: Transfer,
-        resolver: &mut BlockchainResolver,
+        resolver: &mut R,
     ) -> Result<Transfer, RuntimeError> {
         transfer
             .validate(resolver)
@@ -223,17 +229,19 @@ impl<D: DeriveSpk> Runtime<D> {
             .map_err(RuntimeError::from)
     }
 
-    pub fn accept_transfer(
+    pub fn accept_transfer<R: ResolveHeight>(
         &mut self,
         transfer: Transfer,
-        resolver: &mut BlockchainResolver,
+        resolver: &mut R,
         force: bool,
-    ) -> Result<validation::Status, RuntimeError> {
+    ) -> Result<validation::Status, RuntimeError>
+    where
+        R::Error: 'static,
+    {
         self.stock
             .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
     }
-     */
 }
 
 impl<D: DeriveSpk> Drop for Runtime<D> {
