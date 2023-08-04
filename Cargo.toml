@@ -17,10 +17,10 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.0.0"
+amplify = "4.0.1"
 baid58 = "0.4.4"
 strict_encoding = "2.5.0"
-strict_types = "1.6.0"
+strict_types = "1.6.1"
 rgb-std = { version = "0.10.7", features = ["fs"] }
 rgb-wallet = { version = "0.10.7", features = ["fs"] }
 
