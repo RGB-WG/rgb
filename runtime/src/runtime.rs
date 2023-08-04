@@ -116,7 +116,11 @@ impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
 }
 
 impl<D: DeriveSpk> Runtime<D> {
-    pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
+    pub fn load_or(
+        mut data_dir: PathBuf,
+        chain: Chain,
+        f: impl FnOnce(&mut Self),
+    ) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
         #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
@@ -126,21 +130,45 @@ impl<D: DeriveSpk> Runtime<D> {
         stock_path.push("stock.dat");
         #[cfg(feature = "log")]
         debug!("Reading stock from '{}'", stock_path.display());
+        let mut created = false;
         let stock = if !stock_path.exists() {
-            eprintln!("Stock file not found, creating default stock");
+            #[cfg(feature = "log")]
+            debug!("Stock file not found, creating default stock");
             let stock = Stock::default();
-            stock.store(&stock_path)?;
+            created = true;
             stock
         } else {
             Stock::load(&stock_path)?
         };
 
-        Ok(Self {
+        let mut me = Self {
             stock_path,
             stock,
             wallet: None,
             chain,
-        })
+        };
+
+        if created {
+            f(&mut me);
+            me.stock.store(&me.stock_path)?;
+        }
+
+        Ok(me)
+    }
+
+    pub fn load(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
+        Self::load_or(data_dir, chain, |_| ())
+    }
+
+    fn store(&mut self) {
+        self.stock
+            .store(&self.stock_path)
+            .expect("unable to save stock");
+        /*
+        let wallets_fd = File::create(&self.wallets_path)
+            .expect("unable to access wallet file; wallets are not saved");
+        serde_yaml::to_writer(wallets_fd, &self.wallets).expect("unable to save wallets");
+         */
     }
 
     pub fn attach(&mut self, wallet: bp_rt::Runtime<D>) { self.wallet = Some(wallet) }
@@ -209,14 +237,5 @@ impl<D: DeriveSpk> Runtime<D> {
 }
 
 impl<D: DeriveSpk> Drop for Runtime<D> {
-    fn drop(&mut self) {
-        self.stock
-            .store(&self.stock_path)
-            .expect("unable to save stock");
-        /*
-        let wallets_fd = File::create(&self.wallets_path)
-            .expect("unable to access wallet file; wallets are not saved");
-        serde_yaml::to_writer(wallets_fd, &self.wallets).expect("unable to save wallets");
-         */
-    }
+    fn drop(&mut self) { self.store() }
 }
