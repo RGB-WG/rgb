@@ -22,8 +22,8 @@
 use std::path::PathBuf;
 
 use clap::ValueHint;
-use rgb::Chain;
 use rgb::descriptor::DescriptorRgb;
+use rgb::Chain;
 use rgb_rt::{Runtime, RuntimeError};
 
 use crate::{Command, RGB_DATA_DIR};
@@ -83,8 +83,10 @@ impl Opts {
 
     pub fn runtime(&self) -> Result<Runtime, RuntimeError> {
         eprint!("Loading stock ... ");
-        let runtime =
-            Runtime::<DescriptorRgb>::load(self.config.data_dir.clone(), self.config.chain)?;
+        let runtime = Runtime::<DescriptorRgb>::load_pure_rgb(
+            self.config.data_dir.clone(),
+            self.config.chain,
+        )?;
         eprintln!("success");
 
         Ok(runtime)

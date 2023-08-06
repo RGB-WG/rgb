@@ -25,13 +25,14 @@ use std::path::PathBuf;
 use std::{fs, io};
 
 use bp::{AddressNetwork, DeriveSpk, Outpoint};
+use bp_rt::Wallet;
 use rgb::containers::{Contract, LoadError, Transfer};
+use rgb::descriptor::DescriptorRgb;
 use rgb::interface::{BuilderError, OutpointFilter};
 use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgb::resolvers::ResolveHeight;
 use rgb::validation::ResolveTx;
 use rgb::{validation, Chain};
-use rgb::descriptor::DescriptorRgb;
 use rgbfs::StockFs;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
@@ -91,8 +92,8 @@ impl From<Infallible> for RuntimeError {
 pub struct Runtime<D: DeriveSpk = DescriptorRgb> {
     stock_path: PathBuf,
     stock: Stock,
-    #[getter(as_mut)]
-    wallet: Option<bp_rt::Runtime<D>>,
+    #[getter(skip)]
+    bprt: bp_rt::Runtime<D>,
     #[getter(as_copy)]
     chain: Chain,
 }
@@ -109,65 +110,85 @@ impl<D: DeriveSpk> DerefMut for Runtime<D> {
 
 impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
     fn include_outpoint(&self, outpoint: Outpoint) -> bool {
-        self.wallet
-            .as_ref()
-            .map(|rt| rt.wallet().coins().any(|utxo| utxo.outpoint == outpoint))
-            .unwrap_or_default()
+        self.bprt
+            .wallet()
+            .coins()
+            .any(|utxo| utxo.outpoint == outpoint)
+    }
+}
+
+impl<D: DeriveSpk + Default> Runtime<D> {
+    pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
+        Self::load_attach(data_dir, chain, bp_rt::Runtime::new(D::default(), chain))
     }
 }
 
 impl<D: DeriveSpk> Runtime<D> {
-    pub fn load_or<E>(
-        mut data_dir: PathBuf,
+    pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
+        let mut wallet_path = data_dir.clone();
+        wallet_path.push(wallet_name);
+        let bprt = bp_rt::Runtime::load(wallet_path)?;
+        Self::load_attach_or_init(data_dir, chain, bprt, |_| Ok::<_, RuntimeError>(default!()))
+    }
+
+    pub fn load_attach(
+        data_dir: PathBuf,
         chain: Chain,
-        f: impl FnOnce(&mut Self) -> Result<(), E>,
+        bprt: bp_rt::Runtime<D>,
+    ) -> Result<Self, RuntimeError> {
+        Self::load_attach_or_init(data_dir, chain, bprt, |_| Ok::<_, RuntimeError>(default!()))
+    }
+
+    pub fn load_or_init<E>(
+        data_dir: PathBuf,
+        wallet_name: &str,
+        chain: Chain,
+        init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
     where
+        E: From<DeserializeError>,
+        RuntimeError: From<E>,
+    {
+        let mut wallet_path = data_dir.clone();
+        wallet_path.push(wallet_name);
+        let bprt = bp_rt::Runtime::load(wallet_path)?;
+        Self::load_attach_or_init(data_dir, chain, bprt, init)
+    }
+
+    pub fn load_attach_or_init<E>(
+        mut data_dir: PathBuf,
+        chain: Chain,
+        bprt: bp_rt::Runtime<D>,
+        init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
+    ) -> Result<Self, RuntimeError>
+    where
+        E: From<DeserializeError>,
         RuntimeError: From<E>,
     {
         data_dir.push(chain.to_string());
+
         #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
         fs::create_dir_all(&data_dir)?;
 
         let mut stock_path = data_dir.clone();
         stock_path.push("stock.dat");
-        #[cfg(feature = "log")]
-        debug!("Reading stock from '{}'", stock_path.display());
-        let mut created = false;
-        let stock = if !stock_path.exists() {
-            #[cfg(feature = "log")]
-            debug!("Stock file not found, creating default stock");
-            let stock = Stock::default();
-            created = true;
-            stock
-        } else {
-            Stock::load(&stock_path)?
-        };
 
-        let mut me = Self {
+        let stock = Stock::load(&stock_path).or_else(init)?;
+
+        Ok(Self {
             stock_path,
             stock,
-            wallet: None,
+            bprt,
             chain,
-        };
-
-        if created {
-            f(&mut me)?;
-            me.stock.store(&me.stock_path)?;
-        }
-
-        Ok(me)
-    }
-
-    pub fn load(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
-        Self::load_or::<RuntimeError>(data_dir, chain, |_| Ok(()))
+        })
     }
 
     fn store(&mut self) {
         self.stock
             .store(&self.stock_path)
             .expect("unable to save stock");
+        // TODO: self.bprt.store()
         /*
         let wallets_fd = File::create(&self.wallets_path)
             .expect("unable to access wallet file; wallets are not saved");
@@ -175,15 +196,15 @@ impl<D: DeriveSpk> Runtime<D> {
          */
     }
 
-    pub fn attach(&mut self, wallet: bp_rt::Runtime<D>) { self.wallet = Some(wallet) }
+    pub fn attach(&mut self, wallet: bp_rt::Runtime<D>) { self.bprt = wallet }
 
-    pub fn detach(&mut self) { self.wallet = None; }
+    pub fn wallet(&self) -> &Wallet<D> { self.bprt.wallet() }
+
+    pub fn wallet_mut(&mut self) -> &mut Wallet<D> { self.bprt.wallet_mut() }
 
     pub fn unload(self) -> () {}
 
-    pub fn address_network(&self) -> AddressNetwork {
-        self.chain.into()
-    }
+    pub fn address_network(&self) -> AddressNetwork { self.chain.into() }
 
     /*
     pub fn create_wallet(
