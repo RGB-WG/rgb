@@ -24,7 +24,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
-use bp::{DeriveSpk, Outpoint};
+use bp::{AddressNetwork, DeriveSpk, Outpoint};
 use rgb::containers::{Contract, LoadError, Transfer};
 use rgb::interface::{BuilderError, OutpointFilter};
 use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
@@ -180,6 +180,10 @@ impl<D: DeriveSpk> Runtime<D> {
     pub fn detach(&mut self) { self.wallet = None; }
 
     pub fn unload(self) -> () {}
+
+    pub fn address_network(&self) -> AddressNetwork {
+        self.chain.into()
+    }
 
     /*
     pub fn create_wallet(
