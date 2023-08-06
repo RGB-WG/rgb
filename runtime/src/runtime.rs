@@ -202,6 +202,8 @@ impl<D: DeriveSpk> Runtime<D> {
 
     pub fn wallet_mut(&mut self) -> &mut Wallet<D> { self.bprt.wallet_mut() }
 
+    pub fn descriptor(&self) -> &D { self.wallet().deref() }
+
     pub fn unload(self) -> () {}
 
     pub fn address_network(&self) -> AddressNetwork { self.chain.into() }
