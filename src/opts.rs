@@ -23,7 +23,8 @@ use std::path::PathBuf;
 
 use clap::ValueHint;
 use rgb::Chain;
-use rgb_rt::{DescriptorRgb, Runtime, RuntimeError};
+use rgb::descriptor::DescriptorRgb;
+use rgb_rt::{Runtime, RuntimeError};
 
 use crate::{Command, RGB_DATA_DIR};
 

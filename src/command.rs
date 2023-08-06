@@ -35,7 +35,8 @@ use rgb::resolvers::ResolveHeight;
 use rgb::schema::SchemaId;
 use rgb::validation::{ResolveTx, TxResolverError};
 use rgb::{Txid, WitnessOrd};
-use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
+use rgb::descriptor::{DescriptorRgb, TapretKey};
+use rgb_rt::{Runtime, RuntimeError};
 use rgbinvoice::{RgbInvoice, RgbTransport};
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use strict_types::encoding::{FieldName, Ident, TypeName};
@@ -363,7 +364,7 @@ impl Command {
                 if armored {
                     todo!()
                 } else {
-                    let bindle = UniversalBindle::load(file)?;
+                    let bindle = UniversalBindle::load_file(file)?;
                     match bindle {
                         UniversalBindle::Iface(iface) => {
                             let id = iface.id();
@@ -699,7 +700,7 @@ impl Command {
                  */
             }
             Command::Inspect { file } => {
-                let bindle = UniversalBindle::load(file)?;
+                let bindle = UniversalBindle::load_file(file)?;
                 // TODO: For now, serde implementation doesn't work for consignments due to
                 //       some of the keys which can't be serialized to strings. Once this fixed,
                 //       allow this inspect formats option
@@ -807,7 +808,7 @@ impl Command {
             }
             Command::Validate { resolver, file } => {
                 let mut resolver = resolver_init(&resolver);
-                let bindle = Bindle::<Transfer>::load(file)?;
+                let bindle = Bindle::<Transfer>::load_file(file)?;
                 let status = match bindle.unbindle().validate(&mut resolver) {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err(consignment) => consignment.into_validation_status(),
@@ -821,7 +822,7 @@ impl Command {
                 file,
             } => {
                 let mut resolver = resolver_init(&resolver);
-                let bindle = Bindle::<Transfer>::load(file)?;
+                let bindle = Bindle::<Transfer>::load_file(file)?;
                 let transfer = bindle
                     .unbindle()
                     .validate(&mut resolver)

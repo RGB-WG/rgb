@@ -25,8 +25,6 @@ extern crate amplify;
 #[macro_use]
 extern crate log;
 
-mod descriptors;
 mod runtime;
 
-pub use descriptors::{DescriptorRgb, TapretKey};
 pub use runtime::{Runtime, RuntimeError};

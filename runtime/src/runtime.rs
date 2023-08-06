@@ -31,10 +31,9 @@ use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError
 use rgb::resolvers::ResolveHeight;
 use rgb::validation::ResolveTx;
 use rgb::{validation, Chain};
+use rgb::descriptor::DescriptorRgb;
 use rgbfs::StockFs;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
-
-use crate::DescriptorRgb;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
