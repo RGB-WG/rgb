@@ -143,16 +143,18 @@ impl<D: DeriveSpk> Runtime<D> {
         data_dir: PathBuf,
         wallet_name: &str,
         chain: Chain,
-        init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
+        init_wallet: impl FnOnce(bp_rt::LoadError) -> Result<D, E>,
+        init_stock: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
     where
         E: From<DeserializeError>,
+        bp_rt::LoadError: From<E>,
         RuntimeError: From<E>,
     {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(wallet_name);
-        let bprt = bp_rt::Runtime::load(wallet_path)?;
-        Self::load_attach_or_init(data_dir, chain, bprt, init)
+        let bprt = bp_rt::Runtime::load_or_init(wallet_path, chain, init_wallet)?;
+        Self::load_attach_or_init(data_dir, chain, bprt, init_stock)
     }
 
     pub fn load_attach_or_init<E>(
