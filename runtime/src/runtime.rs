@@ -117,13 +117,19 @@ impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
     }
 }
 
-impl<D: DeriveSpk + Default> Runtime<D> {
+#[cfg(feature = "serde")]
+impl<D: DeriveSpk + Default> Runtime<D>
+where for<'de> bp_rt::WalletDescr<D>: serde::Deserialize<'de>
+{
     pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         Self::load_attach(data_dir, chain, bp_rt::Runtime::new(D::default(), chain))
     }
 }
 
-impl<D: DeriveSpk> Runtime<D> {
+#[cfg(feature = "serde")]
+impl<D: DeriveSpk> Runtime<D>
+where for<'de> bp_rt::WalletDescr<D>: serde::Deserialize<'de>
+{
     pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(wallet_name);
@@ -185,7 +191,9 @@ impl<D: DeriveSpk> Runtime<D> {
             chain,
         })
     }
+}
 
+impl<D: DeriveSpk> Runtime<D> {
     fn store(&mut self) {
         self.stock
             .store(&self.stock_path)

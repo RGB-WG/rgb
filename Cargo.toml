@@ -62,9 +62,9 @@ strict_types = { workspace = true, features = ["serde"] }
 commit_verify = "0.10.5"
 bp-seals = "0.10.9"
 bp-std = { workspace = true, features = ["serde"] }
-bp-runtime = { workspace = true, features = ["esplora", "serde"] }
+bp-runtime = { workspace = true, features = ["fs", "esplora", "serde"] }
 bp-esplora = { workspace = true }
-rgb-std = { workspace = true }
+rgb-std = { workspace = true, features = ["serde"] }
 rgb-invoice = { workspace = true }
 rgb-runtime = { version = "0.11.0-alpha", path = "runtime", features = ["log", "serde"] }
 log = { workspace = true }

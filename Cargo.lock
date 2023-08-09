@@ -38,6 +38,7 @@ dependencies = [
  "half",
  "paste",
  "ripemd",
+ "serde",
  "sha2",
  "strict_encoding",
  "strict_types",
@@ -329,6 +330,7 @@ dependencies = [
  "bp-primitives",
  "bp-seals",
  "commit_verify",
+ "serde",
  "single_use_seals",
  "strict_encoding",
  "strict_types",
@@ -345,6 +347,7 @@ dependencies = [
  "bp-primitives",
  "commit_verify",
  "secp256k1",
+ "serde",
  "strict_encoding",
 ]
 
@@ -378,12 +381,15 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#bbd2f4fef85a37e184aeccb0333c00115b98b374"
+source = "git+https://github.com/BP-WG/bp-wallet#0b1934f61087ee9111645e21d891dbb8d4a318d6"
 dependencies = [
  "amplify",
  "bp-esplora",
  "bp-std",
+ "cfg_eval",
  "serde",
+ "serde_with 3.2.0",
+ "toml 0.7.6",
 ]
 
 [[package]]
@@ -398,6 +404,7 @@ dependencies = [
  "bp-primitives",
  "commit_verify",
  "rand",
+ "serde",
  "single_use_seals",
  "strict_encoding",
 ]
@@ -405,13 +412,15 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-std#fa2cc52a4543d2ca62044da4c97e2de4de2802bf"
+source = "git+https://github.com/BP-WG/bp-std#48239bd73c12ab212b5278cac82447913ff7dba5"
 dependencies = [
  "amplify",
  "bech32",
  "bitcoin_hashes",
  "bp-primitives",
+ "cfg_eval",
  "serde",
+ "serde_with 3.2.0",
 ]
 
 [[package]]
@@ -448,6 +457,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "cfg_eval"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45565fc9416b9896014f5732ac776f810ee53a66730c17e4020c3ec064a8f88f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.28",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -465,9 +485,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.19"
+version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd304a20bff958a57f04c4e96a2e7594cc4490a0e809cbd48bb6437edaa452d"
+checksum = "c27cdf28c0f604ba3f512b0c9a409f8de8513e4816705deb0498b627e7c3a3fd"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -476,9 +496,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.19"
+version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01c6a3f08f1fe5662a35cfe393aec09c4df95f60ee93b7556505260f75eee9e1"
+checksum = "08a9f1ab5e9f01a9b81f202e8562eb9a10de70abf9eaeac1be465c28b75aa4aa"
 dependencies = [
  "anstream",
  "anstyle",
@@ -532,6 +552,7 @@ dependencies = [
  "amplify",
  "commit_encoding_derive",
  "rand",
+ "serde",
  "sha2",
  "strict_encoding",
  "strict_types",
@@ -1427,6 +1448,7 @@ dependencies = [
  "getrandom",
  "mime",
  "secp256k1-zkp",
+ "serde",
  "single_use_seals",
  "strict_encoding",
  "strict_types",
@@ -1436,7 +1458,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#1615823ea364ca7c94a637ebc323a02a62e4747b"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#006ba1225a463c5c36fc3f41384351f28c8b3aef"
 dependencies = [
  "amplify",
  "baid58",
@@ -1480,18 +1502,20 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#1615823ea364ca7c94a637ebc323a02a62e4747b"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#006ba1225a463c5c36fc3f41384351f28c8b3aef"
 dependencies = [
  "amplify",
  "baid58",
  "base85",
  "bp-core",
  "bp-std",
+ "cfg_eval",
  "chrono",
  "commit_verify",
  "getrandom",
  "rgb-core",
  "serde",
+ "serde_with 3.2.0",
  "strict_encoding",
  "strict_types",
  "wasm-bindgen",
@@ -1572,7 +1596,7 @@ checksum = "1d1feddffcfcc0b33f5c6ce9a29e341e4cd59c3f78e7ee45f4a40c038b1d6cbb"
 dependencies = [
  "log",
  "ring",
- "rustls-webpki 0.101.2",
+ "rustls-webpki 0.101.3",
  "sct",
 ]
 
@@ -1588,9 +1612,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.101.2"
+version = "0.101.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "513722fd73ad80a71f72b61009ea1b584bcfa1483ca93949c8f290298837fa59"
+checksum = "261e9e0888cba427c3316e6322805653c9425240b6fd96cee7cb671ab70ab8d0"
 dependencies = [
  "ring",
  "untrusted",
@@ -1651,6 +1675,7 @@ dependencies = [
  "rand",
  "secp256k1",
  "secp256k1-zkp-sys",
+ "serde",
 ]
 
 [[package]]

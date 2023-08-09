@@ -20,7 +20,7 @@ amplify = { workspace = true }
 strict_types = { workspace = true }
 bp-dbc = { workspace = true }
 bp-std = { workspace = true }
-bp-runtime = { workspace = true }
+bp-runtime = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
 rgb-std = { workspace = true }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "../fs" }
