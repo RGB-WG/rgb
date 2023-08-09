@@ -29,7 +29,7 @@ use bp::{Tx, XpubDescriptor};
 use clap::ValueHint;
 use rgb::containers::{Bindle, Transfer, UniversalBindle};
 use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgb::descriptor::{DescriptorRgb, TapretKey};
+use rgb::descriptor::{DescriptorRgb, RgbKeychain, TapretKey};
 use rgb::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
 use rgb::persistence::{Inventory, Stash};
 use rgb::resolvers::ResolveHeight;
@@ -430,7 +430,7 @@ impl Command {
                 iface,
             } => {
                 eprint!("Loading descriptor");
-                let wallet: Option<bp_rt::Runtime<DescriptorRgb>> = if let Some(d) =
+                let wallet: Option<bp_rt::Runtime<DescriptorRgb, RgbKeychain>> = if let Some(d) =
                     wallet.tr_key_only
                 {
                     eprint!(" from command-line argument ...");

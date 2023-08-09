@@ -381,7 +381,7 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#0b1934f61087ee9111645e21d891dbb8d4a318d6"
+source = "git+https://github.com/BP-WG/bp-wallet#1b0b3a39865682483e25304a0112a571b78e5601"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -1458,7 +1458,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#006ba1225a463c5c36fc3f41384351f28c8b3aef"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#148d4be76b9a68bd12a6387bdfdb0bafe5fa7404"
 dependencies = [
  "amplify",
  "baid58",
@@ -1502,7 +1502,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#006ba1225a463c5c36fc3f41384351f28c8b3aef"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#148d4be76b9a68bd12a6387bdfdb0bafe5fa7404"
 dependencies = [
  "amplify",
  "baid58",

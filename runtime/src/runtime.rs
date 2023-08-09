@@ -27,7 +27,7 @@ use std::{fs, io};
 use bp::{AddressNetwork, DeriveSpk, Outpoint};
 use bp_rt::Wallet;
 use rgb::containers::{Contract, LoadError, Transfer};
-use rgb::descriptor::DescriptorRgb;
+use rgb::descriptor::{DescriptorRgb, RgbKeychain};
 use rgb::interface::{BuilderError, OutpointFilter};
 use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgb::resolvers::ResolveHeight;
@@ -93,7 +93,7 @@ pub struct Runtime<D: DeriveSpk = DescriptorRgb> {
     stock_path: PathBuf,
     stock: Stock,
     #[getter(skip)]
-    bprt: bp_rt::Runtime<D>,
+    bprt: bp_rt::Runtime<D, RgbKeychain>,
     #[getter(as_copy)]
     chain: Chain,
 }
@@ -119,7 +119,7 @@ impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
 
 #[cfg(feature = "serde")]
 impl<D: DeriveSpk + Default> Runtime<D>
-where for<'de> bp_rt::WalletDescr<D>: serde::Deserialize<'de>
+where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Deserialize<'de>
 {
     pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         Self::load_attach(data_dir, chain, bp_rt::Runtime::new(D::default(), chain))
@@ -128,19 +128,19 @@ where for<'de> bp_rt::WalletDescr<D>: serde::Deserialize<'de>
 
 #[cfg(feature = "serde")]
 impl<D: DeriveSpk> Runtime<D>
-where for<'de> bp_rt::WalletDescr<D>: serde::Deserialize<'de>
+where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Deserialize<'de>
 {
     pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(wallet_name);
-        let bprt = bp_rt::Runtime::load(wallet_path)?;
+        let bprt = bp_rt::Runtime::<D, RgbKeychain>::load(wallet_path)?;
         Self::load_attach_or_init(data_dir, chain, bprt, |_| Ok::<_, RuntimeError>(default!()))
     }
 
     pub fn load_attach(
         data_dir: PathBuf,
         chain: Chain,
-        bprt: bp_rt::Runtime<D>,
+        bprt: bp_rt::Runtime<D, RgbKeychain>,
     ) -> Result<Self, RuntimeError> {
         Self::load_attach_or_init(data_dir, chain, bprt, |_| Ok::<_, RuntimeError>(default!()))
     }
@@ -166,7 +166,7 @@ where for<'de> bp_rt::WalletDescr<D>: serde::Deserialize<'de>
     pub fn load_attach_or_init<E>(
         mut data_dir: PathBuf,
         chain: Chain,
-        bprt: bp_rt::Runtime<D>,
+        bprt: bp_rt::Runtime<D, RgbKeychain>,
         init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
     where
@@ -206,11 +206,11 @@ impl<D: DeriveSpk> Runtime<D> {
          */
     }
 
-    pub fn attach(&mut self, wallet: bp_rt::Runtime<D>) { self.bprt = wallet }
+    pub fn attach(&mut self, wallet: bp_rt::Runtime<D, RgbKeychain>) { self.bprt = wallet }
 
-    pub fn wallet(&self) -> &Wallet<D> { self.bprt.wallet() }
+    pub fn wallet(&self) -> &Wallet<D, RgbKeychain> { self.bprt.wallet() }
 
-    pub fn wallet_mut(&mut self) -> &mut Wallet<D> { self.bprt.wallet_mut() }
+    pub fn wallet_mut(&mut self) -> &mut Wallet<D, RgbKeychain> { self.bprt.wallet_mut() }
 
     pub fn descriptor(&self) -> &D { self.wallet().deref() }
 
