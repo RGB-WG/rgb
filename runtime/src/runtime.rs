@@ -159,6 +159,7 @@ where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Des
         RuntimeError: From<E>,
     {
         let mut wallet_path = data_dir.clone();
+        wallet_path.push(chain.to_string());
         wallet_path.push(wallet_name);
         let bprt = bp_rt::Runtime::load_or_init(wallet_path, chain, init_wallet)?;
         Self::load_attach_or_init(data_dir, chain, bprt, init_stock)
