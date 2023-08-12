@@ -75,7 +75,8 @@ pub enum RuntimeError {
     IncompleteContract,
 
     #[from]
-    Bp(bp_rt::LoadError),
+    #[from(bp_rt::LoadError)]
+    Bp(bp_rt::RuntimeError),
 
     #[from]
     Yaml(serde_yaml::Error),

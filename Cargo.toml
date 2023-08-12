@@ -65,7 +65,7 @@ bp-seals = "0.10.9"
 bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true }
 bp-esplora = { workspace = true }
-rgb-std = { workspace = true, features = ["serde"] }
+rgb-std = { workspace = true, features = ["serde", "descriptor"] }
 rgb-invoice = { workspace = true }
 rgb-runtime = { version = "0.11.0-alpha", path = "runtime", features = ["log", "serde"] }
 log = { workspace = true }

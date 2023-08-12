@@ -19,31 +19,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::convert::Infallible;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
-use bp::{Tx, XpubDescriptor};
-use clap::ValueHint;
+use bp::{Keychain, Txid};
+use bpw::{Config, Exec};
 use rgb::containers::{Bindle, Transfer, UniversalBindle};
 use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgb::descriptor::{DescriptorRgb, RgbKeychain, TapretKey};
+use rgb::descriptor::{DescriptorRgb, RgbKeychain};
 use rgb::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
 use rgb::persistence::{Inventory, Stash};
-use rgb::resolvers::ResolveHeight;
 use rgb::schema::SchemaId;
-use rgb::validation::{ResolveTx, TxResolverError};
-use rgb::{Txid, WitnessOrd};
-use rgb_rt::{Runtime, RuntimeError};
+use rgb_rt::RuntimeError;
 use rgbinvoice::{RgbInvoice, RgbTransport};
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
-use strict_types::encoding::{FieldName, Ident, TypeName};
+use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
-use crate::opts::Config;
-use crate::DEFAULT_ESPLORA;
+use crate::resolver::PanickingResolver;
+use crate::Args;
 
 // TODO: For now, serde implementation doesn't work for consignments due to
 //       some of the keys which can't be serialized to strings. Once this fixed,
@@ -61,41 +57,6 @@ pub enum InspectFormat {
 }
  */
 
-#[derive(Args, Clone, PartialEq, Eq, Debug)]
-pub struct ResolverOpt {
-    /// Esplora server to use.
-    #[arg(
-        short,
-        long,
-        global = true,
-        default_value = DEFAULT_ESPLORA,
-        env = "RGB_ESPLORA_SERVER",
-        value_hint = ValueHint::Url,
-        value_name = "URL"
-    )]
-    pub esplora: String,
-}
-
-#[derive(Args, Clone, PartialEq, Eq, Debug)]
-#[group(multiple = false)]
-pub struct WalletOpts {
-    #[arg(short = 'w', long = "wallet", global = true)]
-    pub name: Option<Ident>,
-
-    /// Path to wallet directory.
-    #[arg(
-        short = 'W',
-        long,
-        global = true,
-        value_hint = ValueHint::DirPath,
-    )]
-    pub wallet_path: Option<PathBuf>,
-
-    /// Use tr(KEY) descriptor as wallet.
-    #[arg(long, global = true)]
-    pub tr_key_only: Option<XpubDescriptor>,
-}
-
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
 pub enum Command {
@@ -106,37 +67,9 @@ pub enum Command {
     /// Prints out list of known RGB contracts.
     Contracts,
 
-    /*
-    /// Prints out list of wallets.
-    Wallets {
-        /// Print out full descriptor with all tapret commitments.
-        #[clap(short, long)]
-        long: bool,
-    },
-
-    /// Create a new wallet (only key-spent only taproot wallets are supported).
-    Create {
-        /// Name of the new wallet
-        name: Ident,
-
-        /// Extended public key (account-level) to create a new wallet using
-        /// key-only taproot descriptor.
-        xpub: ExtendedPubKey,
-    },
-
-    /// Display list of UTXOs for a given wallet.
-    Utxos {
-        /// Wallet to filter the state.
-        #[clap(short, long, default_value = "default")]
-        wallet: Ident,
-    },
-     */
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc.
     #[display("import")]
     Import {
-        #[command(flatten)]
-        resolver: ResolverOpt,
-
         /// Use BASE64 ASCII armoring for binary data.
         #[arg(short)]
         armored: bool,
@@ -164,13 +97,6 @@ pub enum Command {
     /// Reports information about state of a contract.
     #[display("state")]
     State {
-        #[command(flatten)]
-        resolver: ResolverOpt,
-        #[command(flatten)]
-        wallet: WalletOpts,
-        #[arg(long, global = true)]
-        sync: bool,
-
         /// Contract identifier.
         contract_id: ContractId,
         /// Interface to interpret the state data.
@@ -244,9 +170,6 @@ pub enum Command {
     /// Validate transfer consignment.
     #[display("validate")]
     Validate {
-        #[command(flatten)]
-        resolver: ResolverOpt,
-
         /// File with the transfer consignment.
         file: PathBuf,
     },
@@ -254,9 +177,6 @@ pub enum Command {
     /// Validate transfer consignment & accept to the stash.
     #[display("accept")]
     Accept {
-        #[command(flatten)]
-        resolver: ResolverOpt,
-
         /// Force accepting consignments with non-mined terminal witness.
         #[arg(short, long)]
         force: bool,
@@ -277,39 +197,15 @@ pub enum Command {
     },
 }
 
-// TODO: Embed in contract issuance builder
-struct PanickingResolver;
-impl ResolveHeight for PanickingResolver {
-    type Error = Infallible;
-    fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
-        unreachable!("PanickingResolver must be used only for newly issued contract validation")
-    }
-}
-impl ResolveTx for PanickingResolver {
-    fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> {
-        unreachable!("PanickingResolver must be used only for newly issued contract validation")
-    }
-}
+impl Exec for Args {
+    type Error = RuntimeError;
+    const CONF_FILE_NAME: &'static str = "rgb.toml";
 
-impl Command {
-    pub fn exec(self, runtime: &mut Runtime, config: &Config) -> Result<(), RuntimeError> {
-        fn resolver_init(_: &ResolverOpt) -> impl ResolveTx + ResolveHeight {
-            #[derive(Default)]
-            struct DumbResolver();
-            impl ResolveHeight for DumbResolver {
-                type Error = Infallible;
-                fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
-                    Ok(WitnessOrd::OffChain)
-                }
-            }
-            impl ResolveTx for DumbResolver {
-                fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> { todo!() }
-            }
-            DumbResolver::default()
-        }
-
-        match self {
+    fn exec<C: Keychain>(self, config: Config, name: &'static str) -> Result<(), RuntimeError>
+    where for<'de> C: serde::Serialize + serde::Deserialize<'de> {
+        match &self.command {
             Command::Schemata => {
+                let runtime = self.rgb_runtime()?;
                 for id in runtime.schema_ids()? {
                     print!("{id} ");
                     for iimpl in runtime.schema(id)?.iimpls.values() {
@@ -320,48 +216,21 @@ impl Command {
                 }
             }
             Command::Interfaces => {
+                let runtime = self.rgb_runtime()?;
                 for (id, name) in runtime.ifaces()? {
                     println!("{} {id}", name);
                 }
             }
             Command::Contracts => {
+                let runtime = self.rgb_runtime()?;
                 for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
             }
 
-            /*
-            Command::Wallets { long: details } => {
-                for (name, descriptor) in runtime.wallets() {
-                    if details {
-                        println!("{name} {descriptor:#}");
-                    } else {
-                        println!("{name} {descriptor}");
-                    }
-                }
-            }
-
-            Command::Create { name, xpub } => {
-                let descr = runtime.create_wallet(&name, xpub)?;
-                println!("Created new wallet '{name}' with descriptor '{descr}'");
-            }
-
-            Command::Utxos { wallet } => {
-                let wallet = runtime.wallet(&wallet)?;
-                for utxo in &wallet.utxos {
-                    println!(
-                        "outpoint={}, height={}, amount={}, derivation={}",
-                        utxo.outpoint, utxo.status, utxo.amount, utxo.derivation
-                    );
-                }
-            }
-             */
-            Command::Import {
-                resolver,
-                armored,
-                file,
-            } => {
-                if armored {
+            Command::Import { armored, file } => {
+                let mut runtime = self.rgb_runtime()?;
+                if *armored {
                     todo!()
                 } else {
                     let bindle = UniversalBindle::load_file(file)?;
@@ -388,7 +257,7 @@ impl Command {
                             );
                         }
                         UniversalBindle::Contract(bindle) => {
-                            let mut resolver = resolver_init(&resolver);
+                            let mut resolver = self.resolver();
                             let id = bindle.id();
                             let contract =
                                 bindle.unbindle().validate(&mut resolver).map_err(|c| {
@@ -410,8 +279,9 @@ impl Command {
                 contract,
                 file,
             } => {
+                let mut runtime = self.rgb_runtime()?;
                 let bindle = runtime
-                    .export_contract(contract)
+                    .export_contract(*contract)
                     .map_err(|err| err.to_string())?;
                 if let Some(file) = file {
                     // TODO: handle armored flag
@@ -422,54 +292,13 @@ impl Command {
                 }
             }
 
-            Command::State {
-                resolver,
-                wallet,
-                mut sync,
-                contract_id,
-                iface,
-            } => {
-                eprint!("Loading descriptor");
-                let wallet: Option<bp_rt::Runtime<DescriptorRgb, RgbKeychain>> = if let Some(d) =
-                    wallet.tr_key_only
-                {
-                    eprint!(" from command-line argument ...");
-                    sync = true;
-                    Ok(Some(bp_rt::Runtime::new(TapretKey::new_unfunded(d).into(), config.chain)))
-                } else if let Some(wallet_path) = wallet.wallet_path {
-                    eprint!(" from wallet directory '{}' ...", wallet_path.display());
-                    bp_rt::Runtime::load(wallet_path).map(Some)
-                } else if let Some(name) = wallet.name {
-                    eprint!(" from wallet '{name}' ...");
-                    let mut data_dir = config.data_dir.clone();
-                    data_dir.push(config.chain.to_string());
-                    data_dir.push(name.as_str());
-                    bp_rt::Runtime::load(data_dir).map(Some)
-                } else {
-                    Ok(None)
-                }?;
-                eprintln!(" success");
+            Command::State { contract_id, iface } => {
+                let mut runtime = self.rgb_runtime()?;
+                let wallet = self.bp_runtime::<DescriptorRgb, RgbKeychain>(&config)?;
+                runtime.attach(wallet);
 
-                if let Some(mut wallet) = wallet {
-                    if sync {
-                        eprint!("Syncing ...");
-                        let indexer = esplora::Builder::new(&resolver.esplora)
-                            .build_blocking()
-                            .map_err(|err| RuntimeError::Custom(err.to_string()))?;
-                        if let Err(errors) = wallet.sync(&indexer) {
-                            eprintln!(" partial, some requests has failed:");
-                            for err in errors {
-                                eprintln!("- {err}");
-                            }
-                        } else {
-                            eprintln!(" success");
-                        }
-                    }
-                    runtime.attach(wallet);
-                }
-
-                let iface = runtime.iface_by_name(&tn!(iface))?.clone();
-                let contract = runtime.contract_iface(contract_id, iface.iface_id())?;
+                let iface = runtime.iface_by_name(&tn!(iface.to_owned()))?.clone();
+                let contract = runtime.contract_iface(*contract_id, iface.iface_id())?;
 
                 println!("Global:");
                 for global in &contract.iface.global_state {
@@ -509,11 +338,12 @@ impl Command {
                 iface: iface_name,
                 contract,
             } => {
+                let mut runtime = self.rgb_runtime()?;
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
-                } = runtime.schema(schema)?;
-                let iface_name = tn!(iface_name);
+                } = runtime.schema(*schema)?;
+                let iface_name = tn!(iface_name.to_owned());
                 let iface = runtime.iface_by_name(&iface_name)?.clone();
                 let iface_id = iface.iface_id();
                 let iface_impl = iimpls.get(&iface_id).ok_or_else(|| {
@@ -656,16 +486,17 @@ impl Command {
                 value,
                 seal,
             } => {
-                let iface = TypeName::try_from(iface).expect("invalid interface name");
+                let mut runtime = self.rgb_runtime()?;
+                let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
                 let seal = GraphSeal::from(seal);
                 let invoice = RgbInvoice {
                     transports: vec![RgbTransport::UnspecifiedMeans],
-                    contract: Some(contract_id),
+                    contract: Some(*contract_id),
                     iface: Some(iface),
                     operation: None,
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
-                    owned_state: TypedState::Amount(value),
+                    owned_state: TypedState::Amount(*value),
                     chain: None,
                     expiry: None,
                     unknown_query: none!(),
@@ -722,6 +553,8 @@ impl Command {
                 println!("{bindle:#?}");
             }
             Command::Dump { root_dir } => {
+                let runtime = self.rgb_runtime()?;
+
                 fs::remove_dir_all(&root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
@@ -806,8 +639,8 @@ impl Command {
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
             }
-            Command::Validate { resolver, file } => {
-                let mut resolver = resolver_init(&resolver);
+            Command::Validate { file } => {
+                let mut resolver = self.resolver();
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let status = match bindle.unbindle().validate(&mut resolver) {
                     Ok(consignment) => consignment.into_validation_status(),
@@ -816,19 +649,16 @@ impl Command {
                 .expect("just validated");
                 eprintln!("{status}");
             }
-            Command::Accept {
-                resolver,
-                force,
-                file,
-            } => {
-                let mut resolver = resolver_init(&resolver);
+            Command::Accept { force, file } => {
+                let mut runtime = self.rgb_runtime()?;
+                let mut resolver = self.resolver();
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let transfer = bindle
                     .unbindle()
                     .validate(&mut resolver)
                     .unwrap_or_else(|c| c);
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
-                runtime.accept_transfer(transfer, &mut resolver, force)?;
+                runtime.accept_transfer(transfer, &mut resolver, *force)?;
                 eprintln!("Transfer accepted into the stash");
             }
             Command::SetHost { method, psbt_file } => {

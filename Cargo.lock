@@ -381,7 +381,7 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#3467372731c147ca7a8d663ffeedb2e41949d0d1"
+source = "git+https://github.com/BP-WG/bp-wallet#d3ccda550e3b4203a857d7601e9d8b157ed8e492"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -412,7 +412,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-std#497ca85d87e57264b77593d9bfae35c96f1cf0d6"
+source = "git+https://github.com/BP-WG/bp-std#6450d1a8a8d4b0677e64a48fd522762c7a7d2b1c"
 dependencies = [
  "amplify",
  "bech32",
@@ -426,7 +426,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#3467372731c147ca7a8d663ffeedb2e41949d0d1"
+source = "git+https://github.com/BP-WG/bp-wallet#d3ccda550e3b4203a857d7601e9d8b157ed8e492"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -1135,9 +1135,9 @@ checksum = "57bcfdad1b858c2db7c38303a6d2ad4dfaf5eb53dfeb0910128b2c26d6158503"
 
 [[package]]
 name = "log"
-version = "0.4.19"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
+checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
 name = "memchr"
@@ -1477,7 +1477,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#c8a0a8f77752f2b7ac1220306da38965600f3fe0"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#25fdeaaf913a597b260d742e346a30b786253ef8"
 dependencies = [
  "amplify",
  "baid58",
@@ -1521,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#c8a0a8f77752f2b7ac1220306da38965600f3fe0"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#25fdeaaf913a597b260d742e346a30b786253ef8"
 dependencies = [
  "amplify",
  "baid58",
@@ -2549,9 +2549,9 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 
 [[package]]
 name = "winnow"
-version = "0.5.9"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4344c9f03e6918ce61d94ea6b0500964bb42ee9ca9b2c9c8931990e20b481144"
+checksum = "5504cc7644f4b593cbc05c4a55bf9bd4e94b867c3c0bd440934174d50482427d"
 dependencies = [
  "memchr",
 ]
