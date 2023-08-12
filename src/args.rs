@@ -19,10 +19,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rgb::descriptor::DescriptorRgb;
+use bp::XpubDescriptor;
+use bpw::DescriptorOpts;
+use rgb::descriptor::{DescriptorRgb, TapretKey};
 use rgb_rt::{Runtime, RuntimeError};
 
 use crate::Command;
+
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+#[group(multiple = false)]
+pub struct DescrRgbOpts {
+    /// Use tapret(KEY) descriptor as wallet.
+    #[arg(long, global = true)]
+    pub tapret_key_only: Option<XpubDescriptor>,
+}
+
+impl DescriptorOpts for DescrRgbOpts {
+    type Descr = DescriptorRgb;
+
+    fn is_some(&self) -> bool { self.tapret_key_only.is_some() }
+
+    fn descriptor(&self) -> Option<Self::Descr> {
+        self.tapret_key_only
+            .clone()
+            .map(TapretKey::from)
+            .map(TapretKey::into)
+    }
+}
 
 /// Command-line arguments
 #[derive(Parser)]
@@ -34,7 +57,7 @@ pub struct Args {
     #[clap(flatten)]
     #[from]
     #[wrap]
-    pub inner: bpw::Args<Command>,
+    pub inner: bpw::Args<Command, DescrRgbOpts>,
 }
 
 impl Default for Args {
