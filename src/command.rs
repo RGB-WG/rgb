@@ -60,6 +60,9 @@ pub enum InspectFormat {
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
 pub enum Command {
+    #[clap(flatten)]
+    Bp(bpw::Command),
+
     /// Prints out list of known RGB schemata.
     Schemata,
     /// Prints out list of known RGB interfaces.
@@ -204,6 +207,11 @@ impl Exec for RgbArgs {
     fn exec<C: Keychain>(self, config: Config, name: &'static str) -> Result<(), RuntimeError>
     where for<'de> C: serde::Serialize + serde::Deserialize<'de> {
         match &self.command {
+            Command::Bp(cmd) => {
+                self.inner
+                    .translate(cmd)
+                    .exec::<RgbKeychain>(config, "rgb")?;
+            }
             Command::Schemata => {
                 let runtime = self.rgb_runtime()?;
                 for id in runtime.schema_ids()? {

@@ -381,7 +381,7 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#d3ccda550e3b4203a857d7601e9d8b157ed8e492"
+source = "git+https://github.com/BP-WG/bp-wallet#22cb61e6d3ee16df7b6b8866520b790ae8a99bf2"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -426,7 +426,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#d3ccda550e3b4203a857d7601e9d8b157ed8e492"
+source = "git+https://github.com/BP-WG/bp-wallet#22cb61e6d3ee16df7b6b8866520b790ae8a99bf2"
 dependencies = [
  "amplify",
  "bp-esplora",
