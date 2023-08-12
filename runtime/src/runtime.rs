@@ -119,7 +119,7 @@ impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
 
 #[cfg(feature = "serde")]
 impl<D: DeriveSpk + Default> Runtime<D>
-where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Deserialize<'de>
+where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Deserialize<'de>
 {
     pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         Self::load_attach(data_dir, chain, bp_rt::Runtime::new(D::default(), chain))
@@ -128,7 +128,7 @@ where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Deserialize<'de>
 
 #[cfg(feature = "serde")]
 impl<D: DeriveSpk> Runtime<D>
-where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Deserialize<'de>
+where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Deserialize<'de>
 {
     pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
         let mut wallet_path = data_dir.clone();

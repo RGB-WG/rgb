@@ -19,9 +19,9 @@ checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
 name = "aho-corasick"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43f6cb1bf222025340178f382c426f13757b2960e89779dfcb319c32542a5a41"
+checksum = "86b8f9420f797f2d9e935edf629310eb938a0d839f984e25327f3c7eed22300c"
 dependencies = [
  "memchr",
 ]
@@ -174,9 +174,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
+checksum = "c677ab05e09154296dd37acecd46420c17b9713e8366facafa8fc0885167cf4c"
 dependencies = [
  "anstyle",
  "windows-sys",
@@ -292,9 +292,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.3.3"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
+checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
 
 [[package]]
 name = "blake3"
@@ -368,7 +368,7 @@ dependencies = [
 [[package]]
 name = "bp-primitives"
 version = "0.10.7"
-source = "git+https://github.com/BP-WG/bp-core?branch=primitives#323c75a40c26b53ebb9217d5cfcdce4e7cc3f08b"
+source = "git+https://github.com/BP-WG/bp-core?branch=primitives#b0c8538c223c29e85ad58fe4f6be59d6c8555515"
 dependencies = [
  "amplify",
  "commit_verify",
@@ -381,7 +381,7 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-wallet#1b0b3a39865682483e25304a0112a571b78e5601"
+source = "git+https://github.com/BP-WG/bp-wallet#3467372731c147ca7a8d663ffeedb2e41949d0d1"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -412,7 +412,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0"
-source = "git+https://github.com/BP-WG/bp-std#48239bd73c12ab212b5278cac82447913ff7dba5"
+source = "git+https://github.com/BP-WG/bp-std#497ca85d87e57264b77593d9bfae35c96f1cf0d6"
 dependencies = [
  "amplify",
  "bech32",
@@ -421,6 +421,25 @@ dependencies = [
  "cfg_eval",
  "serde",
  "serde_with 3.2.0",
+]
+
+[[package]]
+name = "bp-wallet"
+version = "0.11.0"
+source = "git+https://github.com/BP-WG/bp-wallet#3467372731c147ca7a8d663ffeedb2e41949d0d1"
+dependencies = [
+ "amplify",
+ "bp-esplora",
+ "bp-runtime",
+ "bp-std",
+ "clap",
+ "env_logger",
+ "log",
+ "serde",
+ "serde_yaml",
+ "shellexpand",
+ "strict_encoding",
+ "toml 0.7.6",
 ]
 
 [[package]]
@@ -983,7 +1002,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2",
+ "socket2 0.4.9",
  "tokio",
  "tower-service",
  "tracing",
@@ -1268,9 +1287,9 @@ checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c516611246607d0c04186886dbb3a754368ef82c79e9827a802c6d836dd111c"
+checksum = "12cc1b0bf1727a77a54b6654e7b5f1af8604923edc8b81885f8ec92f9e3f0a05"
 
 [[package]]
 name = "pin-utils"
@@ -1458,7 +1477,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#148d4be76b9a68bd12a6387bdfdb0bafe5fa7404"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#c8a0a8f77752f2b7ac1220306da38965600f3fe0"
 dependencies = [
  "amplify",
  "baid58",
@@ -1502,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-alpha"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#148d4be76b9a68bd12a6387bdfdb0bafe5fa7404"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#c8a0a8f77752f2b7ac1220306da38965600f3fe0"
 dependencies = [
  "amplify",
  "baid58",
@@ -1528,9 +1547,9 @@ dependencies = [
  "amplify",
  "baid58",
  "bp-esplora",
- "bp-runtime",
  "bp-seals",
  "bp-std",
+ "bp-wallet",
  "clap",
  "commit_verify",
  "env_logger",
@@ -1577,11 +1596,11 @@ checksum = "d626bb9dae77e28219937af045c257c28bfd3f69333c512553507f5f9798cb76"
 
 [[package]]
 name = "rustix"
-version = "0.38.7"
+version = "0.38.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "172891ebdceb05aa0005f533a6cbfca599ddd7d966f6f5d4d9b2e70478e70399"
+checksum = "19ed4fa021d81c8392ce04db050a3da9a60299050b7ae1cf482d862b54a7218f"
 dependencies = [
- "bitflags 2.3.3",
+ "bitflags 2.4.0",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -1892,6 +1911,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "socket2"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2538b18701741680e0322a2302176d3253a35388e2e62f172f64f4f16605f877"
+dependencies = [
+ "libc",
+ "windows-sys",
+]
+
+[[package]]
 name = "socks"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2095,17 +2124,16 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.29.1"
+version = "1.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "532826ff75199d5833b9d2c5fe410f29235e25704ee5f0ef599fb51c21f4a4da"
+checksum = "2d3ce25f50619af8b0aec2eb23deebe84249e19e2ddd393a6e16e3300a6dadfd"
 dependencies = [
- "autocfg",
  "backtrace",
  "bytes",
  "libc",
  "mio",
  "pin-project-lite",
- "socket2",
+ "socket2 0.5.3",
  "windows-sys",
 ]
 
@@ -2521,9 +2549,9 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 
 [[package]]
 name = "winnow"
-version = "0.5.4"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acaaa1190073b2b101e15083c38ee8ec891b5e05cbee516521e94ec008f61e64"
+checksum = "4344c9f03e6918ce61d94ea6b0500964bb42ee9ca9b2c9c8931990e20b481144"
 dependencies = [
  "memchr",
 ]
