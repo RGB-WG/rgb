@@ -39,7 +39,7 @@ use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
 use crate::resolver::PanickingResolver;
-use crate::Args;
+use crate::RgbArgs;
 
 // TODO: For now, serde implementation doesn't work for consignments due to
 //       some of the keys which can't be serialized to strings. Once this fixed,
@@ -197,7 +197,7 @@ pub enum Command {
     },
 }
 
-impl Exec for Args {
+impl Exec for RgbArgs {
     type Error = RuntimeError;
     const CONF_FILE_NAME: &'static str = "rgb.toml";
 

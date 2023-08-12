@@ -27,7 +27,6 @@ use rgb_rt::{Runtime, RuntimeError};
 use crate::Command;
 
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
-#[group(multiple = false)]
 pub struct DescrRgbOpts {
     /// Use tapret(KEY) descriptor as wallet.
     #[arg(long, global = true)]
@@ -53,18 +52,18 @@ impl DescriptorOpts for DescrRgbOpts {
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
 #[command(author, version, about)]
-pub struct Args {
+pub struct RgbArgs {
     #[clap(flatten)]
     #[from]
     #[wrap]
     pub inner: bpw::Args<Command, DescrRgbOpts>,
 }
 
-impl Default for Args {
+impl Default for RgbArgs {
     fn default() -> Self { unreachable!() }
 }
 
-impl Args {
+impl RgbArgs {
     pub fn rgb_runtime(&self) -> Result<Runtime, RuntimeError> {
         eprint!("Loading stock ... ");
         let runtime = Runtime::<DescriptorRgb>::load_pure_rgb(

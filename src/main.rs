@@ -40,7 +40,7 @@ use clap::Parser;
 use rgb::descriptor::RgbKeychain;
 use rgb_rt::RuntimeError;
 
-pub use crate::args::Args;
+pub use crate::args::RgbArgs;
 pub use crate::command::Command;
 pub use crate::resolver::PanickingResolver;
 
@@ -54,7 +54,7 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<(), RuntimeError> {
-    let mut args = Args::parse();
+    let mut args = RgbArgs::parse();
     args.process();
     LogLevel::from_verbosity_flag_count(args.verbose).apply();
     trace!("Command-line arguments: {:#?}", &args);

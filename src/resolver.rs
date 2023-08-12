@@ -26,7 +26,7 @@ use rgb::resolvers::ResolveHeight;
 use rgb::validation::{ResolveTx, TxResolverError};
 use rgb::WitnessOrd;
 
-use crate::Args;
+use crate::RgbArgs;
 
 // TODO: Embed in contract issuance builder
 pub struct PanickingResolver;
@@ -42,7 +42,7 @@ impl ResolveTx for PanickingResolver {
     }
 }
 
-impl Args {
+impl RgbArgs {
     pub fn resolver(&self) -> impl ResolveTx + ResolveHeight {
         #[derive(Default)]
         struct DumbResolver();
