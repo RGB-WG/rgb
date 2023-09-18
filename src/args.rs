@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bp::XpubDescriptor;
+use bpstd::XpubDerivable;
 use bpw::DescriptorOpts;
 use rgb::descriptor::{DescriptorRgb, TapretKey};
 use rgb_rt::{Runtime, RuntimeError};
@@ -30,7 +30,7 @@ use crate::Command;
 pub struct DescrRgbOpts {
     /// Use tapret(KEY) descriptor as wallet.
     #[arg(long, global = true)]
-    pub tapret_key_only: Option<XpubDescriptor>,
+    pub tapret_key_only: Option<XpubDerivable>,
 }
 
 impl DescriptorOpts for DescrRgbOpts {

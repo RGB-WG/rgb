@@ -83,10 +83,12 @@ default = []
 features = [ "all" ]
 
 [patch.crates-io]
-bp-primitives = { git = "https://github.com/BP-WG/bp-core", branch = "primitives" }
+bp-primitives = { git = "https://github.com/BP-WG/bp-core" }
 bp-std = { git = "https://github.com/BP-WG/bp-std" }
+psbt = { git = "https://github.com/BP-WG/bp-std" }
 bp-runtime = { git = "https://github.com/BP-WG/bp-wallet" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet" }
 bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "deps" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }

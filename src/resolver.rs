@@ -21,7 +21,7 @@
 
 use std::convert::Infallible;
 
-use bp::{Tx, Txid};
+use bpstd::{Tx, Txid};
 use rgb::resolvers::ResolveHeight;
 use rgb::validation::{ResolveTx, TxResolverError};
 use rgb::WitnessOrd;

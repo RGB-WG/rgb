@@ -24,10 +24,10 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
-use bp::{AddressNetwork, DeriveSpk, Outpoint};
 use bp_rt::Wallet;
+use bpstd::{AddressNetwork, Descriptor, Outpoint, XpubDerivable};
 use rgb::containers::{Contract, LoadError, Transfer};
-use rgb::descriptor::{DescriptorRgb, RgbKeychain};
+use rgb::descriptor::DescriptorRgb;
 use rgb::interface::{BuilderError, OutpointFilter};
 use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgb::resolvers::ResolveHeight;
@@ -90,60 +90,70 @@ impl From<Infallible> for RuntimeError {
 }
 
 #[derive(Getters)]
-pub struct Runtime<D: DeriveSpk = DescriptorRgb> {
+pub struct Runtime<D: Descriptor<K> = DescriptorRgb, K = XpubDerivable> {
     stock_path: PathBuf,
     stock: Stock,
-    #[getter(skip)]
-    bprt: bp_rt::Runtime<D, RgbKeychain>,
+    #[getter(as_mut)]
+    wallet: Wallet<K, D /* Add stock via layer 2 */>,
     #[getter(as_copy)]
     chain: Chain,
 }
 
-impl<D: DeriveSpk> Deref for Runtime<D> {
+impl<D: Descriptor<K>, K> Deref for Runtime<D, K> {
     type Target = Stock;
 
     fn deref(&self) -> &Self::Target { &self.stock }
 }
 
-impl<D: DeriveSpk> DerefMut for Runtime<D> {
+impl<D: Descriptor<K>, K> DerefMut for Runtime<D, K> {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
 }
 
-impl<D: DeriveSpk> OutpointFilter for Runtime<D> {
+impl<D: Descriptor<K>, K> OutpointFilter for Runtime<D, K> {
     fn include_outpoint(&self, outpoint: Outpoint) -> bool {
-        self.bprt
-            .wallet()
-            .coins()
-            .any(|utxo| utxo.outpoint == outpoint)
+        self.wallet.coins().any(|utxo| utxo.outpoint == outpoint)
     }
 }
 
 #[cfg(feature = "serde")]
-impl<D: DeriveSpk + Default> Runtime<D>
-where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Deserialize<'de>
+impl<D: Descriptor<K>, K> Runtime<D, K>
+where
+    D: Default,
+    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> bp_rt::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
-        Self::load_attach(data_dir, chain, bp_rt::Runtime::new(D::default(), chain))
+        Self::load_attach(
+            data_dir,
+            chain,
+            bp_rt::Runtime::new_standard(D::default(), chain /* TODO: add layer 2 */),
+        )
     }
 }
 
 #[cfg(feature = "serde")]
-impl<D: DeriveSpk> Runtime<D>
-where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Deserialize<'de>
+impl<D: Descriptor<K>, K> Runtime<D, K>
+where
+    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> bp_rt::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(wallet_name);
-        let bprt = bp_rt::Runtime::<D, RgbKeychain>::load(wallet_path)?;
-        Self::load_attach_or_init(data_dir, chain, bprt, |_| Ok::<_, RuntimeError>(default!()))
+        let bprt = bp_rt::Runtime::<D, K>::load_standard(wallet_path /* TODO: Add layer2 */)?;
+        Self::load_attach_or_init(data_dir, chain, bprt.detach(), |_| {
+            Ok::<_, RuntimeError>(default!())
+        })
     }
 
     pub fn load_attach(
         data_dir: PathBuf,
         chain: Chain,
-        bprt: bp_rt::Runtime<D, RgbKeychain>,
+        bprt: bp_rt::Runtime<D, K>,
     ) -> Result<Self, RuntimeError> {
-        Self::load_attach_or_init(data_dir, chain, bprt, |_| Ok::<_, RuntimeError>(default!()))
+        Self::load_attach_or_init(data_dir, chain, bprt.detach(), |_| {
+            Ok::<_, RuntimeError>(default!())
+        })
     }
 
     pub fn load_or_init<E>(
@@ -161,14 +171,18 @@ where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Des
         let mut wallet_path = data_dir.clone();
         wallet_path.push(chain.to_string());
         wallet_path.push(wallet_name);
-        let bprt = bp_rt::Runtime::load_or_init(wallet_path, chain, init_wallet)?;
-        Self::load_attach_or_init(data_dir, chain, bprt, init_stock)
+        let bprt = bp_rt::Runtime::load_standard_or_init(
+            wallet_path,
+            chain,
+            init_wallet, /* TODO: Add layer2 */
+        )?;
+        Self::load_attach_or_init(data_dir, chain, bprt.detach(), init_stock)
     }
 
     pub fn load_attach_or_init<E>(
         mut data_dir: PathBuf,
         chain: Chain,
-        bprt: bp_rt::Runtime<D, RgbKeychain>,
+        wallet: Wallet<K, D>,
         init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
     where
@@ -189,13 +203,13 @@ where for<'de> bp_rt::WalletDescr<D, RgbKeychain>: serde::Serialize + serde::Des
         Ok(Self {
             stock_path,
             stock,
-            bprt,
+            wallet,
             chain,
         })
     }
 }
 
-impl<D: DeriveSpk> Runtime<D> {
+impl<D: Descriptor<K>, K> Runtime<D, K> {
     fn store(&mut self) {
         self.stock
             .store(&self.stock_path)
@@ -208,13 +222,9 @@ impl<D: DeriveSpk> Runtime<D> {
          */
     }
 
-    pub fn attach(&mut self, wallet: bp_rt::Runtime<D, RgbKeychain>) { self.bprt = wallet }
+    pub fn attach(&mut self, wallet: Wallet<K, D>) { self.wallet = wallet }
 
-    pub fn wallet(&self) -> &Wallet<D, RgbKeychain> { self.bprt.wallet() }
-
-    pub fn wallet_mut(&mut self) -> &mut Wallet<D, RgbKeychain> { self.bprt.wallet_mut() }
-
-    pub fn descriptor(&self) -> &D { self.wallet().deref() }
+    pub fn descriptor(&self) -> &D { self.wallet.deref() }
 
     pub fn unload(self) -> () {}
 
@@ -285,6 +295,6 @@ impl<D: DeriveSpk> Runtime<D> {
     }
 }
 
-impl<D: DeriveSpk> Drop for Runtime<D> {
+impl<D: Descriptor<K>, K> Drop for Runtime<D, K> {
     fn drop(&mut self) { self.store() }
 }

@@ -37,7 +37,6 @@ use std::process::ExitCode;
 
 use bpw::{Config, Exec, LogLevel};
 use clap::Parser;
-use rgb::descriptor::RgbKeychain;
 use rgb_rt::RuntimeError;
 
 pub use crate::args::RgbArgs;
@@ -63,6 +62,6 @@ fn run() -> Result<(), RuntimeError> {
     eprintln!("     by LNP/BP Standards Association\n");
 
     let conf = Config::load(&args.conf_path("rgb"));
-    debug!("Executing command: {}", args.command);
-    args.exec::<RgbKeychain>(conf, "rgb")
+    debug!("Executing command: {:?}", args.command);
+    args.exec(conf, "rgb")
 }

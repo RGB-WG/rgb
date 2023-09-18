@@ -24,11 +24,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
-use bp::{Keychain, Txid};
+use bpstd::Txid;
 use bpw::{Config, Exec};
 use rgb::containers::{Bindle, Transfer, UniversalBindle};
 use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgb::descriptor::{DescriptorRgb, RgbKeychain};
+use rgb::descriptor::DescriptorRgb;
 use rgb::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
 use rgb::persistence::{Inventory, Stash};
 use rgb::schema::SchemaId;
@@ -57,8 +57,7 @@ pub enum InspectFormat {
 }
  */
 
-#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
-#[display(lowercase)]
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
 pub enum Command {
     #[clap(flatten)]
     Bp(bpw::Command),
@@ -71,7 +70,6 @@ pub enum Command {
     Contracts,
 
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc.
-    #[display("import")]
     Import {
         /// Use BASE64 ASCII armoring for binary data.
         #[arg(short)]
@@ -83,7 +81,6 @@ pub enum Command {
     },
 
     /// Exports existing RGB contract.
-    #[display("export")]
     Export {
         /// Use BASE64 ASCII armoring for binary data.
         #[arg(short)]
@@ -98,7 +95,6 @@ pub enum Command {
     },
 
     /// Reports information about state of a contract.
-    #[display("state")]
     State {
         /// Contract identifier.
         contract_id: ContractId,
@@ -107,7 +103,6 @@ pub enum Command {
     },
 
     /// Issues new contract.
-    #[display("issue")]
     Issue {
         /// Schema name to use for the contract.
         schema: SchemaId, //String,
@@ -120,7 +115,6 @@ pub enum Command {
     },
 
     /// Create new invoice.
-    #[display("invoice")]
     Invoice {
         /// Contract identifier.
         contract_id: ContractId,
@@ -136,7 +130,6 @@ pub enum Command {
     },
 
     /// Create new transfer.
-    #[display("transfer")]
     Transfer {
         #[clap(long, default_value = "tapret1st")]
         /// Method for single-use-seals.
@@ -153,7 +146,6 @@ pub enum Command {
     },
 
     /// Inspects any RGB data file.
-    #[display("inspect")]
     Inspect {
         // #[clap(short, long, default_value = "yaml")]
         // /// Format used for data inspection
@@ -163,7 +155,6 @@ pub enum Command {
     },
 
     /// Debug-dump all stash and inventory data.
-    #[display("dump")]
     Dump {
         /// Directory to put the dump into.
         #[arg(default_value = "./rgb-dump")]
@@ -171,14 +162,12 @@ pub enum Command {
     },
 
     /// Validate transfer consignment.
-    #[display("validate")]
     Validate {
         /// File with the transfer consignment.
         file: PathBuf,
     },
 
     /// Validate transfer consignment & accept to the stash.
-    #[display("accept")]
     Accept {
         /// Force accepting consignments with non-mined terminal witness.
         #[arg(short, long)]
@@ -189,7 +178,6 @@ pub enum Command {
     },
 
     /// Set first opret/tapret output to host a commitment
-    #[display("set-host")]
     SetHost {
         #[arg(long, default_value = "tapret1st")]
         /// Method for single-use-seals.
@@ -204,13 +192,10 @@ impl Exec for RgbArgs {
     type Error = RuntimeError;
     const CONF_FILE_NAME: &'static str = "rgb.toml";
 
-    fn exec<C: Keychain>(self, config: Config, name: &'static str) -> Result<(), RuntimeError>
-    where for<'de> C: serde::Serialize + serde::Deserialize<'de> {
+    fn exec(self, config: Config, name: &'static str) -> Result<(), RuntimeError> {
         match &self.command {
             Command::Bp(cmd) => {
-                self.inner
-                    .translate(cmd)
-                    .exec::<RgbKeychain>(config, "rgb")?;
+                self.inner.translate(cmd).exec(config, "rgb")?;
             }
             Command::Schemata => {
                 let runtime = self.rgb_runtime()?;
@@ -302,11 +287,11 @@ impl Exec for RgbArgs {
 
             Command::State { contract_id, iface } => {
                 let mut runtime = self.rgb_runtime()?;
-                let wallet = self.bp_runtime::<DescriptorRgb, RgbKeychain>(&config)?;
-                runtime.attach(wallet);
+                let bp_runtime = self.bp_runtime::<DescriptorRgb>(&config)?;
+                runtime.attach(bp_runtime.detach());
 
                 let iface = runtime.iface_by_name(&tn!(iface.to_owned()))?.clone();
-                let contract = runtime.contract_iface(*contract_id, iface.iface_id())?;
+                let contract = runtime.contract_iface_id(*contract_id, iface.iface_id())?;
 
                 println!("Global:");
                 for global in &contract.iface.global_state {
