@@ -24,8 +24,9 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
-use bp_rt::Wallet;
-use bpstd::{AddressNetwork, Descriptor, Outpoint, XpubDerivable};
+use bpstd::{AddressNetwork, Outpoint, XpubDerivable};
+use bpwallet::Wallet;
+use descriptors::Descriptor;
 use rgb::containers::{Contract, LoadError, Transfer};
 use rgb::descriptor::DescriptorRgb;
 use rgb::interface::{BuilderError, OutpointFilter};
@@ -75,8 +76,8 @@ pub enum RuntimeError {
     IncompleteContract,
 
     #[from]
-    #[from(bp_rt::LoadError)]
-    Bp(bp_rt::RuntimeError),
+    #[from(bpwallet::LoadError)]
+    Bp(bpwallet::RuntimeError),
 
     #[from]
     Yaml(serde_yaml::Error),
@@ -120,13 +121,13 @@ impl<D: Descriptor<K>, K> Runtime<D, K>
 where
     D: Default,
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> bp_rt::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         Self::load_attach(
             data_dir,
             chain,
-            bp_rt::Runtime::new_standard(D::default(), chain /* TODO: add layer 2 */),
+            bpwallet::Runtime::new_standard(D::default(), chain /* TODO: add layer 2 */),
         )
     }
 }
@@ -135,12 +136,13 @@ where
 impl<D: Descriptor<K>, K> Runtime<D, K>
 where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> bp_rt::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(wallet_name);
-        let bprt = bp_rt::Runtime::<D, K>::load_standard(wallet_path /* TODO: Add layer2 */)?;
+        let bprt =
+            bpwallet::Runtime::<D, K>::load_standard(wallet_path /* TODO: Add layer2 */)?;
         Self::load_attach_or_init(data_dir, chain, bprt.detach(), |_| {
             Ok::<_, RuntimeError>(default!())
         })
@@ -149,7 +151,7 @@ where
     pub fn load_attach(
         data_dir: PathBuf,
         chain: Chain,
-        bprt: bp_rt::Runtime<D, K>,
+        bprt: bpwallet::Runtime<D, K>,
     ) -> Result<Self, RuntimeError> {
         Self::load_attach_or_init(data_dir, chain, bprt.detach(), |_| {
             Ok::<_, RuntimeError>(default!())
@@ -160,18 +162,18 @@ where
         data_dir: PathBuf,
         wallet_name: &str,
         chain: Chain,
-        init_wallet: impl FnOnce(bp_rt::LoadError) -> Result<D, E>,
+        init_wallet: impl FnOnce(bpwallet::LoadError) -> Result<D, E>,
         init_stock: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
     where
         E: From<DeserializeError>,
-        bp_rt::LoadError: From<E>,
+        bpwallet::LoadError: From<E>,
         RuntimeError: From<E>,
     {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(chain.to_string());
         wallet_path.push(wallet_name);
-        let bprt = bp_rt::Runtime::load_standard_or_init(
+        let bprt = bpwallet::Runtime::load_standard_or_init(
             wallet_path,
             chain,
             init_wallet, /* TODO: Add layer2 */

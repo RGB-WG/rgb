@@ -35,7 +35,7 @@ mod resolver;
 
 use std::process::ExitCode;
 
-use bpw::{Config, Exec, LogLevel};
+use bp_util::{Config, Exec, LogLevel};
 use clap::Parser;
 use rgb_rt::RuntimeError;
 

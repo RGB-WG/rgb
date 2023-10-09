@@ -24,8 +24,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
+use bp_util::{Config, Exec};
 use bpstd::Txid;
-use bpw::{Config, Exec};
 use rgb::containers::{Bindle, Transfer, UniversalBindle};
 use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgb::descriptor::DescriptorRgb;
@@ -60,7 +60,7 @@ pub enum InspectFormat {
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
 pub enum Command {
     #[clap(flatten)]
-    Bp(bpw::Command),
+    Bp(bp_util::Command),
 
     /// Prints out list of known RGB schemata.
     Schemata,

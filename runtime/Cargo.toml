@@ -20,8 +20,9 @@ amplify = { workspace = true }
 strict_types = { workspace = true }
 bp-dbc = { workspace = true }
 bp-std = { workspace = true }
-bp-runtime = { workspace = true, features = ["fs"] }
+bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
+descriptors = "=0.10.0-BP-beta.1"
 rgb-std = { workspace = true }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "../fs" }
 serde_crate = { workspace = true, optional = true }
@@ -31,5 +32,5 @@ log = { workspace = true, optional = true }
 [features]
 default = []
 all = ["esplora",  "serde", "log"]
-esplora = ["bp-esplora", "bp-runtime/esplora"]
-serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-runtime/serde"]
+esplora = ["bp-esplora", "bp-wallet/esplora"]
+serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]

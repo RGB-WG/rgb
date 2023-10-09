@@ -19,8 +19,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bp_util::DescriptorOpts;
 use bpstd::XpubDerivable;
-use bpw::DescriptorOpts;
 use rgb::descriptor::{DescriptorRgb, TapretKey};
 use rgb_rt::{Runtime, RuntimeError};
 
@@ -56,7 +56,7 @@ pub struct RgbArgs {
     #[clap(flatten)]
     #[from]
     #[wrap]
-    pub inner: bpw::Args<Command, DescrRgbOpts>,
+    pub inner: bp_util::Args<Command, DescrRgbOpts>,
 }
 
 impl Default for RgbArgs {
