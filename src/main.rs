@@ -27,32 +27,21 @@ extern crate strict_types;
 extern crate log;
 #[macro_use]
 extern crate clap;
+extern crate serde_crate as serde;
 
-mod loglevel;
-mod opts;
 mod command;
+mod args;
+mod resolver;
 
 use std::process::ExitCode;
 
+use bp_util::{Config, Exec, LogLevel};
 use clap::Parser;
-use rgb::{BlockchainResolver, DefaultResolver, Runtime, RuntimeError};
+use rgb_rt::RuntimeError;
 
+pub use crate::args::RgbArgs;
 pub use crate::command::Command;
-pub use crate::loglevel::LogLevel;
-pub use crate::opts::Opts;
-
-#[cfg(any(target_os = "linux"))]
-pub const RGB_DATA_DIR: &str = "~/.rgb";
-#[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
-pub const RGB_DATA_DIR: &str = "~/.rgb";
-#[cfg(target_os = "macos")]
-pub const RGB_DATA_DIR: &str = "~/Library/Application Support/RGB Smart Contracts";
-#[cfg(target_os = "windows")]
-pub const RGB_DATA_DIR: &str = "~\\AppData\\Local\\RGB Smart Contracts";
-#[cfg(target_os = "ios")]
-pub const RGB_DATA_DIR: &str = "~/Documents";
-#[cfg(target_os = "android")]
-pub const RGB_DATA_DIR: &str = ".";
+pub use crate::resolver::PanickingResolver;
 
 fn main() -> ExitCode {
     if let Err(err) = run() {
@@ -64,18 +53,15 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<(), RuntimeError> {
-    let mut opts = Opts::parse();
-    opts.process();
-    LogLevel::from_verbosity_flag_count(opts.verbose).apply();
-    trace!("Command-line arguments: {:#?}", &opts);
+    let mut args = RgbArgs::parse();
+    args.process();
+    LogLevel::from_verbosity_flag_count(args.verbose).apply();
+    trace!("Command-line arguments: {:#?}", &args);
 
-    let electrum = opts
-        .electrum
-        .unwrap_or_else(|| opts.chain.default_resolver());
+    eprintln!("RGB: command-line wallet for RGB smart contracts");
+    eprintln!("     by LNP/BP Standards Association\n");
 
-    let mut resolver = BlockchainResolver::with(&electrum)?;
-    let mut runtime = Runtime::load(opts.data_dir.clone(), opts.chain)?;
-    debug!("Executing command: {}", opts.command);
-    opts.command.exec(&mut runtime, &mut resolver)?;
-    Ok(())
+    let conf = Config::load(&args.conf_path("rgb"));
+    debug!("Executing command: {:?}", args.command);
+    args.exec(conf, "rgb")
 }

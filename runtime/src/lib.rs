@@ -1,4 +1,4 @@
-// RGB smart contracts for Bitcoin & Lightning
+// RGB smart contract wallet runtime
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -24,23 +24,9 @@ extern crate amplify;
 #[cfg(feature = "log")]
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate serde;
+#[cfg(feature = "serde")]
+extern crate serde_crate as serde;
 
-mod descriptor;
 mod runtime;
-mod wallet;
 
-pub mod prelude {
-    pub use descriptor::{RgbDescr, SpkDescriptor, Tapret, TerminalPath};
-    pub use rgbfs::StockFs;
-    pub use rgbstd::*;
-    pub use rgbwallet::*;
-    pub use runtime::{Runtime, RuntimeError};
-    #[cfg(feature = "electrum")]
-    pub use wallet::BlockchainResolver;
-    pub use wallet::{DefaultResolver, RgbWallet};
-
-    pub use super::*;
-}
-pub use prelude::*;
+pub use runtime::{Runtime, RuntimeError};

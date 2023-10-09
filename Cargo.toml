@@ -1,35 +1,48 @@
 [workspace]
 members = [
+    "runtime",
     "fs",
-    ".",
+    "."
 ]
 default-members = [
+    "runtime",
     "fs",
     "."
 ]
 
 [workspace.package]
+version = "0.11.0-alpha"
+keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
+categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
-homepage = "https://github.com/RGB-WG"
-repository = "https://github.com/RGB-WG/rgb"
+homepage = "https://lnp-bp.org"
+repository = "https://github.com/RGB-WG/rgb-wallet"
 rust-version = "1.67" # Due to strict encoding library
 edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.0.1"
+amplify = "4.5.0"
 baid58 = "0.4.4"
-strict_encoding = "2.5.0"
-strict_types = "1.6.1"
-rgb-std = { version = "0.10.8", features = ["fs"] }
-rgb-wallet = { version = "0.10.8", features = ["fs"] }
+strict_encoding = "2.6.1"
+strict_types = "1.6.3"
+bp-dbc = "0.10.10"
+bp-std = "0.10.0-beta.1"
+bp-wallet = "0.10.0-beta.1"
+bp-utils = "0.10.0-beta.1"
+bp-esplora = "0.10.0-beta.1"
+rgb-std = { version = "0.10.10", features = ["fs"] }
+rgb-invoice = "0.10.10"
+serde_crate = { package = "serde", version = "1", features = ["derive"] }
+serde_yaml = "0.9.19"
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 
 [package]
 name = "rgb-contracts"
-version = "0.10.0"
-description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
-keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
-categories = ["cryptography::cryptocurrencies"]
+version = "0.10.1"
+description = "Command-line wallet for RGB smart contracts on Bitcoin"
+keywords = { workspace = true }
+categories = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }
 homepage = { workspace = true }
@@ -37,38 +50,40 @@ edition = { workspace = true }
 license = { workspace = true }
 rust-version = { workspace = true }
 readme = "README.md"
-exclude = [".github", "std"]
-
-[lib]
-name = "rgb"
+exclude = [".github"]
 
 [[bin]]
 name = "rgb"
-required-features = ["cli"]
+path = "src/main.rs"
 
 [dependencies]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
-commit_verify = "0.10.5"
-bp-core = { version = "0.10.9", features = ["serde"] }
-rgb-std = { workspace = true }
-rgb-wallet = { workspace = true }
-rgb-persist-fs = { version = "0.10.0", path = "fs" }
-bitcoin = { version = "0.30.0", features = ["serde"] }
-electrum-client = { version = "0.17.0", optional = true }
-log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
+commit_verify = "0.10.6"
+bp-seals = "0.10.11"
+bp-std = { workspace = true, features = ["serde"] }
+bp-wallet = { workspace = true }
+bp-esplora = { workspace = true }
+bp-util = "0.10.0-beta.1"
+rgb-std = { workspace = true, features = ["serde", "descriptor"] }
+rgb-invoice = { workspace = true }
+rgb-runtime = { version = "0.11.0-alpha", path = "runtime", features = ["log", "serde"] }
+log = { workspace = true }
 env_logger = "0.10.0"
-clap = { version = "4.1.8", features = ["derive", "env"], optional = true }
-shellexpand = { version = "3.0.0", optional = true }
-serde = "1.0.159"
-serde_yaml = "0.9.19"
+clap = { version = "4.4.6", features = ["derive", "env"] }
+shellexpand = "3.1.0"
+serde_crate = { workspace = true }
+serde_yaml = { workspace = true }
+toml = "0.8.2"
 
 [features]
-default = ["electrum", "log"]
-all = ["cli", "log"]
-electrum = ["electrum-client", "log"]
-cli = ["clap", "shellexpand", "log", "electrum"]
+default = []
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.10" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "hybrid" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "hybrid" }

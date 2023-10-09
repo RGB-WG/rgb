@@ -28,5 +28,5 @@ globals:
 
 assignments:
   assetOwner:
-    seal: tapret1st:c9a86c99127f1b2d1ff495c238f13069ac881ec9527905016122d11d85b19b61:1
+    seal: tapret1st:ca43e9a01782343c78fa67cc20d75d81545a8d38a031d361180c36c088639fed:0
     amount: 100000000000000
