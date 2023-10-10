@@ -25,8 +25,11 @@ extern crate amplify;
 #[macro_use]
 extern crate log;
 #[cfg(feature = "serde")]
+#[macro_use]
 extern crate serde_crate as serde;
 
 mod runtime;
+mod descriptor;
 
+pub use descriptor::{DescriptorRgb, RgbKeychain, TapretKey};
 pub use runtime::{Runtime, RuntimeError};

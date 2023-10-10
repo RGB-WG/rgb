@@ -1,4 +1,4 @@
-// RGB smart contract wallet runtime
+// RGB standard library for working with smart contracts on Bitcoin & Lightning
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -19,138 +19,169 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{self, Display, Formatter};
+use std::collections::BTreeMap;
 use std::ops::Range;
+use std::str::FromStr;
+use std::{iter, vec};
 
-use bitcoin::bip32::{ChildNumber, ExtendedPubKey};
-use bitcoin::secp256k1::SECP256K1;
-use bitcoin::ScriptBuf;
-use bp::dbc::tapret::{TapretCommitment, TapretPathProof, TapretProof};
-use bp::{ScriptPubkey, TapNodeHash};
-use commit_verify::ConvolveCommit;
+use bpstd::{
+    CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IndexError,
+    IndexParseError, KeyOrigin, NormalIndex, TapDerivation, Terminal, XOnlyPk, XpubDerivable,
+    XpubSpec,
+};
+use dbc::tapret::TapretCommitment;
+use descriptors::{Descriptor, DescriptorStd, TrKey};
+use indexmap::IndexMap;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct DeriveInfo {
-    pub terminal: TerminalPath,
-    pub tweak: Option<TapretCommitment>,
-}
-
-impl Display for DeriveInfo {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.terminal, f)?;
-        if let Some(tweak) = &self.tweak {
-            write!(f, "%{tweak}")?;
-        }
-        Ok(())
-    }
-}
-
-impl DeriveInfo {
-    pub fn with(app: u32, index: u32, tweak: Option<TapretCommitment>) -> Self {
-        DeriveInfo {
-            terminal: TerminalPath { app, index },
-            tweak,
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
 #[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Tapret {
-    pub xpub: ExtendedPubKey,
-    // pub script: Option<>,
-    pub taprets: BTreeMap<TerminalPath, BTreeSet<TapretCommitment>>,
+#[serde(crate = "serde_crate", rename_all = "camelCase")]
+#[repr(u8)]
+pub enum RgbKeychain {
+    #[display("0", alt = "0")]
+    External = 0,
+
+    #[display("1", alt = "1")]
+    Internal = 1,
+
+    #[display("9", alt = "9")]
+    Rgb = 9,
+
+    #[display("10", alt = "10")]
+    Tapret = 10,
 }
 
-impl Display for Tapret {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("tapret(")?;
-        Display::fmt(&self.xpub, f)?;
-        let mut first = true;
-        if f.alternate() {
-            for (terminal, taprets) in &self.taprets {
-                if first {
-                    f.write_str(",")?;
-                    first = false;
-                } else {
-                    f.write_str(" ")?;
-                }
-                Display::fmt(terminal, f)?;
-                for tapret in taprets {
-                    f.write_str("&")?;
-                    Display::fmt(tapret, f)?;
-                }
+impl RgbKeychain {
+    pub fn is_seal(self) -> bool { self == Self::Rgb || self == Self::Tapret }
+}
+
+impl FromStr for RgbKeychain {
+    type Err = IndexParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match NormalIndex::from_str(s)? {
+            NormalIndex::ZERO => Ok(RgbKeychain::External),
+            NormalIndex::ONE => Ok(RgbKeychain::Internal),
+            val => Err(IndexError {
+                what: "non-standard keychain",
+                invalid: val.index(),
+                start: 0,
+                end: 1,
             }
-        } else {
-            f.write_str(", ...")?;
+            .into()),
         }
-        f.write_str(")")
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Display)]
-#[display(inner)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum RgbDescr {
-    Tapret(Tapret),
+#[serde(crate = "serde_crate", rename_all = "camelCase")]
+pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
+    pub internal_key: K,
+    pub tweaks: BTreeMap<NormalIndex, TapretCommitment>,
 }
 
-pub trait SpkDescriptor {
-    // TODO: Replace index with UnhardenedIndex
-    fn derive(&self, app: u32, indexes: Range<u32>) -> BTreeMap<DeriveInfo, ScriptBuf>;
-}
-
-impl SpkDescriptor for Tapret {
-    fn derive(&self, app: u32, indexes: Range<u32>) -> BTreeMap<DeriveInfo, ScriptBuf> {
-        let mut spks = BTreeMap::new();
-
-        for index in indexes {
-            let key = self
-                .xpub
-                .derive_pub(&SECP256K1, &[
-                    ChildNumber::from_normal_idx(app)
-                        .expect("application index must be unhardened"),
-                    ChildNumber::from_normal_idx(index)
-                        .expect("derivation index must be unhardened"),
-                ])
-                .expect("unhardened derivation");
-
-            let xonly = key.to_x_only_pub();
-            spks.insert(
-                DeriveInfo::with(app, index, None),
-                ScriptBuf::new_v1_p2tr(&SECP256K1, xonly, None),
-            );
-            for tweak in self
-                .taprets
-                .get(&TerminalPath { app, index })
-                .into_iter()
-                .flatten()
-            {
-                let script = ScriptPubkey::p2tr(xonly.into(), None::<TapNodeHash>);
-                let proof = TapretProof {
-                    path_proof: TapretPathProof::root(tweak.nonce),
-                    internal_pk: xonly.into(),
-                };
-                let (spk, _) = script
-                    .convolve_commit(&proof, &tweak.mpc)
-                    .expect("malicious tapret value - an inverse of a key");
-                spks.insert(
-                    DeriveInfo::with(app, index, Some(tweak.clone())),
-                    ScriptBuf::from_bytes(spk.to_inner()),
-                );
-            }
+impl<K: DeriveXOnly> TapretKey<K> {
+    pub fn new_unfunded(internal_key: K) -> Self {
+        TapretKey {
+            internal_key,
+            tweaks: empty!(),
         }
-        spks
     }
 }
 
-impl SpkDescriptor for RgbDescr {
-    fn derive(&self, app: u32, indexes: Range<u32>) -> BTreeMap<DeriveInfo, ScriptBuf> {
+impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
+    fn keychains(&self) -> Range<u8> {
+        0..2 /* FIXME */
+    }
+
+    fn derive(&self, change: u8, index: impl Into<NormalIndex>) -> DerivedScript {
+        // TODO: Apply tweaks
+        let internal_key = self.internal_key.derive(change, index);
+        DerivedScript::TaprootKeyOnly(internal_key.into())
+    }
+}
+
+impl<K: DeriveXOnly> From<K> for TapretKey<K> {
+    fn from(tr: K) -> Self {
+        TapretKey {
+            internal_key: tr,
+            tweaks: none!(),
+        }
+    }
+}
+
+impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
+    fn from(tr: TrKey<K>) -> Self {
+        TapretKey {
+            internal_key: tr.into_internal_key(),
+            tweaks: none!(),
+        }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, From)]
+#[derive(Serialize, Deserialize)]
+#[serde(
+    crate = "serde_crate",
+    rename_all = "camelCase",
+    bound(
+        serialize = "S::XOnly: serde::Serialize",
+        deserialize = "S::XOnly: serde::Deserialize<'de>"
+    )
+)]
+pub enum DescriptorRgb<S: DeriveSet = XpubDerivable> {
+    None,
+
+    #[from]
+    TapretKey(TapretKey<S::XOnly>),
+}
+
+impl<S: DeriveSet> Default for DescriptorRgb<S> {
+    fn default() -> Self { DescriptorRgb::None }
+}
+
+impl<S: DeriveSet> Derive<DerivedScript> for DescriptorRgb<S> {
+    fn keychains(&self) -> Range<u8> {
         match self {
-            RgbDescr::Tapret(tapret) => tapret.derive(app, indexes),
+            DescriptorRgb::None => Range::default(),
+            DescriptorRgb::TapretKey(d) => d.keychains(),
+        }
+    }
+
+    fn derive(&self, change: u8, index: impl Into<NormalIndex>) -> DerivedScript {
+        match self {
+            DescriptorRgb::None => todo!(),
+            DescriptorRgb::TapretKey(d) => d.derive(change, index),
+        }
+    }
+}
+
+impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K>
+    for DescriptorRgb<K>
+where Self: Derive<DerivedScript>
+{
+    type KeyIter<'k> = vec::IntoIter<&'k K> where Self: 'k, K: 'k;
+    type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
+    type XpubIter<'x> = vec::IntoIter<&'x XpubSpec> where Self: 'x;
+
+    fn keys(&self) -> Self::KeyIter<'_> { todo!() }
+
+    fn vars(&self) -> Self::VarIter<'_> { todo!() }
+
+    fn xpubs(&self) -> Self::XpubIter<'_> { todo!() }
+
+    fn compr_keyset(&self, terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> { todo!() }
+
+    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> { todo!() }
+}
+
+impl From<DescriptorStd> for DescriptorRgb {
+    fn from(descr: DescriptorStd) -> Self {
+        match descr {
+            DescriptorStd::Wpkh(_) => todo!(),
+            DescriptorStd::TrKey(tr) => DescriptorRgb::TapretKey(tr.into()),
+            _ => todo!(),
         }
     }
 }

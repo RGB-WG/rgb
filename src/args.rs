@@ -21,8 +21,7 @@
 
 use bp_util::DescriptorOpts;
 use bpstd::XpubDerivable;
-use rgb::descriptor::{DescriptorRgb, TapretKey};
-use rgb_rt::{Runtime, RuntimeError};
+use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
 
 use crate::Command;
 

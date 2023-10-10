@@ -28,7 +28,6 @@ use bpstd::{AddressNetwork, Outpoint, XpubDerivable};
 use bpwallet::Wallet;
 use descriptors::Descriptor;
 use rgb::containers::{Contract, LoadError, Transfer};
-use rgb::descriptor::DescriptorRgb;
 use rgb::interface::{BuilderError, OutpointFilter};
 use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgb::resolvers::ResolveHeight;
@@ -36,6 +35,8 @@ use rgb::validation::ResolveTx;
 use rgb::{validation, Chain};
 use rgbfs::StockFs;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
+
+use crate::DescriptorRgb;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]

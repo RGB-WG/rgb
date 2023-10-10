@@ -33,6 +33,7 @@ bp-utils = "0.10.0-beta.1"
 bp-esplora = "0.10.0-beta.1"
 rgb-std = { version = "0.10.10", features = ["fs"] }
 rgb-invoice = "0.10.10"
+indexmap = "2.0.2"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
@@ -66,7 +67,7 @@ bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true }
 bp-esplora = { workspace = true }
 bp-util = "0.10.0-beta.1"
-rgb-std = { workspace = true, features = ["serde", "descriptor"] }
+rgb-std = { workspace = true, features = ["serde"] }
 rgb-invoice = { workspace = true }
 rgb-runtime = { version = "0.11.0-alpha", path = "runtime", features = ["log", "serde"] }
 log = { workspace = true }

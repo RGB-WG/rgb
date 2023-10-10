@@ -25,6 +25,7 @@ bp-esplora = { workspace = true, optional = true }
 descriptors = "=0.10.0-BP-beta.1"
 rgb-std = { workspace = true }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "../fs" }
+indexmap = { workspace = true }
 serde_crate = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
