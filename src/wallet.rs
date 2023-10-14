@@ -44,7 +44,7 @@ pub struct Utxo {
 }
 
 pub trait Resolver {
-    fn resolve_utxo<'s>(
+    fn resolve_utxo(
         &mut self,
         scripts: BTreeMap<DeriveInfo, ScriptBuf>,
     ) -> Result<BTreeSet<Utxo>, String>;
@@ -110,7 +110,7 @@ impl BlockchainResolver {
 
 #[cfg(feature = "electrum")]
 mod _electrum {
-    use amplify::RawArray;
+    use amplify::ByteArray;
     use bitcoin::hashes::Hash;
     use bitcoin::{Script, ScriptBuf};
     use bp::{Chain, LockTime, SeqNo, Tx, TxIn, TxOut, TxVer, Txid, VarIntArray, Witness};
@@ -156,15 +156,13 @@ mod _electrum {
         fn resolve_tx(&self, txid: Txid) -> Result<Tx, TxResolverError> {
             let tx = self
                 .0
-                .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_raw_array()))
+                .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_byte_array()))
                 .map_err(|err| match err {
                     Error::Message(_) | Error::Protocol(_) => TxResolverError::Unknown(txid),
                     err => TxResolverError::Other(txid, err.to_string()),
                 })?;
             Ok(Tx {
-                version: TxVer::from_consensus_i32(tx.version)
-                    .try_into()
-                    .expect("non-consensus tx version"),
+                version: TxVer::from_consensus_i32(tx.version),
                 inputs: VarIntArray::try_from_iter(tx.input.into_iter().map(|txin| TxIn {
                     prev_output: Outpoint::new(
                         txin.previous_output.txid.to_byte_array().into(),
@@ -190,7 +188,7 @@ mod _electrum {
         fn resolve_height(&mut self, txid: Txid) -> Result<WitnessOrd, Self::Error> {
             let tx = match self
                 .0
-                .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_raw_array()))
+                .transaction_get(&bitcoin::Txid::from_byte_array(txid.to_byte_array()))
             {
                 Ok(tx) => tx,
                 Err(Error::Message(_) | Error::Protocol(_)) => return Ok(WitnessOrd::OffChain),
@@ -236,7 +234,7 @@ mod _electrum {
                     MiningStatus::Blockchain(res.height as u32)
                 },
                 outpoint: Outpoint::new(
-                    Txid::from_raw_array(res.tx_hash.to_byte_array()),
+                    Txid::from_byte_array(res.tx_hash.to_byte_array()),
                     res.tx_pos as u32,
                 ),
                 derivation,

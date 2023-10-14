@@ -116,6 +116,7 @@ impl DerefMut for Runtime {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
 }
 
+#[allow(clippy::result_large_err)]
 impl Runtime {
     pub fn load(mut data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
         data_dir.push(chain.to_string());
@@ -163,7 +164,7 @@ impl Runtime {
         })
     }
 
-    pub fn unload(self) -> () {}
+    pub fn unload(self) {}
 
     pub fn create_wallet(
         &mut self,
@@ -202,7 +203,7 @@ impl Runtime {
             .map_err(RuntimeError::from)
     }
 
-    pub fn validate_transfer<'transfer>(
+    pub fn validate_transfer(
         &mut self,
         transfer: Transfer,
         resolver: &mut impl ResolveTx,
