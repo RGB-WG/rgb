@@ -17,10 +17,10 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.0.1"
+amplify = "4.5.0"
 baid58 = "0.4.4"
-strict_encoding = "2.5.0"
-strict_types = "1.6.1"
+strict_encoding = "2.6.1"
+strict_types = "1.6.3"
 rgb-std = { version = "0.10.8", features = ["fs"] }
 rgb-wallet = { version = "0.10.8", features = ["fs"] }
 
@@ -51,11 +51,11 @@ amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
 commit_verify = "0.10.5"
-bp-core = { version = "0.10.9", features = ["serde"] }
+bp-core = { version = "0.10.11", features = ["serde"] }
 rgb-std = { workspace = true }
 rgb-wallet = { workspace = true }
 rgb-persist-fs = { version = "0.10.0", path = "fs" }
-bitcoin = { version = "0.30.0", features = ["serde"] }
+bitcoin = { version = "0.30.1", features = ["serde"] }
 electrum-client = { version = "0.17.0", optional = true }
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"], optional = true }
 env_logger = "0.10.0"
@@ -72,3 +72,7 @@ cli = ["clap", "shellexpand", "log", "electrum"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.10" }
+rgb-wallet = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.10" }
