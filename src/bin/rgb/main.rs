@@ -41,7 +41,7 @@ pub use crate::command::Command;
 pub use crate::loglevel::LogLevel;
 pub use crate::opts::Opts;
 
-#[cfg(any(target_os = "linux"))]
+#[cfg(target_os = "linux")]
 pub const RGB_DATA_DIR: &str = "~/.rgb";
 #[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
 pub const RGB_DATA_DIR: &str = "~/.rgb";
