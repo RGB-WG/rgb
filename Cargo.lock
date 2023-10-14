@@ -893,7 +893,7 @@ checksum = "56d84fdd47036b038fc80dd333d10b6aab10d5d31f4a366e20014def75328d33"
 
 [[package]]
 name = "rgb-contracts"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amplify",
  "baid58",
@@ -944,8 +944,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-std"
-version = "0.10.8"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.10#60163cce215188c7717cfed8b10197b337919ab5"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "339c5bdeed7a4039d2ccc44f85d56559a9c60c88d48957fe00524a2c971fc0f6"
 dependencies = [
  "amplify",
  "baid58",
@@ -963,8 +964,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-wallet"
-version = "0.10.8"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.10#60163cce215188c7717cfed8b10197b337919ab5"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce3df09e278f598aae076ce3e7a333f2469ce7de89ab7a3c1db422bc0f45e5a1"
 dependencies = [
  "amplify",
  "baid58",
