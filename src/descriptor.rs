@@ -119,7 +119,7 @@ impl SpkDescriptor for Tapret {
         for index in indexes {
             let key = self
                 .xpub
-                .derive_pub(&SECP256K1, &[
+                .derive_pub(SECP256K1, &[
                     ChildNumber::from_normal_idx(app)
                         .expect("application index must be unhardened"),
                     ChildNumber::from_normal_idx(index)
@@ -130,7 +130,7 @@ impl SpkDescriptor for Tapret {
             let xonly = key.to_x_only_pub();
             spks.insert(
                 DeriveInfo::with(app, index, None),
-                ScriptBuf::new_v1_p2tr(&SECP256K1, xonly, None),
+                ScriptBuf::new_v1_p2tr(SECP256K1, xonly, None),
             );
             for tweak in self
                 .taprets

@@ -58,6 +58,7 @@ pub enum InspectFormat {
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// Prints out list of known RGB schemata.
     Schemata,
@@ -437,7 +438,7 @@ impl Command {
                             .global_state
                             .iter()
                             .find(|info| info.name.as_str() == name)
-                            .expect(&format!("unknown type name '{name}'"))
+                            .unwrap_or_else(|| panic!("unknown type name '{name}'"))
                             .id;
                         let sem_id = schema
                             .global_types
