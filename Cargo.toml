@@ -12,7 +12,7 @@ default-members = [
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
 homepage = "https://github.com/RGB-WG"
 repository = "https://github.com/RGB-WG/rgb"
-rust-version = "1.70" # Because of clap # TODO: Change back to "1.67" once cli will be in a separate crate
+rust-version = "1.67" # For command-line tool it is 1.70 because of clap
 edition = "2021"
 license = "Apache-2.0"
 
@@ -26,7 +26,7 @@ rgb-wallet = { version = "0.10.9", features = ["fs"] }
 
 [package]
 name = "rgb-contracts"
-version = "0.10.1"
+version = "0.10.2"
 description = " RGB: scalable & confidential smart contracts for Bitcoin & Lightning network"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]

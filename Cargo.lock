@@ -893,7 +893,7 @@ checksum = "56d84fdd47036b038fc80dd333d10b6aab10d5d31f4a366e20014def75328d33"
 
 [[package]]
 name = "rgb-contracts"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "amplify",
  "baid58",
