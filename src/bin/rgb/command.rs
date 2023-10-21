@@ -43,7 +43,6 @@ use strict_types::StrictVal;
 // TODO: For now, serde implementation doesn't work for consignments due to
 //       some of the keys which can't be serialized to strings. Once this fixed,
 //       allow this inspect formats option
-/*
 #[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Hash, Debug, Display, Default)]
 #[display(lowercase)]
 pub enum InspectFormat {
@@ -54,7 +53,6 @@ pub enum InspectFormat {
     Debug,
     Contractum,
 }
- */
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
@@ -179,9 +177,10 @@ pub enum Command {
     /// Inspects any RGB data file.
     #[display("inspect")]
     Inspect {
-        // #[clap(short, long, default_value = "yaml")]
-        // /// Format used for data inspection
-        // format: InspectFormat,
+        #[clap(short, long, default_value = "yaml")]
+        /// Format used for data inspection
+        format: InspectFormat,
+
         /// RGB file to inspect.
         file: PathBuf,
     },
@@ -579,12 +578,12 @@ impl Command {
                 );
                 eprintln!("Stash data are updated.");
             }
-            Command::Inspect { file } => {
+            Command::Inspect { file, format } => {
                 let bindle = UniversalBindle::load(file)?;
                 // TODO: For now, serde implementation doesn't work for consignments due to
                 //       some of the keys which can't be serialized to strings. Once this fixed,
                 //       allow this inspect formats option
-                /* let s = match format {
+                let s = match format {
                     InspectFormat::Yaml => {
                         serde_yaml::to_string(&bindle).expect("unable to present as YAML")
                     }
@@ -598,8 +597,6 @@ impl Command {
                     InspectFormat::Contractum => todo!("contractum representation"),
                 };
                 println!("{s}");
-                 */
-                println!("{bindle:#?}");
             }
             Command::Dump { root_dir } => {
                 fs::remove_dir_all(&root_dir).ok();
@@ -615,52 +612,55 @@ impl Command {
                 // Stash
                 for id in runtime.schema_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/schemata/{id}.debug"),
-                        format!("{:#?}", runtime.schema(id)?),
+                        format!("{root_dir}/stash/schemata/{id}.yaml"),
+                        serde_yaml::to_string(runtime.schema(id)?)?,
                     )?;
                 }
                 for (id, name) in runtime.ifaces()? {
                     fs::write(
-                        format!("{root_dir}/stash/ifaces/{id}.{name}.debug"),
-                        format!("{:#?}", runtime.iface_by_id(id)?),
+                        format!("{root_dir}/stash/ifaces/{id}.{name}.yaml"),
+                        serde_yaml::to_string(runtime.iface_by_id(id)?)?,
                     )?;
                 }
                 for id in runtime.contract_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/geneses/{id}.debug"),
-                        format!("{:#?}", runtime.genesis(id)?),
+                        format!("{root_dir}/stash/geneses/{id}.yaml"),
+                        serde_yaml::to_string(runtime.genesis(id)?)?,
                     )?;
                     for (no, suppl) in runtime.contract_suppl(id).into_iter().flatten().enumerate()
                     {
                         fs::write(
-                            format!("{root_dir}/stash/geneses/{id}.suppl.{no:03}.debug"),
-                            format!("{:#?}", suppl),
+                            format!("{root_dir}/stash/geneses/{id}.suppl.{no:03}.yaml"),
+                            serde_yaml::to_string(suppl)?,
                         )?;
                     }
                 }
                 for id in runtime.bundle_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/bundles/{id}.debug"),
-                        format!("{:#?}", runtime.bundle(id)?),
+                        format!("{root_dir}/stash/bundles/{id}.yaml"),
+                        serde_yaml::to_string(runtime.bundle(id)?)?,
                     )?;
                 }
                 for id in runtime.anchor_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/anchors/{id}.debug"),
-                        format!("{:#?}", runtime.anchor(id)?),
+                        format!("{root_dir}/stash/anchors/{id}.yaml"),
+                        serde_yaml::to_string(runtime.anchor(id)?)?,
                     )?;
                 }
                 for id in runtime.extension_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/extensions/{id}.debug"),
-                        format!("{:#?}", runtime.extension(id)?),
+                        format!("{root_dir}/stash/extensions/{id}.yaml"),
+                        serde_yaml::to_string(runtime.extension(id)?)?,
                     )?;
                 }
                 // TODO: Add sigs debugging
 
                 // State
                 for (id, history) in runtime.debug_history() {
-                    fs::write(format!("{root_dir}/state/{id}.debug"), format!("{:#?}", history))?;
+                    fs::write(
+                        format!("{root_dir}/state/{id}.yaml"),
+                        serde_yaml::to_string(history)?,
+                    )?;
                 }
 
                 // Index
