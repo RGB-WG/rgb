@@ -697,7 +697,16 @@ impl Command {
             }
             Command::Accept { force, file } => {
                 let bindle = Bindle::<Transfer>::load(file)?;
-                let transfer = bindle.unbindle().validate(resolver).unwrap_or_else(|c| c);
+                let transfer = bindle.unbindle().validate(resolver).or_else(|c| {
+                    if force {
+                        Ok(c)
+                    } else {
+                        Err(RuntimeError::InvalidConsignment(
+                            c.into_validation_status()
+                                .expect("consignment must have status after the validation"),
+                        ))
+                    }
+                })?;
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
                 runtime.accept_transfer(transfer, resolver, force)?;
                 eprintln!("Transfer accepted into the stash");
