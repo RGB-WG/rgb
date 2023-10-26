@@ -28,6 +28,7 @@ use crate::descriptor::DeriveInfo;
 use crate::{RgbDescr, SpkDescriptor};
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(Serialize, Deserialize)]
 pub enum MiningStatus {
     #[display("~")]
     Mempool,
@@ -36,6 +37,7 @@ pub enum MiningStatus {
 }
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct Utxo {
     pub outpoint: Outpoint,
     pub status: MiningStatus,
@@ -50,7 +52,8 @@ pub trait Resolver {
     ) -> Result<BTreeSet<Utxo>, String>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize)]
 pub struct RgbWallet {
     pub descr: RgbDescr,
     pub utxos: BTreeSet<Utxo>,
@@ -226,7 +229,7 @@ mod _electrum {
     }
 
     impl Utxo {
-        fn with(derivation: DeriveInfo, res: ListUnspentRes) -> Self {
+        pub fn with(derivation: DeriveInfo, res: ListUnspentRes) -> Self {
             Utxo {
                 status: if res.height == 0 {
                     MiningStatus::Mempool

@@ -65,10 +65,14 @@ serde = "1.0.159"
 serde_yaml = "0.9.19"
 
 [features]
-default = ["electrum", "log"]
 all = ["cli", "log"]
+default = ["cli", "electrum", "log"]
 electrum = ["electrum-client", "log"]
 cli = ["clap", "shellexpand", "log", "electrum"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+# Remove after merge and release https://github.com/RGB-WG/rgb-wallet/pull/108
+rgb-std = { git = "https://github.com/crisdut/rgb-wallet", branch = "feat/improviments" }

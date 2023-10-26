@@ -40,6 +40,7 @@ pub struct TerminalPath {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct DeriveInfo {
     pub terminal: TerminalPath,
     pub tweak: Option<TapretCommitment>,
