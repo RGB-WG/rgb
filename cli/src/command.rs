@@ -322,26 +322,20 @@ impl Exec for RgbArgs {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &runtime) {
                         for allocation in allocations {
-                            print!("    amount={}, utxo={}", allocation.value, allocation.owner,);
-                            match allocation.witness {
-                                Some(witness) => {
-                                    println!(", witness={witness} # owned by the wallet")
-                                }
-                                None => println!(" # no witness"),
-                            };
+                            print!(
+                                "    amount={}, utxo={}, witness={} # owned by the wallet",
+                                allocation.value, allocation.owner, allocation.witness
+                            );
                         }
                     }
                     if let Ok(allocations) =
                         contract.fungible(owned.name.clone(), &FilterExclude(&runtime))
                     {
                         for allocation in allocations {
-                            print!("    amount={}, utxo={}", allocation.value, allocation.owner);
-                            match allocation.witness {
-                                Some(witness) => {
-                                    println!(", witness={witness} # owner unknown")
-                                }
-                                None => println!(" # no witness"),
-                            };
+                            print!(
+                                "    amount={}, utxo={}, witness={} # owner unknown",
+                                allocation.value, allocation.owner, allocation.witness
+                            );
                         }
                     }
                     // TODO: Print out other types of state
@@ -474,11 +468,7 @@ impl Exec for RgbArgs {
                                     .as_u64()
                                     .expect("fungible state must be an integer");
                                 builder = builder
-                                    .add_fungible_state(
-                                        field_name,
-                                        SealDefinition::Bitcoin(seal),
-                                        amount,
-                                    )
+                                    .add_fungible_state(field_name, seal, amount)
                                     .expect("invalid global state data");
                             }
                             StateType::Structured => todo!(),
