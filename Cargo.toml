@@ -1,10 +1,12 @@
 [workspace]
 members = [
+    "invoice",
     "cli",
     "fs",
     "."
 ]
 default-members = [
+    "invoice",
     "cli",
     "fs",
     "."
@@ -26,13 +28,13 @@ amplify = "4.5.0"
 baid58 = "0.4.4"
 strict_encoding = "2.6.1"
 strict_types = "1.6.3"
-bp-dbc = "0.10.10"
-bp-std = "0.10.0-beta.1"
-bp-wallet = "0.10.0-beta.1"
-bp-utils = "0.10.0-beta.1"
-bp-esplora = "0.10.0-beta.1"
-rgb-std = { version = "0.10.10", features = ["fs"] }
-rgb-invoice = "0.10.10"
+bp-dbc = "0.11.0-beta.1"
+bp-seals = "0.11.0-beta.1"
+bp-std = "0.11.0-beta.1"
+bp-wallet = "0.11.0-beta.1"
+bp-utils = "0.11.0-beta.1"
+bp-esplora = "0.11.0-beta.1"
+rgb-std = { version = "0.11.0-beta.1", features = ["fs"] }
 indexmap = "2.0.2"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
@@ -62,7 +64,7 @@ bp-dbc = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
-descriptors = "=0.10.0-BP-beta.1"
+descriptors = "0.11.0-beta.1"
 rgb-std = { workspace = true }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "fs" }
 indexmap = { workspace = true }
@@ -80,6 +82,12 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]
 features = [ "all" ]
 
 [patch.crates-io]
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.10" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "hybrid" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "hybrid" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }

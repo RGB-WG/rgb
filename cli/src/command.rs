@@ -26,13 +26,14 @@ use std::str::FromStr;
 use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::Txid;
-use rgb::containers::{Bindle, Transfer, UniversalBindle};
-use rgb::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgb::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
-use rgb::persistence::{Inventory, Stash};
-use rgb::schema::SchemaId;
 use rgb_rt::{DescriptorRgb, RuntimeError};
 use rgbinvoice::{RgbInvoice, RgbTransport};
+use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
+use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
+use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
+use rgbstd::persistence::{Inventory, Stash};
+use rgbstd::schema::SchemaId;
+use rgbstd::SealDefinition;
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -204,7 +205,7 @@ impl Exec for RgbArgs {
     type Error = RuntimeError;
     const CONF_FILE_NAME: &'static str = "rgb.toml";
 
-    fn exec(self, config: Config, name: &'static str) -> Result<(), RuntimeError> {
+    fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
         match &self.command {
             Command::Bp(cmd) => {
                 self.inner.translate(cmd).exec(config, "rgb")?;
@@ -264,8 +265,10 @@ impl Exec for RgbArgs {
                         UniversalBindle::Contract(bindle) => {
                             let mut resolver = self.resolver();
                             let id = bindle.id();
-                            let contract =
-                                bindle.unbindle().validate(&mut resolver).map_err(|c| {
+                            let contract = bindle
+                                .unbindle()
+                                .validate(&mut resolver, self.general.network.is_testnet())
+                                .map_err(|c| {
                                     c.validation_status().expect("just validated").to_string()
                                 })?;
                             runtime.import_contract(contract, &mut resolver)?;
@@ -319,20 +322,26 @@ impl Exec for RgbArgs {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &runtime) {
                         for allocation in allocations {
-                            println!(
-                                "    amount={}, utxo={}, witness={} # owned by the wallet",
-                                allocation.value, allocation.owner, allocation.witness,
-                            );
+                            print!("    amount={}, utxo={}", allocation.value, allocation.owner,);
+                            match allocation.witness {
+                                Some(witness) => {
+                                    println!(", witness={witness} # owned by the wallet")
+                                }
+                                None => println!(" # no witness"),
+                            };
                         }
                     }
                     if let Ok(allocations) =
                         contract.fungible(owned.name.clone(), &FilterExclude(&runtime))
                     {
                         for allocation in allocations {
-                            println!(
-                                "    amount={}, utxo={}, witness={} # owner unknown",
-                                allocation.value, allocation.owner, allocation.witness
-                            );
+                            print!("    amount={}, utxo={}", allocation.value, allocation.owner);
+                            match allocation.witness {
+                                Some(witness) => {
+                                    println!(", witness={witness} # owner unknown")
+                                }
+                                None => println!(" # no witness"),
+                            };
                         }
                     }
                     // TODO: Print out other types of state
@@ -360,9 +369,12 @@ impl Exec for RgbArgs {
 
                 let file = fs::File::open(contract)?;
 
-                let mut builder =
-                    ContractBuilder::with(iface.clone(), schema.clone(), iface_impl.clone())?
-                        .set_chain(runtime.chain());
+                let mut builder = ContractBuilder::with(
+                    iface.clone(),
+                    schema.clone(),
+                    iface_impl.clone(),
+                    self.general.network.is_testnet(),
+                )?;
 
                 let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
 
@@ -462,7 +474,11 @@ impl Exec for RgbArgs {
                                     .as_u64()
                                     .expect("fungible state must be an integer");
                                 builder = builder
-                                    .add_fungible_state(field_name, seal, amount)
+                                    .add_fungible_state(
+                                        field_name,
+                                        SealDefinition::Bitcoin(seal),
+                                        amount,
+                                    )
                                     .expect("invalid global state data");
                             }
                             StateType::Structured => todo!(),
@@ -475,7 +491,7 @@ impl Exec for RgbArgs {
                 let id = contract.contract_id();
                 let mut resolver = PanickingResolver;
                 let validated_contract = contract
-                    .validate(&mut resolver)
+                    .validate(&mut resolver, self.general.network.is_testnet())
                     .map_err(|_| RuntimeError::IncompleteContract)?;
                 runtime
                     .import_contract(validated_contract, &mut resolver)
@@ -502,11 +518,11 @@ impl Exec for RgbArgs {
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
                     owned_state: TypedState::Amount(*value),
-                    chain: None,
+                    network: None,
                     expiry: None,
                     unknown_query: none!(),
                 };
-                runtime.store_seal_secret(seal)?;
+                runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
                 println!("{invoice}");
             }
             Command::Transfer {
@@ -536,7 +552,7 @@ impl Exec for RgbArgs {
                  */
             }
             Command::Inspect { file, format } => {
-                let bindle = UniversalBindle::load(file)?;
+                let bindle = UniversalBindle::load_file(file)?;
                 // TODO: For now, serde implementation doesn't work for consignments due to
                 //       some of the keys which can't be serialized to strings. Once this fixed,
                 //       allow this inspect formats option
@@ -648,7 +664,10 @@ impl Exec for RgbArgs {
             Command::Validate { file } => {
                 let mut resolver = self.resolver();
                 let bindle = Bindle::<Transfer>::load_file(file)?;
-                let status = match bindle.unbindle().validate(&mut resolver) {
+                let status = match bindle
+                    .unbindle()
+                    .validate(&mut resolver, self.general.network.is_testnet())
+                {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err(consignment) => consignment.into_validation_status(),
                 }
@@ -661,7 +680,7 @@ impl Exec for RgbArgs {
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let transfer = bindle
                     .unbindle()
-                    .validate(&mut resolver)
+                    .validate(&mut resolver, self.general.network.is_testnet())
                     .unwrap_or_else(|c| c);
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
                 runtime.accept_transfer(transfer, &mut resolver, *force)?;

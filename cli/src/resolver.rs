@@ -22,9 +22,9 @@
 use std::convert::Infallible;
 
 use bpstd::{Tx, Txid};
-use rgb::resolvers::ResolveHeight;
-use rgb::validation::{ResolveTx, TxResolverError};
-use rgb::WitnessOrd;
+use rgbstd::resolvers::ResolveHeight;
+use rgbstd::validation::{ResolveTx, TxResolverError};
+use rgbstd::{Anchor, Layer1, WitnessAnchor};
 
 use crate::RgbArgs;
 
@@ -32,12 +32,12 @@ use crate::RgbArgs;
 pub struct PanickingResolver;
 impl ResolveHeight for PanickingResolver {
     type Error = Infallible;
-    fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
+    fn resolve_anchor(&mut self, _: &Anchor) -> Result<WitnessAnchor, Self::Error> {
         unreachable!("PanickingResolver must be used only for newly issued contract validation")
     }
 }
 impl ResolveTx for PanickingResolver {
-    fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> {
+    fn resolve_tx(&self, _: Layer1, _: Txid) -> Result<Tx, TxResolverError> {
         unreachable!("PanickingResolver must be used only for newly issued contract validation")
     }
 }
@@ -48,12 +48,12 @@ impl RgbArgs {
         struct DumbResolver();
         impl ResolveHeight for DumbResolver {
             type Error = Infallible;
-            fn resolve_height(&mut self, _: Txid) -> Result<WitnessOrd, Self::Error> {
-                Ok(WitnessOrd::OffChain)
+            fn resolve_anchor(&mut self, _: &Anchor) -> Result<WitnessAnchor, Self::Error> {
+                todo!()
             }
         }
         impl ResolveTx for DumbResolver {
-            fn resolve_tx(&self, _: Txid) -> Result<Tx, TxResolverError> { todo!() }
+            fn resolve_tx(&self, _: Layer1, _: Txid) -> Result<Tx, TxResolverError> { todo!() }
         }
         DumbResolver::default()
     }

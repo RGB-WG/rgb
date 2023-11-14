@@ -67,7 +67,7 @@ impl RgbArgs {
         eprint!("Loading stock ... ");
         let runtime = Runtime::<DescriptorRgb>::load_pure_rgb(
             self.general.data_dir.clone(),
-            self.general.chain,
+            self.general.network,
         )?;
         eprintln!("success");
 

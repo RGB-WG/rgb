@@ -1,4 +1,4 @@
-// RGB smart contracts for Bitcoin & Lightning
+// RGB wallet library for smart contracts on Bitcoin & Lightning network
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -19,23 +19,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::path::Path;
+#[macro_use]
+extern crate amplify;
+#[macro_use]
+extern crate strict_encoding;
 
-use amplify::confinement::U32;
-use rgbstd::persistence::Stock;
-use strict_encoding::{DeserializeError, SerializeError, StrictDeserialize, StrictSerialize};
+#[allow(clippy::module_inception)]
+mod invoice;
+mod parse;
+mod builder;
 
-pub trait StockFs: Sized {
-    fn load(path: impl AsRef<Path>) -> Result<Self, DeserializeError>;
-    fn store(&self, path: impl AsRef<Path>) -> Result<(), SerializeError>;
-}
-
-impl StockFs for Stock {
-    fn load(file: impl AsRef<Path>) -> Result<Self, DeserializeError> {
-        Stock::strict_deserialize_from_file::<U32>(file)
-    }
-
-    fn store(&self, file: impl AsRef<Path>) -> Result<(), SerializeError> {
-        self.strict_serialize_to_file::<U32>(file)
-    }
-}
+pub use builder::RgbInvoiceBuilder;
+pub use invoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
+pub use parse::{InvoiceParseError, TransportParseError};

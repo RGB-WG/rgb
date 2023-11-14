@@ -24,16 +24,16 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
-use bpstd::{AddressNetwork, Outpoint, XpubDerivable};
+use bpstd::{AddressNetwork, Network, XpubDerivable};
 use bpwallet::Wallet;
 use descriptors::Descriptor;
-use rgb::containers::{Contract, LoadError, Transfer};
-use rgb::interface::{BuilderError, OutpointFilter};
-use rgb::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
-use rgb::resolvers::ResolveHeight;
-use rgb::validation::ResolveTx;
-use rgb::{validation, Chain};
 use rgbfs::StockFs;
+use rgbstd::containers::{Contract, LoadError, Transfer};
+use rgbstd::interface::{BuilderError, OutpointFilter};
+use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgbstd::resolvers::ResolveHeight;
+use rgbstd::validation::{self, ResolveTx};
+use rgbstd::Output;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::DescriptorRgb;
@@ -98,7 +98,7 @@ pub struct Runtime<D: Descriptor<K> = DescriptorRgb, K = XpubDerivable> {
     #[getter(as_mut)]
     wallet: Wallet<K, D /* Add stock via layer 2 */>,
     #[getter(as_copy)]
-    chain: Chain,
+    network: Network,
 }
 
 impl<D: Descriptor<K>, K> Deref for Runtime<D, K> {
@@ -112,8 +112,10 @@ impl<D: Descriptor<K>, K> DerefMut for Runtime<D, K> {
 }
 
 impl<D: Descriptor<K>, K> OutpointFilter for Runtime<D, K> {
-    fn include_outpoint(&self, outpoint: Outpoint) -> bool {
-        self.wallet.coins().any(|utxo| utxo.outpoint == outpoint)
+    fn include_output(&self, output: Output) -> bool {
+        self.wallet
+            .coins()
+            .any(|utxo| Output::Bitcoin(utxo.outpoint) == output)
     }
 }
 
@@ -124,11 +126,11 @@ where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
-    pub fn load_pure_rgb(data_dir: PathBuf, chain: Chain) -> Result<Self, RuntimeError> {
+    pub fn load_pure_rgb(data_dir: PathBuf, network: Network) -> Result<Self, RuntimeError> {
         Self::load_attach(
             data_dir,
-            chain,
-            bpwallet::Runtime::new_standard(D::default(), chain /* TODO: add layer 2 */),
+            network,
+            bpwallet::Runtime::new_standard(D::default(), network /* TODO: add layer 2 */),
         )
     }
 }
@@ -139,22 +141,26 @@ where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
-    pub fn load(data_dir: PathBuf, wallet_name: &str, chain: Chain) -> Result<Self, RuntimeError> {
+    pub fn load(
+        data_dir: PathBuf,
+        wallet_name: &str,
+        network: Network,
+    ) -> Result<Self, RuntimeError> {
         let mut wallet_path = data_dir.clone();
         wallet_path.push(wallet_name);
         let bprt =
             bpwallet::Runtime::<D, K>::load_standard(wallet_path /* TODO: Add layer2 */)?;
-        Self::load_attach_or_init(data_dir, chain, bprt.detach(), |_| {
+        Self::load_attach_or_init(data_dir, network, bprt.detach(), |_| {
             Ok::<_, RuntimeError>(default!())
         })
     }
 
     pub fn load_attach(
         data_dir: PathBuf,
-        chain: Chain,
+        network: Network,
         bprt: bpwallet::Runtime<D, K>,
     ) -> Result<Self, RuntimeError> {
-        Self::load_attach_or_init(data_dir, chain, bprt.detach(), |_| {
+        Self::load_attach_or_init(data_dir, network, bprt.detach(), |_| {
             Ok::<_, RuntimeError>(default!())
         })
     }
@@ -162,7 +168,7 @@ where
     pub fn load_or_init<E>(
         data_dir: PathBuf,
         wallet_name: &str,
-        chain: Chain,
+        network: Network,
         init_wallet: impl FnOnce(bpwallet::LoadError) -> Result<D, E>,
         init_stock: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
@@ -172,19 +178,19 @@ where
         RuntimeError: From<E>,
     {
         let mut wallet_path = data_dir.clone();
-        wallet_path.push(chain.to_string());
+        wallet_path.push(network.to_string());
         wallet_path.push(wallet_name);
         let bprt = bpwallet::Runtime::load_standard_or_init(
             wallet_path,
-            chain,
+            network,
             init_wallet, /* TODO: Add layer2 */
         )?;
-        Self::load_attach_or_init(data_dir, chain, bprt.detach(), init_stock)
+        Self::load_attach_or_init(data_dir, network, bprt.detach(), init_stock)
     }
 
     pub fn load_attach_or_init<E>(
         mut data_dir: PathBuf,
-        chain: Chain,
+        network: Network,
         wallet: Wallet<K, D>,
         init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
     ) -> Result<Self, RuntimeError>
@@ -192,7 +198,7 @@ where
         E: From<DeserializeError>,
         RuntimeError: From<E>,
     {
-        data_dir.push(chain.to_string());
+        data_dir.push(network.to_string());
 
         #[cfg(feature = "log")]
         debug!("Using data directory '{}'", data_dir.display());
@@ -207,7 +213,7 @@ where
             stock_path,
             stock,
             wallet,
-            chain,
+            network,
         })
     }
 }
@@ -231,7 +237,7 @@ impl<D: Descriptor<K>, K> Runtime<D, K> {
 
     pub fn unload(self) -> () {}
 
-    pub fn address_network(&self) -> AddressNetwork { self.chain.into() }
+    pub fn address_network(&self) -> AddressNetwork { self.network.into() }
 
     /*
     pub fn create_wallet(
@@ -272,13 +278,13 @@ impl<D: Descriptor<K>, K> Runtime<D, K> {
             .map_err(RuntimeError::from)
     }
 
-    pub fn validate_transfer<R: ResolveTx>(
+    pub fn validate_transfer(
         &mut self,
         transfer: Transfer,
-        resolver: &mut R,
+        resolver: &mut impl ResolveTx,
     ) -> Result<Transfer, RuntimeError> {
         transfer
-            .validate(resolver)
+            .validate(resolver, self.network.is_testnet())
             .map_err(|invalid| invalid.validation_status().expect("just validated").clone())
             .map_err(RuntimeError::from)
     }
