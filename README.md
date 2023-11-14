@@ -5,7 +5,7 @@
 ![Lints](https://github.com/RGB-WG/rgb/workflows/Lints/badge.svg)
 [![codecov](https://codecov.io/gh/RGB-WG/rgb/branch/master/graph/badge.svg)](https://codecov.io/gh/RGB-WG/rgb)
 
-[![crates.io](https://img.shields.io/crates/v/rgb)](https://crates.io/crates/rgb)
+[![crates.io](https://img.shields.io/crates/v/rgb-core)](https://crates.io/crates/rgb-core)
 [![Docs](https://docs.rs/rgb/badge.svg)](https://docs.rs/rgb)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 [![Apache-2 licensed](https://img.shields.io/crates/l/bp-core)](./LICENSE)
