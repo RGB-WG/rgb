@@ -5,10 +5,10 @@
 ![Lints](https://github.com/RGB-WG/rgb/workflows/Lints/badge.svg)
 [![codecov](https://codecov.io/gh/RGB-WG/rgb/branch/master/graph/badge.svg)](https://codecov.io/gh/RGB-WG/rgb)
 
-[![crates.io](https://img.shields.io/crates/v/rgb-core)](https://crates.io/crates/rgb-core)
-[![Docs](https://docs.rs/rgb/badge.svg)](https://docs.rs/rgb)
+[![crates.io](https://img.shields.io/crates/v/rgb-contracts)](https://crates.io/crates/rgb-contracts)
+[![Docs](https://docs.rs/rgb-contracts/badge.svg)](https://docs.rs/rgb-contracts)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
-[![Apache-2 licensed](https://img.shields.io/crates/l/bp-core)](./LICENSE)
+[![Apache-2 licensed](https://img.shields.io/crates/l/rgb-contracts)](./LICENSE)
 
 RGB is confidential & scalable client-validated smart contracts for Bitcoin &
 Lightning. It embraces the concepts of private & mutual ownership, abstraction 
