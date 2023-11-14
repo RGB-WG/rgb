@@ -1,0 +1,42 @@
+[package]
+name = "rgb-contracts"
+version = { workspace = true }
+description = "Command-line wallet for RGB smart contracts on Bitcoin"
+keywords = { workspace = true }
+categories = { workspace = true }
+readme = "../README.md"
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+rust-version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+
+[[bin]]
+name = "rgb"
+path = "src/main.rs"
+
+[dependencies]
+amplify = { workspace = true }
+baid58 = { workspace = true }
+strict_types = { workspace = true, features = ["serde"] }
+commit_verify = "0.10.6"
+bp-seals = "0.10.11"
+bp-std = { workspace = true, features = ["serde"] }
+bp-wallet = { workspace = true }
+bp-esplora = { workspace = true }
+bp-util = "0.10.0-beta.1"
+rgb-std = { workspace = true, features = ["serde"] }
+rgb-invoice = { workspace = true }
+rgb-runtime = { version = "0.11.0-alpha", path = "..", features = ["log", "serde"] }
+log = { workspace = true }
+env_logger = "0.10.0"
+clap = { version = "4.4.6", features = ["derive", "env"] }
+shellexpand = "3.1.0"
+serde_crate = { workspace = true }
+serde_yaml = { workspace = true }
+serde_json = "1.0.108"
+toml = "0.8.2"
+
+[features]
+default = []

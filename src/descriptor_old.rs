@@ -1,4 +1,4 @@
-// RGB smart contracts for Bitcoin & Lightning
+// RGB smart contract wallet runtime
 //
 // SPDX-License-Identifier: Apache-2.0
 //

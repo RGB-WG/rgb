@@ -22,12 +22,12 @@
 use std::path::Path;
 
 use amplify::confinement::U32;
-use rgbstd::persistence::Stock;
+use rgb::persistence::Stock;
 use strict_encoding::{DeserializeError, SerializeError, StrictDeserialize, StrictSerialize};
 
 pub trait StockFs: Sized {
-    fn load(file: impl AsRef<Path>) -> Result<Self, DeserializeError>;
-    fn store(&self, file: impl AsRef<Path>) -> Result<(), SerializeError>;
+    fn load(path: impl AsRef<Path>) -> Result<Self, DeserializeError>;
+    fn store(&self, path: impl AsRef<Path>) -> Result<(), SerializeError>;
 }
 
 impl StockFs for Stock {
