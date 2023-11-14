@@ -1,5 +1,5 @@
 [package]
-name = "rgb-contracts"
+name = "rgb-wallet"
 version = { workspace = true }
 description = "Command-line wallet for RGB smart contracts on Bitcoin"
 keywords = { workspace = true }

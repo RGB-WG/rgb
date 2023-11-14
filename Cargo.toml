@@ -13,7 +13,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-alpha"
+version = "0.11.0-alpha.1"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -80,14 +80,3 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
-
-[patch.crates-io]
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
