@@ -27,10 +27,10 @@ use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::Txid;
 use rgb_rt::{DescriptorRgb, RuntimeError};
-use rgbinvoice::{RgbInvoice, RgbTransport};
+use rgbinvoice::{InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
+use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::SealDefinition;
@@ -507,7 +507,7 @@ impl Exec for RgbArgs {
                     operation: None,
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
-                    owned_state: TypedState::Amount(*value),
+                    owned_state: InvoiceState::Amount(*value),
                     network: None,
                     expiry: None,
                     unknown_query: none!(),

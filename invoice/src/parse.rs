@@ -28,11 +28,10 @@ use fluent_uri::enc::EStr;
 use fluent_uri::Uri;
 use indexmap::IndexMap;
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
-use rgbstd::interface::TypedState;
 use rgbstd::{ContractId, SecretSeal};
 use strict_encoding::{InvalidIdent, TypeName};
 
-use super::{Beneficiary, RgbInvoice, RgbTransport};
+use super::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
 
 const OMITTED: char = '~';
 const EXPIRY: &str = "expiry";
@@ -294,8 +293,8 @@ impl FromStr for RgbInvoice {
         let mut assignment = path[next_path_index].split('+');
         // TODO: support other state types
         let (beneficiary_str, value) = match (assignment.next(), assignment.next()) {
-            (Some(a), Some(b)) => (b, TypedState::Amount(a.parse::<u64>()?)),
-            (Some(b), None) => (b, TypedState::Void),
+            (Some(a), Some(b)) => (b, InvoiceState::Amount(a.parse::<u64>()?)),
+            (Some(b), None) => (b, InvoiceState::Void),
             _ => return Err(InvoiceParseError::Invalid),
         };
 

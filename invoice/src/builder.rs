@@ -22,11 +22,10 @@
 use std::str::FromStr;
 
 use bpstd::Network;
-use rgbstd::interface::TypedState;
 use rgbstd::stl::Precision;
 use rgbstd::ContractId;
 
-use super::{Beneficiary, RgbInvoice, RgbTransport, TransportParseError};
+use super::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport, TransportParseError};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct RgbInvoiceBuilder(RgbInvoice);
@@ -41,7 +40,7 @@ impl RgbInvoiceBuilder {
             operation: None,
             assignment: None,
             beneficiary: beneficiary.into(),
-            owned_state: TypedState::Void,
+            owned_state: InvoiceState::Void,
             network: None,
             expiry: None,
             unknown_query: none!(),
@@ -81,7 +80,7 @@ impl RgbInvoiceBuilder {
     }
 
     pub fn set_amount_raw(mut self, amount: u64) -> Self {
-        self.0.owned_state = TypedState::Amount(amount);
+        self.0.owned_state = InvoiceState::Amount(amount);
         self
     }
 
