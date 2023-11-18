@@ -294,7 +294,7 @@ impl Exec for RgbArgs {
                     .map_err(|err| err.to_string())?;
                 if let Some(file) = file {
                     // TODO: handle armored flag
-                    bindle.save(&file)?;
+                    bindle.save(file)?;
                     eprintln!("Contract {contract} exported to '{}'", file.display());
                 } else {
                     println!("{bindle}");
@@ -595,7 +595,7 @@ impl Exec for RgbArgs {
             Command::Dump { root_dir } => {
                 let runtime = self.rgb_runtime()?;
 
-                fs::remove_dir_all(&root_dir).ok();
+                fs::remove_dir_all(root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/geneses"))?;

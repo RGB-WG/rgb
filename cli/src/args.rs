@@ -19,6 +19,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::needless_update)] // Caused by the From derivation macro
+
 use bp_util::DescriptorOpts;
 use bpstd::XpubDerivable;
 use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
@@ -53,8 +55,6 @@ impl DescriptorOpts for DescrRgbOpts {
 #[command(author, version, about)]
 pub struct RgbArgs {
     #[clap(flatten)]
-    #[from]
-    #[wrap]
     pub inner: bp_util::Args<Command, DescrRgbOpts>,
 }
 
