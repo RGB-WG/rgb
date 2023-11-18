@@ -1,4 +1,5 @@
 interface: RGB20
+domain: examples.lnp-bp.org/rgb-wallet/RGB20
 
 globals:
   spec:

@@ -19,6 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -30,10 +31,10 @@ use rgb_rt::{DescriptorRgb, RuntimeError};
 use rgbinvoice::{InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces};
+use rgbstd::interface::{AssetTagExt, ContractBuilder, FilterExclude, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
-use rgbstd::SealDefinition;
+use rgbstd::{AssetTag, AssignmentType, SealDefinition};
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -375,6 +376,11 @@ impl Exec for RgbArgs {
                 let code = code
                     .as_mapping()
                     .expect("invalid YAML root-level structure");
+
+                let contract_domain = code
+                    .get("domain")
+                    .map(|val| val.as_str().expect("domain name must be a string"));
+
                 if let Some(globals) = code.get("globals") {
                     for (name, val) in globals
                         .as_mapping()
@@ -419,6 +425,7 @@ impl Exec for RgbArgs {
                     }
                 }
 
+                let mut asset_tags: HashSet<AssignmentType> = empty!();
                 if let Some(assignments) = code.get("assignments") {
                     for (name, val) in assignments
                         .as_mapping()
@@ -462,6 +469,24 @@ impl Exec for RgbArgs {
                         match state_schema.state_type() {
                             StateType::Void => todo!(),
                             StateType::Fungible => {
+                                let assignment_type =
+                                    iface_impl.assignments_type(&field_name).expect(
+                                        "unknown assignment name, which is absent from the \
+                                         interface implementation",
+                                    );
+                                if !asset_tags.contains(&assignment_type) {
+                                    let asset_tag = AssetTag::new_random(
+                                        contract_domain.expect(
+                                            "when issuing contracts using fungible state it is \
+                                             required to provide a contract domain",
+                                        ),
+                                        assignment_type,
+                                    );
+                                    asset_tags.insert(assignment_type);
+                                    builder = builder
+                                        .add_asset_tag(field_name.clone(), asset_tag)
+                                        .expect("unable to register asset tag");
+                                }
                                 let amount = assign
                                     .get("amount")
                                     .expect("owned state must be a fungible amount")
