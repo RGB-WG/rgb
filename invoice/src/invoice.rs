@@ -21,7 +21,6 @@
 
 use bpstd::{Address, Network};
 use indexmap::IndexMap;
-use rgbstd::interface::TypedState;
 use rgbstd::{AttachId, ContractId, SecretSeal};
 use strict_encoding::{FieldName, TypeName};
 
@@ -38,8 +37,8 @@ pub enum RgbTransport {
 pub enum InvoiceState {
     #[display("")]
     Void,
-    #[display("{0}.{1}")]
-    Fungible(u64, u64),
+    #[display("{0}")]
+    Amount(u64),
     #[display("...")] // TODO
     Data(Vec<u8> /* StrictVal */),
     #[display(inner)]
@@ -63,7 +62,7 @@ pub struct RgbInvoice {
     pub operation: Option<TypeName>,
     pub assignment: Option<FieldName>,
     pub beneficiary: Beneficiary,
-    pub owned_state: TypedState,
+    pub owned_state: InvoiceState,
     pub network: Option<Network>,
     /// UTC unix timestamp
     pub expiry: Option<i64>,

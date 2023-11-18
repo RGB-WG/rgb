@@ -19,6 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -27,13 +28,13 @@ use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::Txid;
 use rgb_rt::{DescriptorRgb, RuntimeError};
-use rgbinvoice::{RgbInvoice, RgbTransport};
+use rgbinvoice::{InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces, TypedState};
+use rgbstd::interface::{AssetTagExt, ContractBuilder, FilterExclude, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
-use rgbstd::SealDefinition;
+use rgbstd::{AssetTag, AssignmentType, SealDefinition};
 use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -293,7 +294,7 @@ impl Exec for RgbArgs {
                     .map_err(|err| err.to_string())?;
                 if let Some(file) = file {
                     // TODO: handle armored flag
-                    bindle.save(&file)?;
+                    bindle.save(file)?;
                     eprintln!("Contract {contract} exported to '{}'", file.display());
                 } else {
                     println!("{bindle}");
@@ -375,6 +376,11 @@ impl Exec for RgbArgs {
                 let code = code
                     .as_mapping()
                     .expect("invalid YAML root-level structure");
+
+                let contract_domain = code
+                    .get("domain")
+                    .map(|val| val.as_str().expect("domain name must be a string"));
+
                 if let Some(globals) = code.get("globals") {
                     for (name, val) in globals
                         .as_mapping()
@@ -419,6 +425,7 @@ impl Exec for RgbArgs {
                     }
                 }
 
+                let mut asset_tags: HashSet<AssignmentType> = empty!();
                 if let Some(assignments) = code.get("assignments") {
                     for (name, val) in assignments
                         .as_mapping()
@@ -462,6 +469,24 @@ impl Exec for RgbArgs {
                         match state_schema.state_type() {
                             StateType::Void => todo!(),
                             StateType::Fungible => {
+                                let assignment_type =
+                                    iface_impl.assignments_type(&field_name).expect(
+                                        "unknown assignment name, which is absent from the \
+                                         interface implementation",
+                                    );
+                                if !asset_tags.contains(&assignment_type) {
+                                    let asset_tag = AssetTag::new_random(
+                                        contract_domain.expect(
+                                            "when issuing contracts using fungible state it is \
+                                             required to provide a contract domain",
+                                        ),
+                                        assignment_type,
+                                    );
+                                    asset_tags.insert(assignment_type);
+                                    builder = builder
+                                        .add_asset_tag(field_name.clone(), asset_tag)
+                                        .expect("unable to register asset tag");
+                                }
                                 let amount = assign
                                     .get("amount")
                                     .expect("owned state must be a fungible amount")
@@ -482,7 +507,13 @@ impl Exec for RgbArgs {
                 let mut resolver = PanickingResolver;
                 let validated_contract = contract
                     .validate(&mut resolver, self.general.network.is_testnet())
-                    .map_err(|_| RuntimeError::IncompleteContract)?;
+                    .map_err(|consignment| {
+                        RuntimeError::IncompleteContract(
+                            consignment
+                                .into_validation_status()
+                                .expect("just validated"),
+                        )
+                    })?;
                 runtime
                     .import_contract(validated_contract, &mut resolver)
                     .expect("failure importing issued contract");
@@ -507,7 +538,7 @@ impl Exec for RgbArgs {
                     operation: None,
                     assignment: None,
                     beneficiary: seal.to_concealed_seal().into(),
-                    owned_state: TypedState::Amount(*value),
+                    owned_state: InvoiceState::Amount(*value),
                     network: None,
                     expiry: None,
                     unknown_query: none!(),
@@ -515,6 +546,7 @@ impl Exec for RgbArgs {
                 runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
                 println!("{invoice}");
             }
+            #[allow(unused_variables)]
             Command::Transfer {
                 method,
                 psbt_file,
@@ -564,7 +596,7 @@ impl Exec for RgbArgs {
             Command::Dump { root_dir } => {
                 let runtime = self.rgb_runtime()?;
 
-                fs::remove_dir_all(&root_dir).ok();
+                fs::remove_dir_all(root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/geneses"))?;
@@ -676,6 +708,7 @@ impl Exec for RgbArgs {
                 runtime.accept_transfer(transfer, &mut resolver, *force)?;
                 eprintln!("Transfer accepted into the stash");
             }
+            #[allow(unused_variables)]
             Command::SetHost { method, psbt_file } => {
                 todo!();
                 /*

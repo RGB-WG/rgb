@@ -19,6 +19,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::result_large_err)]
+
 use std::convert::Infallible;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
@@ -70,11 +72,11 @@ pub enum RuntimeError {
     #[from]
     InvalidConsignment(validation::Status),
 
-    /// the contract source doesn't provide all state information required by
-    /// the schema. This means that some of the global fields or assignments are
-    /// missed.
+    /// the contract source doesn't fit requirements imposed by the used schema.
+    ///
+    /// {0}
     #[display(doc_comments)]
-    IncompleteContract,
+    IncompleteContract(validation::Status),
 
     #[from]
     #[from(bpwallet::LoadError)]
@@ -235,7 +237,7 @@ impl<D: Descriptor<K>, K> Runtime<D, K> {
 
     pub fn descriptor(&self) -> &D { self.wallet.deref() }
 
-    pub fn unload(self) -> () {}
+    pub fn unload(self) {}
 
     pub fn address_network(&self) -> AddressNetwork { self.network.into() }
 

@@ -138,7 +138,7 @@ pub enum DescriptorRgb<S: DeriveSet = XpubDerivable> {
 }
 
 impl<S: DeriveSet> Default for DescriptorRgb<S> {
-    fn default() -> Self { DescriptorRgb::None }
+    fn default() -> Self { Self::None }
 }
 
 impl<S: DeriveSet> Derive<DerivedScript> for DescriptorRgb<S> {
@@ -171,9 +171,9 @@ where Self: Derive<DerivedScript>
 
     fn xpubs(&self) -> Self::XpubIter<'_> { todo!() }
 
-    fn compr_keyset(&self, terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> { todo!() }
+    fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> { todo!() }
 
-    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> { todo!() }
+    fn xonly_keyset(&self, _terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> { todo!() }
 }
 
 impl From<DescriptorStd> for DescriptorRgb {
