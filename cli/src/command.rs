@@ -34,7 +34,7 @@ use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::SealDefinition;
-use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
+use seals::txout::{CloseMethod, ExplicitSeal};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
@@ -129,7 +129,7 @@ pub enum Command {
         value: u64,
 
         /// Seal to get the transfer to.
-        seal: ExplicitSeal<TxPtr>,
+        seal: ExplicitSeal<Txid>,
     },
 
     /// Create new transfer.
@@ -515,7 +515,7 @@ impl Exec for RgbArgs {
             } => {
                 let mut runtime = self.rgb_runtime()?;
                 let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
-                let seal = GraphSeal::from(seal);
+                let seal = GraphSeal::new(seal.method, seal.txid, seal.vout);
                 let invoice = RgbInvoice {
                     transports: vec![RgbTransport::UnspecifiedMeans],
                     contract: Some(*contract_id),
