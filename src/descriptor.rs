@@ -120,7 +120,7 @@ impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, From)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, From)]
 #[derive(Serialize, Deserialize)]
 #[serde(
     crate = "serde_crate",
@@ -131,11 +131,14 @@ impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
     )
 )]
 pub enum DescriptorRgb<S: DeriveSet = XpubDerivable> {
-    #[default]
     None,
 
     #[from]
     TapretKey(TapretKey<S::XOnly>),
+}
+
+impl<S: DeriveSet> Default for DescriptorRgb<S> {
+    fn default() -> Self { Self::None }
 }
 
 impl<S: DeriveSet> Derive<DerivedScript> for DescriptorRgb<S> {
