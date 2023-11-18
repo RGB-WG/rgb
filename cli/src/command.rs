@@ -25,9 +25,9 @@ use std::str::FromStr;
 
 use amplify::confinement::U16;
 use bp_util::{Config, Exec};
-use bpstd::Txid;
-use rgb_rt::{DescriptorRgb, RuntimeError};
-use rgbinvoice::{InvoiceState, RgbInvoice, RgbTransport};
+use bpstd::{Sats, Txid};
+use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError};
+use rgbinvoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
@@ -212,7 +212,7 @@ impl Exec for RgbArgs {
                     .map_err(RuntimeError::from);
             }
             Command::Schemata => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
                 for id in runtime.schema_ids()? {
                     print!("{id} ");
                     for iimpl in runtime.schema(id)?.iimpls.values() {
@@ -223,20 +223,20 @@ impl Exec for RgbArgs {
                 }
             }
             Command::Interfaces => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
                 for (id, name) in runtime.ifaces()? {
                     println!("{} {id}", name);
                 }
             }
             Command::Contracts => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
                 for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
             }
 
             Command::Import { armored, file } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 if *armored {
                     todo!()
                 } else {
@@ -288,7 +288,7 @@ impl Exec for RgbArgs {
                 contract,
                 file,
             } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 let bindle = runtime
                     .export_contract(*contract)
                     .map_err(|err| err.to_string())?;
@@ -302,8 +302,8 @@ impl Exec for RgbArgs {
             }
 
             Command::State { contract_id, iface } => {
-                let mut runtime = self.rgb_runtime()?;
-                let bp_runtime = self.bp_runtime::<DescriptorRgb>(&config)?;
+                let mut runtime = self.rgb_runtime(&config)?;
+                let bp_runtime = self.bp_runtime::<RgbDescr>(&config)?;
                 runtime.attach(bp_runtime.detach());
 
                 let iface = runtime.iface_by_name(&tn!(iface.to_owned()))?.clone();
@@ -343,7 +343,7 @@ impl Exec for RgbArgs {
                 }
             }
             Command::Issue { schema, contract } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
 
                 let file = fs::File::open(contract)?;
 
@@ -579,7 +579,7 @@ impl Exec for RgbArgs {
                 println!("{s}");
             }
             Command::Dump { root_dir } => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
 
                 fs::remove_dir_all(root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
@@ -682,7 +682,7 @@ impl Exec for RgbArgs {
                 eprintln!("{status}");
             }
             Command::Accept { force, file } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 let mut resolver = self.resolver();
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let transfer = bindle

@@ -24,14 +24,19 @@ use std::ops::Range;
 use std::str::FromStr;
 use std::{iter, vec};
 
+use bp::dbc::tapret::TapretCommitment;
+use bp::seals::txout::CloseMethod;
 use bpstd::{
     CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IndexError,
     IndexParseError, KeyOrigin, NormalIndex, TapDerivation, Terminal, XOnlyPk, XpubDerivable,
     XpubSpec,
 };
-use dbc::tapret::TapretCommitment;
-use descriptors::{Descriptor, DescriptorStd, TrKey};
+use descriptors::{Descriptor, StdDescr, TrKey};
 use indexmap::IndexMap;
+
+pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
+    fn seal_close_method(&self) -> CloseMethod;
+}
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
 #[derive(Serialize, Deserialize)]
@@ -120,6 +125,37 @@ impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
     }
 }
 
+impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
+    type KeyIter<'k> = iter::Once<&'k K> where Self: 'k, K: 'k;
+    type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
+    type XpubIter<'x> = iter::Once<&'x XpubSpec> where Self: 'x;
+
+    fn keys(&self) -> Self::KeyIter<'_> { iter::once(&self.internal_key) }
+    fn vars(&self) -> Self::VarIter<'_> { iter::empty() }
+    fn xpubs(&self) -> Self::XpubIter<'_> { iter::once(self.internal_key.xpub_spec()) }
+
+    fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
+        IndexMap::new()
+    }
+
+    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
+        let mut map = IndexMap::with_capacity(1);
+        let key = self.internal_key.derive(terminal.keychain, terminal.index);
+        map.insert(
+            key,
+            TapDerivation::with_internal_pk(
+                self.internal_key.xpub_spec().origin().clone(),
+                terminal,
+            ),
+        );
+        map
+    }
+}
+
+impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
+    fn seal_close_method(&self) -> CloseMethod { CloseMethod::TapretFirst }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug, From)]
 #[derive(Serialize, Deserialize)]
 #[serde(
@@ -130,57 +166,81 @@ impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
         deserialize = "S::XOnly: serde::Deserialize<'de>"
     )
 )]
-pub enum DescriptorRgb<S: DeriveSet = XpubDerivable> {
-    None,
-
+pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
     #[from]
     TapretKey(TapretKey<S::XOnly>),
 }
 
-impl<S: DeriveSet> Default for DescriptorRgb<S> {
-    fn default() -> Self { Self::None }
-}
-
-impl<S: DeriveSet> Derive<DerivedScript> for DescriptorRgb<S> {
+impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
     fn keychains(&self) -> Range<u8> {
         match self {
-            DescriptorRgb::None => Range::default(),
-            DescriptorRgb::TapretKey(d) => d.keychains(),
+            RgbDescr::TapretKey(d) => d.keychains(),
         }
     }
 
     fn derive(&self, change: u8, index: impl Into<NormalIndex>) -> DerivedScript {
         match self {
-            DescriptorRgb::None => todo!(),
-            DescriptorRgb::TapretKey(d) => d.derive(change, index),
+            RgbDescr::TapretKey(d) => d.derive(change, index),
         }
     }
 }
 
-impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K>
-    for DescriptorRgb<K>
+impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K> for RgbDescr<K>
 where Self: Derive<DerivedScript>
 {
     type KeyIter<'k> = vec::IntoIter<&'k K> where Self: 'k, K: 'k;
     type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
     type XpubIter<'x> = vec::IntoIter<&'x XpubSpec> where Self: 'x;
 
-    fn keys(&self) -> Self::KeyIter<'_> { todo!() }
+    fn keys(&self) -> Self::KeyIter<'_> {
+        match self {
+            RgbDescr::TapretKey(d) => d.keys().collect::<Vec<_>>(),
+        }
+        .into_iter()
+    }
 
-    fn vars(&self) -> Self::VarIter<'_> { todo!() }
+    fn vars(&self) -> Self::VarIter<'_> {
+        match self {
+            RgbDescr::TapretKey(d) => d.vars(),
+        }
+    }
 
-    fn xpubs(&self) -> Self::XpubIter<'_> { todo!() }
+    fn xpubs(&self) -> Self::XpubIter<'_> {
+        match self {
+            RgbDescr::TapretKey(d) => d.xpubs().collect::<Vec<_>>(),
+        }
+        .into_iter()
+    }
 
-    fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> { todo!() }
+    fn compr_keyset(&self, terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
+        match self {
+            RgbDescr::TapretKey(d) => d.compr_keyset(terminal),
+        }
+    }
 
-    fn xonly_keyset(&self, _terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> { todo!() }
+    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
+        match self {
+            RgbDescr::TapretKey(d) => d.xonly_keyset(terminal),
+        }
+    }
 }
 
-impl From<DescriptorStd> for DescriptorRgb {
-    fn from(descr: DescriptorStd) -> Self {
+impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> DescriptorRgb<K>
+    for RgbDescr<K>
+where Self: Derive<DerivedScript>
+{
+    fn seal_close_method(&self) -> CloseMethod {
+        match self {
+            RgbDescr::TapretKey(d) => d.seal_close_method(),
+        }
+    }
+}
+
+impl From<StdDescr> for RgbDescr {
+    fn from(descr: StdDescr) -> Self {
         match descr {
-            DescriptorStd::Wpkh(_) => todo!(),
-            DescriptorStd::TrKey(tr) => DescriptorRgb::TapretKey(tr.into()),
+            StdDescr::Wpkh(_) => todo!(),
+            StdDescr::TrKey(tr) => RgbDescr::TapretKey(tr.into()),
             _ => todo!(),
         }
     }
