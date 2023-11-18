@@ -30,7 +30,7 @@ use rgb_rt::{DescriptorRgb, RuntimeError};
 use rgbinvoice::{InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces};
+use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::SealDefinition;
@@ -111,9 +111,6 @@ pub enum Command {
     Issue {
         /// Schema name to use for the contract.
         schema: SchemaId, //String,
-
-        /// Interface name to use for the contract.
-        iface: String,
 
         /// File containing contract genesis description in YAML format.
         contract: PathBuf,
@@ -341,18 +338,34 @@ impl Exec for RgbArgs {
                     // TODO: Print out other types of state
                 }
             }
-            Command::Issue {
-                schema,
-                iface: iface_name,
-                contract,
-            } => {
+            Command::Issue { schema, contract } => {
                 let mut runtime = self.rgb_runtime()?;
+
+                let file = fs::File::open(contract)?;
+
+                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
+
+                let code = code
+                    .as_mapping()
+                    .expect("invalid YAML root-level structure");
+
+                let iface_name = code
+                    .get("interface")
+                    .expect("contract must specify interface under which it is constructed")
+                    .as_str()
+                    .expect("interface name must be a string");
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
                 } = runtime.schema(*schema)?;
                 let iface_name = tn!(iface_name.to_owned());
-                let iface = runtime.iface_by_name(&iface_name)?.clone();
+                let iface = runtime
+                    .iface_by_name(&iface_name)
+                    .or_else(|_| {
+                        let id = IfaceId::from_str(iface_name.as_str())?;
+                        runtime.iface_by_id(id).map_err(RuntimeError::from)
+                    })?
+                    .clone();
                 let iface_id = iface.iface_id();
                 let iface_impl = iimpls.get(&iface_id).ok_or_else(|| {
                     RuntimeError::Custom(format!(
@@ -361,20 +374,12 @@ impl Exec for RgbArgs {
                 })?;
                 let types = &schema.type_system;
 
-                let file = fs::File::open(contract)?;
-
                 let mut builder = ContractBuilder::with(
                     iface.clone(),
                     schema.clone(),
                     iface_impl.clone(),
                     self.general.network.is_testnet(),
                 )?;
-
-                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
-
-                let code = code
-                    .as_mapping()
-                    .expect("invalid YAML root-level structure");
 
                 if let Some(globals) = code.get("globals") {
                     for (name, val) in globals

@@ -65,12 +65,17 @@ pub enum RuntimeError {
     #[from]
     Builder(BuilderError),
 
-    /// wallet with id '{0}' is not known to the system
+    /// wallet with id '{0}' is not known to the system.
     #[display(doc_comments)]
     WalletUnknown(Ident),
 
     #[from]
     InvalidConsignment(validation::Status),
+
+    /// invalid identifier.
+    #[from]
+    #[display(doc_comments)]
+    InvalidId(baid58::Baid58ParseError),
 
     /// the contract source doesn't fit requirements imposed by the used schema.
     ///
