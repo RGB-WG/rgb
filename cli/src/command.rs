@@ -205,7 +205,11 @@ impl Exec for RgbArgs {
     fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
         match &self.command {
             Command::Bp(cmd) => {
-                self.inner.translate(cmd).exec(config, "rgb")?;
+                return self
+                    .inner
+                    .translate(cmd)
+                    .exec(config, "rgb")
+                    .map_err(RuntimeError::from);
             }
             Command::Schemata => {
                 let runtime = self.rgb_runtime()?;
@@ -735,6 +739,8 @@ impl Exec for RgbArgs {
                  */
             }
         }
+
+        println!();
 
         Ok(())
     }
