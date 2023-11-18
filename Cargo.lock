@@ -1473,7 +1473,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.11#f009e51734f8f258d75a51aac4cdc68e13732c9d"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.11#d80b3f516994d005578c010d22362d9a25783d23"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1536,7 +1536,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#8ce111c9c66550d630d31e34be8e4fb2239318d7"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#5025eed9c1f25a80f7759f0a4b07265aa4e666ce"
 dependencies = [
  "amplify",
  "baid58",
