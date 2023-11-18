@@ -507,7 +507,13 @@ impl Exec for RgbArgs {
                 let mut resolver = PanickingResolver;
                 let validated_contract = contract
                     .validate(&mut resolver, self.general.network.is_testnet())
-                    .map_err(|_| RuntimeError::IncompleteContract)?;
+                    .map_err(|consignment| {
+                        RuntimeError::IncompleteContract(
+                            consignment
+                                .into_validation_status()
+                                .expect("just validated"),
+                        )
+                    })?;
                 runtime
                     .import_contract(validated_contract, &mut resolver)
                     .expect("failure importing issued contract");

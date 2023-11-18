@@ -70,11 +70,11 @@ pub enum RuntimeError {
     #[from]
     InvalidConsignment(validation::Status),
 
-    /// the contract source doesn't provide all state information required by
-    /// the schema. This means that some of the global fields or assignments are
-    /// missed.
+    /// the contract source doesn't fit requirements imposed by the used schema.
+    ///
+    /// {0}
     #[display(doc_comments)]
-    IncompleteContract,
+    IncompleteContract(validation::Status),
 
     #[from]
     #[from(bpwallet::LoadError)]
