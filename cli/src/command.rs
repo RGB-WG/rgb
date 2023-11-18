@@ -119,6 +119,10 @@ pub enum Command {
     /// Create new invoice.
     #[display("invoice")]
     Invoice {
+        /// Force address-based invoice.
+        #[clap(short, long)]
+        address_based: bool,
+
         /// Contract identifier.
         contract_id: ContractId,
 
@@ -127,9 +131,6 @@ pub enum Command {
 
         /// Value to transfer.
         value: u64,
-
-        /// Seal to get the transfer to.
-        seal: ExplicitSeal<Txid>,
     },
 
     /// Create new transfer.
@@ -508,27 +509,50 @@ impl Exec for RgbArgs {
                 );
             }
             Command::Invoice {
+                address_based,
                 contract_id,
                 iface,
                 value,
-                seal,
             } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
-                let seal = GraphSeal::new(seal.method, seal.txid, seal.vout);
+
+                let outpoint = runtime
+                    .wallet()
+                    .coinselect(Sats::ZERO, |utxo| [9, 10].contains(&utxo.terminal.keychain))
+                    .next();
+                let beneficiary = match (address_based, outpoint) {
+                    (true, _) | (false, None) => {
+                        let addr = runtime
+                            .wallet()
+                            .addresses(RgbKeychain::Rgb as u8)
+                            .next()
+                            .expect("no addresses left")
+                            .addr;
+                        Beneficiary::WitnessUtxo(addr)
+                    }
+                    (_, Some(outpoint)) => {
+                        let seal = GraphSeal::new(
+                            runtime.wallet().seal_close_method(),
+                            outpoint.txid,
+                            outpoint.vout,
+                        );
+                        runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
+                        Beneficiary::BlindedSeal(seal.to_concealed_seal())
+                    }
+                };
                 let invoice = RgbInvoice {
                     transports: vec![RgbTransport::UnspecifiedMeans],
                     contract: Some(*contract_id),
                     iface: Some(iface),
                     operation: None,
                     assignment: None,
-                    beneficiary: seal.to_concealed_seal().into(),
+                    beneficiary,
                     owned_state: InvoiceState::Amount(*value),
                     network: None,
                     expiry: None,
                     unknown_query: none!(),
                 };
-                runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
                 println!("{invoice}");
             }
             #[allow(unused_variables)]
