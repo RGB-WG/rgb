@@ -168,9 +168,9 @@ where Self: Derive<DerivedScript>
 
     fn xpubs(&self) -> Self::XpubIter<'_> { todo!() }
 
-    fn compr_keyset(&self, terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> { todo!() }
+    fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> { todo!() }
 
-    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> { todo!() }
+    fn xonly_keyset(&self, _terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> { todo!() }
 }
 
 impl From<DescriptorStd> for DescriptorRgb {

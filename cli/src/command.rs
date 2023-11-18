@@ -546,6 +546,7 @@ impl Exec for RgbArgs {
                 runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
                 println!("{invoice}");
             }
+            #[allow(unused_variables)]
             Command::Transfer {
                 method,
                 psbt_file,
@@ -707,6 +708,7 @@ impl Exec for RgbArgs {
                 runtime.accept_transfer(transfer, &mut resolver, *force)?;
                 eprintln!("Transfer accepted into the stash");
             }
+            #[allow(unused_variables)]
             Command::SetHost { method, psbt_file } => {
                 todo!();
                 /*
