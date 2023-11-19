@@ -31,5 +31,5 @@ extern crate serde_crate as serde;
 mod runtime;
 mod descriptor;
 
-pub use descriptor::{DescriptorRgb, RgbKeychain, TapretKey};
+pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapretKey};
 pub use runtime::{Runtime, RuntimeError};

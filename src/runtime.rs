@@ -28,7 +28,6 @@ use std::{fs, io};
 
 use bpstd::{AddressNetwork, Network, XpubDerivable};
 use bpwallet::Wallet;
-use descriptors::Descriptor;
 use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer};
 use rgbstd::interface::{BuilderError, OutpointFilter};
@@ -38,7 +37,7 @@ use rgbstd::validation::{self, ResolveTx};
 use rgbstd::Output;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
-use crate::DescriptorRgb;
+use crate::{DescriptorRgb, RgbDescr};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -65,12 +64,17 @@ pub enum RuntimeError {
     #[from]
     Builder(BuilderError),
 
-    /// wallet with id '{0}' is not known to the system
+    /// wallet with id '{0}' is not known to the system.
     #[display(doc_comments)]
     WalletUnknown(Ident),
 
     #[from]
     InvalidConsignment(validation::Status),
+
+    /// invalid identifier.
+    #[from]
+    #[display(doc_comments)]
+    InvalidId(baid58::Baid58ParseError),
 
     /// the contract source doesn't fit requirements imposed by the used schema.
     ///
@@ -94,26 +98,26 @@ impl From<Infallible> for RuntimeError {
 }
 
 #[derive(Getters)]
-pub struct Runtime<D: Descriptor<K> = DescriptorRgb, K = XpubDerivable> {
+pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
     stock_path: PathBuf,
     stock: Stock,
     #[getter(as_mut)]
-    wallet: Wallet<K, D /* Add stock via layer 2 */>,
+    wallet: Wallet<K, D /* TODO: Add layer 2 */>,
     #[getter(as_copy)]
     network: Network,
 }
 
-impl<D: Descriptor<K>, K> Deref for Runtime<D, K> {
+impl<D: DescriptorRgb<K>, K> Deref for Runtime<D, K> {
     type Target = Stock;
 
     fn deref(&self) -> &Self::Target { &self.stock }
 }
 
-impl<D: Descriptor<K>, K> DerefMut for Runtime<D, K> {
+impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
 }
 
-impl<D: Descriptor<K>, K> OutpointFilter for Runtime<D, K> {
+impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
     fn include_output(&self, output: Output) -> bool {
         self.wallet
             .coins()
@@ -122,23 +126,7 @@ impl<D: Descriptor<K>, K> OutpointFilter for Runtime<D, K> {
 }
 
 #[cfg(feature = "serde")]
-impl<D: Descriptor<K>, K> Runtime<D, K>
-where
-    D: Default,
-    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
-{
-    pub fn load_pure_rgb(data_dir: PathBuf, network: Network) -> Result<Self, RuntimeError> {
-        Self::load_attach(
-            data_dir,
-            network,
-            bpwallet::Runtime::new_standard(D::default(), network /* TODO: add layer 2 */),
-        )
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<D: Descriptor<K>, K> Runtime<D, K>
+impl<D: DescriptorRgb<K>, K> Runtime<D, K>
 where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
@@ -220,7 +208,7 @@ where
     }
 }
 
-impl<D: Descriptor<K>, K> Runtime<D, K> {
+impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
     fn store(&mut self) {
         self.stock
             .store(&self.stock_path)
@@ -306,6 +294,6 @@ impl<D: Descriptor<K>, K> Runtime<D, K> {
     }
 }
 
-impl<D: Descriptor<K>, K> Drop for Runtime<D, K> {
+impl<D: DescriptorRgb<K>, K> Drop for Runtime<D, K> {
     fn drop(&mut self) { self.store() }
 }

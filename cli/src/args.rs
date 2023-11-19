@@ -21,9 +21,9 @@
 
 #![allow(clippy::needless_update)] // Caused by the From derivation macro
 
-use bp_util::DescriptorOpts;
+use bp_util::{Config, DescriptorOpts};
 use bpstd::XpubDerivable;
-use rgb_rt::{DescriptorRgb, Runtime, RuntimeError, TapretKey};
+use rgb_rt::{RgbDescr, Runtime, RuntimeError, TapretKey};
 
 use crate::Command;
 
@@ -35,7 +35,7 @@ pub struct DescrRgbOpts {
 }
 
 impl DescriptorOpts for DescrRgbOpts {
-    type Descr = DescriptorRgb;
+    type Descr = RgbDescr;
 
     fn is_some(&self) -> bool { self.tapret_key_only.is_some() }
 
@@ -63,11 +63,13 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
-    pub fn rgb_runtime(&self) -> Result<Runtime, RuntimeError> {
+    pub fn rgb_runtime(&self, config: &Config) -> Result<Runtime, RuntimeError> {
+        let bprt = self.inner.bp_runtime::<RgbDescr>(config)?;
         eprint!("Loading stock ... ");
-        let runtime = Runtime::<DescriptorRgb>::load_pure_rgb(
+        let runtime = Runtime::<RgbDescr>::load_attach(
             self.general.data_dir.clone(),
             self.general.network,
+            bprt,
         )?;
         eprintln!("success");
 

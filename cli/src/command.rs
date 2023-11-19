@@ -25,16 +25,16 @@ use std::str::FromStr;
 
 use amplify::confinement::U16;
 use bp_util::{Config, Exec};
-use bpstd::Txid;
-use rgb_rt::{DescriptorRgb, RuntimeError};
-use rgbinvoice::{InvoiceState, RgbInvoice, RgbTransport};
+use bpstd::{Sats, Txid};
+use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError};
+use rgbinvoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, FilterExclude, SchemaIfaces};
+use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::SealDefinition;
-use seals::txout::{CloseMethod, ExplicitSeal, TxPtr};
+use seals::txout::{CloseMethod, ExplicitSeal};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
@@ -112,9 +112,6 @@ pub enum Command {
         /// Schema name to use for the contract.
         schema: SchemaId, //String,
 
-        /// Interface name to use for the contract.
-        iface: String,
-
         /// File containing contract genesis description in YAML format.
         contract: PathBuf,
     },
@@ -122,6 +119,10 @@ pub enum Command {
     /// Create new invoice.
     #[display("invoice")]
     Invoice {
+        /// Force address-based invoice.
+        #[clap(short, long)]
+        address_based: bool,
+
         /// Contract identifier.
         contract_id: ContractId,
 
@@ -130,9 +131,6 @@ pub enum Command {
 
         /// Value to transfer.
         value: u64,
-
-        /// Seal to get the transfer to.
-        seal: ExplicitSeal<TxPtr>,
     },
 
     /// Create new transfer.
@@ -208,10 +206,14 @@ impl Exec for RgbArgs {
     fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
         match &self.command {
             Command::Bp(cmd) => {
-                self.inner.translate(cmd).exec(config, "rgb")?;
+                return self
+                    .inner
+                    .translate(cmd)
+                    .exec(config, "rgb")
+                    .map_err(RuntimeError::from);
             }
             Command::Schemata => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
                 for id in runtime.schema_ids()? {
                     print!("{id} ");
                     for iimpl in runtime.schema(id)?.iimpls.values() {
@@ -222,20 +224,20 @@ impl Exec for RgbArgs {
                 }
             }
             Command::Interfaces => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
                 for (id, name) in runtime.ifaces()? {
                     println!("{} {id}", name);
                 }
             }
             Command::Contracts => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
                 for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
             }
 
             Command::Import { armored, file } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 if *armored {
                     todo!()
                 } else {
@@ -287,7 +289,7 @@ impl Exec for RgbArgs {
                 contract,
                 file,
             } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 let bindle = runtime
                     .export_contract(*contract)
                     .map_err(|err| err.to_string())?;
@@ -301,8 +303,8 @@ impl Exec for RgbArgs {
             }
 
             Command::State { contract_id, iface } => {
-                let mut runtime = self.rgb_runtime()?;
-                let bp_runtime = self.bp_runtime::<DescriptorRgb>(&config)?;
+                let mut runtime = self.rgb_runtime(&config)?;
+                let bp_runtime = self.bp_runtime::<RgbDescr>(&config)?;
                 runtime.attach(bp_runtime.detach());
 
                 let iface = runtime.iface_by_name(&tn!(iface.to_owned()))?.clone();
@@ -341,18 +343,34 @@ impl Exec for RgbArgs {
                     // TODO: Print out other types of state
                 }
             }
-            Command::Issue {
-                schema,
-                iface: iface_name,
-                contract,
-            } => {
-                let mut runtime = self.rgb_runtime()?;
+            Command::Issue { schema, contract } => {
+                let mut runtime = self.rgb_runtime(&config)?;
+
+                let file = fs::File::open(contract)?;
+
+                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
+
+                let code = code
+                    .as_mapping()
+                    .expect("invalid YAML root-level structure");
+
+                let iface_name = code
+                    .get("interface")
+                    .expect("contract must specify interface under which it is constructed")
+                    .as_str()
+                    .expect("interface name must be a string");
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
                 } = runtime.schema(*schema)?;
                 let iface_name = tn!(iface_name.to_owned());
-                let iface = runtime.iface_by_name(&iface_name)?.clone();
+                let iface = runtime
+                    .iface_by_name(&iface_name)
+                    .or_else(|_| {
+                        let id = IfaceId::from_str(iface_name.as_str())?;
+                        runtime.iface_by_id(id).map_err(RuntimeError::from)
+                    })?
+                    .clone();
                 let iface_id = iface.iface_id();
                 let iface_impl = iimpls.get(&iface_id).ok_or_else(|| {
                     RuntimeError::Custom(format!(
@@ -361,20 +379,12 @@ impl Exec for RgbArgs {
                 })?;
                 let types = &schema.type_system;
 
-                let file = fs::File::open(contract)?;
-
                 let mut builder = ContractBuilder::with(
                     iface.clone(),
                     schema.clone(),
                     iface_impl.clone(),
                     self.general.network.is_testnet(),
                 )?;
-
-                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
-
-                let code = code
-                    .as_mapping()
-                    .expect("invalid YAML root-level structure");
 
                 if let Some(globals) = code.get("globals") {
                     for (name, val) in globals
@@ -499,27 +509,52 @@ impl Exec for RgbArgs {
                 );
             }
             Command::Invoice {
+                address_based,
                 contract_id,
                 iface,
                 value,
-                seal,
             } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
-                let seal = GraphSeal::from(seal);
+
+                let outpoint = runtime
+                    .wallet()
+                    .coinselect(Sats::ZERO, |utxo| {
+                        RgbKeychain::contains_rgb(utxo.terminal.keychain)
+                    })
+                    .next();
+                let beneficiary = match (address_based, outpoint) {
+                    (true, _) | (false, None) => {
+                        let addr = runtime
+                            .wallet()
+                            .addresses(RgbKeychain::Rgb)
+                            .next()
+                            .expect("no addresses left")
+                            .addr;
+                        Beneficiary::WitnessUtxo(addr)
+                    }
+                    (_, Some(outpoint)) => {
+                        let seal = GraphSeal::new(
+                            runtime.wallet().seal_close_method(),
+                            outpoint.txid,
+                            outpoint.vout,
+                        );
+                        runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
+                        Beneficiary::BlindedSeal(seal.to_concealed_seal())
+                    }
+                };
                 let invoice = RgbInvoice {
                     transports: vec![RgbTransport::UnspecifiedMeans],
                     contract: Some(*contract_id),
                     iface: Some(iface),
                     operation: None,
                     assignment: None,
-                    beneficiary: seal.to_concealed_seal().into(),
+                    beneficiary,
                     owned_state: InvoiceState::Amount(*value),
                     network: None,
                     expiry: None,
                     unknown_query: none!(),
                 };
-                runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
                 println!("{invoice}");
             }
             #[allow(unused_variables)]
@@ -570,7 +605,7 @@ impl Exec for RgbArgs {
                 println!("{s}");
             }
             Command::Dump { root_dir } => {
-                let runtime = self.rgb_runtime()?;
+                let runtime = self.rgb_runtime(&config)?;
 
                 fs::remove_dir_all(root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
@@ -673,7 +708,7 @@ impl Exec for RgbArgs {
                 eprintln!("{status}");
             }
             Command::Accept { force, file } => {
-                let mut runtime = self.rgb_runtime()?;
+                let mut runtime = self.rgb_runtime(&config)?;
                 let mut resolver = self.resolver();
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let transfer = bindle
@@ -730,6 +765,8 @@ impl Exec for RgbArgs {
                  */
             }
         }
+
+        println!();
 
         Ok(())
     }

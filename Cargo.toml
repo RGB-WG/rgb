@@ -28,7 +28,7 @@ amplify = "4.5.0"
 baid58 = "0.4.4"
 strict_encoding = "2.6.1"
 strict_types = "1.6.3"
-bp-dbc = "0.11.0-beta.1"
+bp-core = "0.11.0-beta.1"
 bp-seals = "0.11.0-beta.1"
 bp-std = "0.11.0-beta.1"
 bp-wallet = "0.11.0-beta.1"
@@ -59,8 +59,9 @@ name = "rgb_rt"
 
 [dependencies]
 amplify = { workspace = true }
+baid58 = { workspace = true }
 strict_types = { workspace = true }
-bp-dbc = { workspace = true }
+bp-core = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
@@ -85,3 +86,9 @@ features = [ "all" ]
 aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "v0.11" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
+
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
+bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
