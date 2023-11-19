@@ -19,17 +19,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::BTreeMap;
-use std::ops::Range;
+use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use std::{iter, vec};
 
+use amplify::Wrapper;
 use bp::dbc::tapret::TapretCommitment;
 use bp::seals::txout::CloseMethod;
 use bpstd::{
-    CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IndexError,
-    IndexParseError, KeyOrigin, NormalIndex, TapDerivation, Terminal, XOnlyPk, XpubDerivable,
-    XpubSpec,
+    CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase,
+    IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, Terminal,
+    XOnlyPk, XpubDerivable, XpubSpec,
 };
 use descriptors::{Descriptor, StdDescr, TrKey};
 use indexmap::IndexMap;
@@ -57,6 +57,12 @@ pub enum RgbKeychain {
 }
 
 impl RgbKeychain {
+    pub const RGB_ALL: [RgbKeychain; 2] = [RgbKeychain::Rgb, RgbKeychain::Tapret];
+
+    pub fn contains_rgb(keychain: impl Into<Keychain>) -> bool {
+        let k = keychain.into().into_inner();
+        k == Self::Rgb as u8 || k == Self::Tapret as u8
+    }
     pub fn is_seal(self) -> bool { self == Self::Rgb || self == Self::Tapret }
 }
 
@@ -78,6 +84,10 @@ impl FromStr for RgbKeychain {
     }
 }
 
+impl From<RgbKeychain> for Keychain {
+    fn from(keychain: RgbKeychain) -> Self { Keychain::from(keychain as u8) }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "serde_crate", rename_all = "camelCase")]
@@ -96,11 +106,19 @@ impl<K: DeriveXOnly> TapretKey<K> {
 }
 
 impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
-    fn keychains(&self) -> Range<u8> {
-        0..2 /* FIXME */
+    #[inline]
+    fn default_keychain(&self) -> Keychain { RgbKeychain::Rgb.into() }
+
+    fn keychains(&self) -> BTreeSet<Keychain> {
+        bset![
+            RgbKeychain::External.into(),
+            RgbKeychain::Internal.into(),
+            RgbKeychain::Rgb.into(),
+            RgbKeychain::Tapret.into(),
+        ]
     }
 
-    fn derive(&self, change: u8, index: impl Into<NormalIndex>) -> DerivedScript {
+    fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
         // TODO: Apply tweaks
         let internal_key = self.internal_key.derive(change, index);
         DerivedScript::TaprootKeyOnly(internal_key.into())
@@ -172,13 +190,19 @@ pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
 }
 
 impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
-    fn keychains(&self) -> Range<u8> {
+    fn default_keychain(&self) -> Keychain {
+        match self {
+            RgbDescr::TapretKey(d) => d.default_keychain(),
+        }
+    }
+
+    fn keychains(&self) -> BTreeSet<Keychain> {
         match self {
             RgbDescr::TapretKey(d) => d.keychains(),
         }
     }
 
-    fn derive(&self, change: u8, index: impl Into<NormalIndex>) -> DerivedScript {
+    fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
         match self {
             RgbDescr::TapretKey(d) => d.derive(change, index),
         }

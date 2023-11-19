@@ -388,7 +388,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#a799eede0c161ab51ba71521bcdee289886d925c"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#72a734ed66b5ef4cb36d99b2b08bca457151a37e"
 dependencies = [
  "amplify",
  "bech32",
@@ -403,7 +403,7 @@ dependencies = [
 [[package]]
 name = "bp-util"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e28f3ebcaebceace8be151820d0f52e589ea8539"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e7996268b37fff67363c021f775a4bcb9421de52"
 dependencies = [
  "amplify",
  "base64",
@@ -425,7 +425,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e28f3ebcaebceace8be151820d0f52e589ea8539"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e7996268b37fff67363c021f775a4bcb9421de52"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -664,7 +664,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#a799eede0c161ab51ba71521bcdee289886d925c"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#72a734ed66b5ef4cb36d99b2b08bca457151a37e"
 dependencies = [
  "amplify",
  "bp-std",
@@ -1327,7 +1327,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#a799eede0c161ab51ba71521bcdee289886d925c"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#72a734ed66b5ef4cb36d99b2b08bca457151a37e"
 dependencies = [
  "amplify",
  "base64",

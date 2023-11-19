@@ -102,7 +102,7 @@ pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
     stock_path: PathBuf,
     stock: Stock,
     #[getter(as_mut)]
-    wallet: Wallet<K, D /* Add stock via layer 2 */>,
+    wallet: Wallet<K, D /* TODO: Add layer 2 */>,
     #[getter(as_copy)]
     network: Network,
 }

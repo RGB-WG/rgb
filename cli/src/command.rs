@@ -519,13 +519,15 @@ impl Exec for RgbArgs {
 
                 let outpoint = runtime
                     .wallet()
-                    .coinselect(Sats::ZERO, |utxo| [9, 10].contains(&utxo.terminal.keychain))
+                    .coinselect(Sats::ZERO, |utxo| {
+                        RgbKeychain::contains_rgb(utxo.terminal.keychain)
+                    })
                     .next();
                 let beneficiary = match (address_based, outpoint) {
                     (true, _) | (false, None) => {
                         let addr = runtime
                             .wallet()
-                            .addresses(RgbKeychain::Rgb as u8)
+                            .addresses(RgbKeychain::Rgb)
                             .next()
                             .expect("no addresses left")
                             .addr;
