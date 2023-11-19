@@ -26,6 +26,8 @@ use std::str::FromStr;
 use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::{Sats, Txid};
+use bpwallet::{Invoice, TxParams};
+use psbt::Psbt;
 use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError};
 use rgbinvoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
@@ -63,138 +65,143 @@ pub enum Command {
     #[display(inner)]
     Bp(bp_util::Command),
 
-    /// Prints out list of known RGB schemata.
+    /// Prints out list of known RGB schemata
     Schemata,
-    /// Prints out list of known RGB interfaces.
+    /// Prints out list of known RGB interfaces
     Interfaces,
-    /// Prints out list of known RGB contracts.
+    /// Prints out list of known RGB contracts
     Contracts,
 
-    /// Imports RGB data into the stash: contracts, schema, interfaces, etc.
+    /// Imports RGB data into the stash: contracts, schema, interfaces, etc
     #[display("import")]
     Import {
-        /// Use BASE64 ASCII armoring for binary data.
+        /// Use BASE64 ASCII armoring for binary data
         #[arg(short)]
         armored: bool,
 
-        /// File with RGB data. If not provided, assumes `-a` and prints out
-        /// data to STDOUT.
+        /// File with RGB data
+        ///
+        /// If not provided, assumes `-a` and prints out data to STDOUT
         file: PathBuf,
     },
 
-    /// Exports existing RGB contract.
+    /// Exports existing RGB contract
     #[display("export")]
     Export {
-        /// Use BASE64 ASCII armoring for binary data.
+        /// Use BASE64 ASCII armoring for binary data
         #[arg(short)]
         armored: bool,
 
-        /// Contract to export.
+        /// Contract to export
         contract: ContractId,
 
-        /// File with RGB data. If not provided, assumes `-a` and reads the data
-        /// from STDIN.
+        /// File with RGB data
+        ///
+        /// If not provided, assumes `-a` and reads the data from STDIN
         file: Option<PathBuf>,
     },
 
-    /// Reports information about state of a contract.
+    /// Reports information about state of a contract
     #[display("state")]
     State {
-        /// Contract identifier.
+        /// Contract identifier
         contract_id: ContractId,
-        /// Interface to interpret the state data.
+        /// Interface to interpret the state data
         iface: String,
     },
 
-    /// Issues new contract.
+    /// Issues new contract
     #[display("issue")]
     Issue {
-        /// Schema name to use for the contract.
+        /// Schema name to use for the contract
         schema: SchemaId, //String,
 
-        /// File containing contract genesis description in YAML format.
+        /// File containing contract genesis description in YAML format
         contract: PathBuf,
     },
 
-    /// Create new invoice.
+    /// Create new invoice
     #[display("invoice")]
     Invoice {
-        /// Force address-based invoice.
+        /// Force address-based invoice
         #[clap(short, long)]
         address_based: bool,
 
-        /// Contract identifier.
+        /// Contract identifier
         contract_id: ContractId,
 
-        /// Interface to interpret the state data.
+        /// Interface to interpret the state data
         iface: String,
 
-        /// Value to transfer.
+        /// Value to transfer
         value: u64,
     },
 
-    /// Create new transfer.
+    /// Transfer RGB assets
     #[display("transfer")]
     Transfer {
+        /// Method for single-use-seals
         #[clap(long, default_value = "tapret1st")]
-        /// Method for single-use-seals.
         method: CloseMethod,
 
-        /// PSBT file.
-        psbt_file: PathBuf,
-
-        /// Invoice data.
+        /// Invoice data
         invoice: RgbInvoice,
 
-        /// Filename to save transfer consignment.
-        out_file: PathBuf,
+        /// Fee
+        fee: Sats,
+
+        /// File for generated PSBT
+        psbt: PathBuf,
+
+        /// File for generated transfer consignment
+        consignment: PathBuf,
     },
 
-    /// Inspects any RGB data file.
+    /// Inspects any RGB data file
     #[display("inspect")]
     Inspect {
-        #[clap(short, long, default_value = "yaml")]
         /// Format used for data inspection
+        #[clap(short, long, default_value = "yaml")]
         format: InspectFormat,
 
-        /// RGB file to inspect.
+        /// RGB file to inspect
         file: PathBuf,
     },
 
-    /// Debug-dump all stash and inventory data.
+    /// Debug-dump all stash and inventory data
     #[display("dump")]
     Dump {
-        /// Directory to put the dump into.
+        /// Directory to put the dump into
         #[arg(default_value = "./rgb-dump")]
         root_dir: String,
     },
 
-    /// Validate transfer consignment.
+    /// Validate transfer consignment
     #[display("validate")]
     Validate {
-        /// File with the transfer consignment.
+        /// File with the transfer consignment
         file: PathBuf,
     },
 
-    /// Validate transfer consignment & accept to the stash.
+    /// Validate transfer consignment & accept to the stash
     #[display("accept")]
     Accept {
-        /// Force accepting consignments with non-mined terminal witness.
+        /// Force accepting consignments with non-mined terminal witness
         #[arg(short, long)]
         force: bool,
 
-        /// File with the transfer consignment.
+        /// File with the transfer consignment
         file: PathBuf,
     },
 
     /// Set first opret/tapret output to host a commitment
     #[display("set-host")]
     SetHost {
+        /// Method for single-use-seals
         #[arg(long, default_value = "tapret1st")]
-        /// Method for single-use-seals.
         method: CloseMethod,
 
-        /// PSBT file.
+        /// PSBT file
         psbt_file: PathBuf,
     },
 }
@@ -560,29 +567,26 @@ impl Exec for RgbArgs {
             #[allow(unused_variables)]
             Command::Transfer {
                 method,
-                psbt_file,
                 invoice,
-                out_file,
+                fee,
+                psbt: psbt_filename,
+                consignment: out_file,
             } => {
-                todo!()
-                /*
-                // TODO: Check PSBT format
-                let psbt_data = fs::read(&psbt_file)?;
-                let mut psbt = Psbt::deserialize(&psbt_data)?;
+                let mut runtime = self.rgb_runtime(&config)?;
+
+                eprint!("Constructing PSBT ... ");
+                let mut psbt =
+                    runtime
+                        .wallet_mut()
+                        .construct_psbt(coins, Invoice, TxParams::with(*fee))?;
+                eprintln!("success");
+
+                eprint!("Constructing transfer consignment ... ");
                 let transfer = runtime
                     .pay(invoice, &mut psbt, method)
                     .map_err(|err| err.to_string())?;
-                fs::write(&psbt_file, psbt.serialize())?;
-                // TODO: Print PSBT as Base64
                 transfer.save(&out_file)?;
-                eprintln!("Transfer is created and saved into '{}'.", out_file.display());
-                eprintln!(
-                    "PSBT file '{}' is updated with all required commitments and ready to be \
-                     signed.",
-                    psbt_file.display()
-                );
-                eprintln!("Stash data are updated.");
-                 */
+                eprintln!("success");
             }
             Command::Inspect { file, format } => {
                 let bindle = UniversalBindle::load_file(file)?;

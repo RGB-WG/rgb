@@ -1,4 +1,4 @@
-// RGB smart contract wallet runtime
+// RGB wallet library for smart contracts on Bitcoin & Lightning network
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -223,37 +223,9 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
 
     pub fn attach(&mut self, wallet: Wallet<K, D>) { self.wallet = wallet }
 
-    pub fn descriptor(&self) -> &D { self.wallet.deref() }
-
     pub fn unload(self) {}
 
     pub fn address_network(&self) -> AddressNetwork { self.network.into() }
-
-    /*
-    pub fn create_wallet(
-        &mut self,
-        name: &Ident,
-        xpub: ExtendedPubKey,
-    ) -> Result<&RgbDescr, RuntimeError> {
-        let descr = RgbDescr::Tapret(Tapret {
-            xpub,
-            taprets: empty!(),
-        });
-        let entry = match self.wallets.entry(name.clone()) {
-            Entry::Occupied(_) => return Err(format!("wallet named {name} already exists").into()),
-            Entry::Vacant(entry) => entry.insert(descr),
-        };
-        Ok(entry)
-    }
-
-    pub fn wallet(&mut self, name: &Ident) -> Result<RgbWallet, RuntimeError> {
-        let descr = self
-            .wallets
-            .get(name)
-            .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
-        Ok(RgbWallet::new(descr.clone()))
-    }
-    */
 
     pub fn import_contract<R: ResolveHeight>(
         &mut self,

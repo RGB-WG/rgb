@@ -1,4 +1,4 @@
-// RGB smart contract wallet runtime
+// RGB wallet library for smart contracts on Bitcoin & Lightning network
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -30,6 +30,7 @@ extern crate serde_crate as serde;
 
 mod runtime;
 mod descriptor;
+mod pay;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapretKey};
 pub use runtime::{Runtime, RuntimeError};

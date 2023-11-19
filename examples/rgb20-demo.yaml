@@ -3,10 +3,10 @@ interface: RGB20
 globals:
   spec:
     naming:
-      ticker: TST
-      name: Test asset by RGB command-line
+      ticker: DBG
+      name: Debug asset
       details: ~
-    precision: 8
+    precision: 2
   data:
     terms: >
       SUBJECT TO, AND WITHOUT IN ANY WAY LIMITING, THE REPRESENTATIONS AND WARRANTIES OF ANY SELLER 
@@ -23,10 +23,10 @@ globals:
       HEREIN. PURCHASER ACKNOWLEDGES THAT THE PURCHASE PRICE REFLECTS AND TAKES INTO ACCOUNT THAT THE
       PROPERTY IS BEING SOLD “AS IS”.
     media: ~
-  issuedSupply: 100000000000000
+  issuedSupply: 100000000
   created: 1687969158
 
 assignments:
   assetOwner:
-    seal: tapret1st:ca43e9a01782343c78fa67cc20d75d81545a8d38a031d361180c36c088639fed:0
-    amount: 100000000000000
+    seal: tapret1st:4729190e129e4eb0b95b1e2b6050ade623e9b82a740f2d61c22488e0b3cc145a:1
+    amount: 100000000

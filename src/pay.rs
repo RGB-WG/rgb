@@ -24,20 +24,17 @@ use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::iter;
 
-use amplify::RawArray;
-use bitcoin::hashes::Hash;
-use bitcoin::psbt::Psbt;
 use bp::seals::txout::CloseMethod;
 use bp::{Outpoint, Txid};
 use chrono::Utc;
-use rgb::{AssignmentType, ContractId, GraphSeal, Operation, Opout};
+use psbt::Psbt;
+use rgbinvoice::{Beneficiary, RgbInvoice};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
 use rgbstd::interface::{BuilderError, ContractSuppl, TypedState, VelocityHint};
 use rgbstd::persistence::{ConsignerError, Inventory, InventoryError, Stash};
+use rgbstd::{AssignmentType, ContractId, GraphSeal, Operation, Opout};
 
-use crate::invoice::Beneficiary;
-use crate::psbt::{DbcPsbtError, PsbtDbc, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError};
-use crate::{RgbInvoice, RGB_NATIVE_DERIVATION_INDEX, RGB_TAPRET_DERIVATION_INDEX};
+use crate::Runtime;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -86,13 +83,13 @@ where E1: From<E2>
     DbcPsbt(DbcPsbtError),
 }
 
-pub trait InventoryWallet: Inventory {
+impl Runtime {
     /// # Assumptions
     ///
     /// 1. If PSBT output has BIP32 derivation information it belongs to our
     /// wallet - except when it matches address from the invoice.
     #[allow(clippy::result_large_err, clippy::type_complexity)]
-    fn pay(
+    fn transfer(
         &mut self,
         invoice: RgbInvoice,
         psbt: &mut Psbt,
@@ -284,21 +281,19 @@ pub trait InventoryWallet: Inventory {
         // TODO: Ensure that with PSBTv2 we remove flag allowing PSBT modification.
 
         // 4. Prepare transfer
-        let witness_txid = psbt.unsigned_tx.txid();
+        let witness_txid = psbt.txid();
         self.consume_anchor(anchor)?;
         for (id, bundle) in bundles {
             self.consume_bundle(id, bundle, witness_txid.to_byte_array().into())?;
         }
         let beneficiary = match beneficiary {
-            BuilderSeal::Revealed(seal) => BuilderSeal::Revealed(
-                seal.resolve(Txid::from_raw_array(witness_txid.to_byte_array())),
-            ),
+            BuilderSeal::Revealed(seal) => {
+                BuilderSeal::Revealed(seal.resolve(witness_txid.to_byte_array()))
+            }
             BuilderSeal::Concealed(seal) => BuilderSeal::Concealed(seal),
         };
-        let transfer = self.transfer(contract_id, [beneficiary])?;
+        let transfer = self.stock().transfer(contract_id, [beneficiary])?;
 
         Ok(transfer)
     }
 }
-
-impl<I> InventoryWallet for I where I: Inventory {}

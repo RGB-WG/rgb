@@ -1,4 +1,4 @@
-// RGB standard library for working with smart contracts on Bitcoin & Lightning
+// RGB wallet library for smart contracts on Bitcoin & Lightning network
 //
 // SPDX-License-Identifier: Apache-2.0
 //
