@@ -28,8 +28,9 @@ dependencies = [
 
 [[package]]
 name = "aluvm"
-version = "0.11.0-alpha.1"
-source = "git+https://github.com/AluVM/rust-aluvm?branch=v0.11#7c43abba6b734d31e5bdf8ac786e2e3702541f94"
+version = "0.11.0-beta.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "134a93e142c6aabca39c69c501c7d34ec99b04a5cb25738e1c0d1382f14b02a1"
 dependencies = [
  "amplify",
  "baid58",
@@ -387,8 +388,9 @@ dependencies = [
 
 [[package]]
 name = "bp-std"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#72a734ed66b5ef4cb36d99b2b08bca457151a37e"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6674cfa814dee185eb49d791065448ae8a8dcf0ad20f23cdec49ba7341bce9ab"
 dependencies = [
  "amplify",
  "bech32",
@@ -402,8 +404,9 @@ dependencies = [
 
 [[package]]
 name = "bp-util"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e7996268b37fff67363c021f775a4bcb9421de52"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abdb986e5bf767576c8533563d7d4daa0667e3dc4acc12ddd7354ada5473b436"
 dependencies = [
  "amplify",
  "base64",
@@ -424,8 +427,9 @@ dependencies = [
 
 [[package]]
 name = "bp-wallet"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e7996268b37fff67363c021f775a4bcb9421de52"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9dbf251e691b0d45420e86116deafc4fefc7833c571c32e7fd318e2f4ea3f16"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -663,8 +667,9 @@ dependencies = [
 
 [[package]]
 name = "descriptors"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#72a734ed66b5ef4cb36d99b2b08bca457151a37e"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b5433142e6b89ff9603f654e6725b9e97a1ce5f3783bb11dbedc93b3839296"
 dependencies = [
  "amplify",
  "bp-std",
@@ -1326,8 +1331,9 @@ dependencies = [
 
 [[package]]
 name = "psbt"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#72a734ed66b5ef4cb36d99b2b08bca457151a37e"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa2b08f79bc8546b6ad7d2b7e0da71ce84e7e690b33703fa4e5e3b1806012868"
 dependencies = [
  "amplify",
  "base64",
@@ -1467,8 +1473,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-core"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.11#d80b3f516994d005578c010d22362d9a25783d23"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8572f1484191ad41598bc3c9b2a5aa3ed0a323ce1a56fc3916c8c4f7fa81d8eb"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1487,7 +1494,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-invoice"
-version = "0.11.0-alpha.1"
+version = "0.11.0-alpha.2"
 dependencies = [
  "amplify",
  "baid58",
@@ -1511,7 +1518,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-runtime"
-version = "0.11.0-alpha.1"
+version = "0.11.0-alpha.2"
 dependencies = [
  "amplify",
  "baid58",
@@ -1531,8 +1538,9 @@ dependencies = [
 
 [[package]]
 name = "rgb-std"
-version = "0.11.0-beta.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#4dd76629a0fa23d067cc742eb67d84b9fc2d505b"
+version = "0.11.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e322467d948a5695007dfb2e25b6a33bd05cb28339a61b4cca6ba6b55d6513d2"
 dependencies = [
  "amplify",
  "baid58",
@@ -1551,7 +1559,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-wallet"
-version = "0.11.0-alpha.1"
+version = "0.11.0-alpha.2"
 dependencies = [
  "amplify",
  "baid58",
@@ -1606,9 +1614,9 @@ checksum = "d626bb9dae77e28219937af045c257c28bfd3f69333c512553507f5f9798cb76"
 
 [[package]]
 name = "rustix"
-version = "0.38.24"
+version = "0.38.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ad981d6c340a49cdc40a1028d9c6084ec7e9fa33fcb839cab656a267071e234"
+checksum = "dc99bc2d4f1fed22595588a013687477aedf3cdcfb26558c559edb67b4d9b22e"
 dependencies = [
  "bitflags 2.4.1",
  "errno",

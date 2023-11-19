@@ -13,7 +13,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-alpha.1"
+version = "0.11.0-alpha.2"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -30,11 +30,11 @@ strict_encoding = "2.6.1"
 strict_types = "1.6.3"
 bp-core = "0.11.0-beta.1"
 bp-seals = "0.11.0-beta.1"
-bp-std = "0.11.0-beta.1"
-bp-wallet = "0.11.0-beta.1"
-bp-utils = "0.11.0-beta.1"
+bp-std = "0.11.0-beta.2"
+bp-wallet = "0.11.0-beta.2"
+bp-utils = "0.11.0-beta.2"
 bp-esplora = "0.11.0-beta.1"
-rgb-std = { version = "0.11.0-beta.1", features = ["fs"] }
+rgb-std = { version = "0.11.0-beta.2", features = ["fs"] }
 indexmap = "2.0.2"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
@@ -65,7 +65,7 @@ bp-core = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
-descriptors = "0.11.0-beta.1"
+descriptors = "0.11.0-beta.2"
 rgb-std = { workspace = true }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "fs" }
 indexmap = { workspace = true }
@@ -81,14 +81,3 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
-
-[patch.crates-io]
-aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "v0.11" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
-
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
-bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
