@@ -21,6 +21,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
+use std::convert::Infallible;
 use std::error::Error;
 use std::iter;
 
@@ -32,24 +33,16 @@ use rgbinvoice::{Beneficiary, RgbInvoice};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
 use rgbstd::interface::{BuilderError, ContractSuppl, TypedState, VelocityHint};
 use rgbstd::persistence::{ConsignerError, Inventory, InventoryError, Stash};
-use rgbstd::{AssignmentType, ContractId, GraphSeal, Operation, Opout};
+use rgbstd::{
+    AssignmentType, ContractId, GraphSeal, Operation, Opout, SealDefinition,
+    RGB_NATIVE_DERIVATION_INDEX, RGB_TAPRET_DERIVATION_INDEX,
+};
 
 use crate::Runtime;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
-pub enum PayError<E1: Error, E2: Error>
-where E1: From<E2>
-{
-    /// not enough PSBT output found to put all required state (can't add
-    /// assignment type {1} for {0}-velocity state).
-    #[display(doc_comments)]
-    NoBlankOrChange(VelocityHint, AssignmentType),
-
-    /// PSBT lacks beneficiary output matching the invoice.
-    #[display(doc_comments)]
-    NoBeneficiaryOutput,
-
+pub enum PayError {
     /// unspecified contract
     #[display(doc_comments)]
     NoContract,
@@ -68,36 +61,23 @@ where E1: From<E2>
     InvoiceExpired,
 
     #[from]
-    Inventory(InventoryError<E1>),
+    Inventory(InventoryError<Infallible>),
 
     #[from]
     Builder(BuilderError),
 
     #[from]
-    Consigner(ConsignerError<E1, E2>),
+    Consigner(ConsignerError<Infallible, Infallible>),
+}
 
-    #[from]
-    RgbPsbt(RgbPsbtError),
-
-    #[from]
-    DbcPsbt(DbcPsbtError),
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub struct Payment {
+    pub unsigned_psbt: Psbt,
+    pub transfer: Bindle<Transfer>,
 }
 
 impl Runtime {
-    /// # Assumptions
-    ///
-    /// 1. If PSBT output has BIP32 derivation information it belongs to our
-    /// wallet - except when it matches address from the invoice.
-    #[allow(clippy::result_large_err, clippy::type_complexity)]
-    fn transfer(
-        &mut self,
-        invoice: RgbInvoice,
-        psbt: &mut Psbt,
-        method: CloseMethod,
-    ) -> Result<Bindle<Transfer>, PayError<Self::Error, <Self::Stash as Stash>::Error>>
-    where
-        Self::Error: From<<Self::Stash as Stash>::Error>,
-    {
+    pub fn pay(&mut self, invoice: RgbInvoice, method: CloseMethod) -> Result<Payment, PayError> {
         // 1. Prepare the data
         if let Some(expiry) = invoice.expiry {
             if expiry < Utc::now().timestamp() {
@@ -109,6 +89,8 @@ impl Runtime {
         let mut main_builder =
             self.transition_builder(contract_id, iface.clone(), invoice.operation)?;
 
+        // 2. Construct PSBT
+
         let (beneficiary_output, beneficiary) = match invoice.beneficiary {
             Beneficiary::BlindedSeal(seal) => {
                 let seal = BuilderSeal::Concealed(seal);
@@ -116,45 +98,37 @@ impl Runtime {
             }
             Beneficiary::WitnessUtxo(addr) => {
                 let vout = psbt
-                    .unsigned_tx
-                    .output
-                    .iter()
-                    .enumerate()
-                    .find(|(_, txout)| txout.script_pubkey == addr.script_pubkey())
-                    .map(|(no, _)| no as u32)
+                    .outputs()
+                    .position(|out| out.script == addr.script_pubkey())
                     .ok_or(PayError::NoBeneficiaryOutput)?;
-                let seal = BuilderSeal::Revealed(GraphSeal::new_vout(method, vout));
+                let seal = BuilderSeal::Revealed(SealDefinition::Bitcoin(GraphSeal::new_vout(
+                    method, vout,
+                )));
                 (Some(vout), seal)
             }
         };
-        let prev_outputs = psbt
-            .unsigned_tx
-            .input
-            .iter()
-            .map(|txin| txin.previous_output)
-            .map(|outpoint| Outpoint::new(outpoint.txid.to_byte_array().into(), outpoint.vout))
-            .collect::<Vec<_>>();
+        let prev_outpoints = psbt.inputs().map(|inp| inp.prevout().outpoint());
 
         // Classify PSBT outputs which can be used for assignments
-        let mut out_classes = HashMap::<VelocityHint, Vec<u32>>::new();
-        for (no, outp) in psbt.outputs.iter().enumerate() {
-            if beneficiary_output == Some(no as u32) {
+        let mut out_classes = HashMap::<VelocityHint, Vec<usize>>::new();
+        for (no, outp) in psbt.outputs().enumerate() {
+            if beneficiary_output == Some(no) {
                 continue;
             }
             if outp
                 // NB: Here we assume that if output has derivation information it belongs to our wallet.
                 .bip32_derivation
-                .first_key_value()
+                .first()
                 .map(|(_, src)| src)
-                .or_else(|| outp.tap_key_origins.first_key_value().map(|(_, (_, src))| src))
-                .and_then(|(_, src)| src.into_iter().rev().nth(1))
+                .or_else(|| outp.tap_bip32_derivation.first().map(|(_, d)| &d.origin))
+                .and_then(|orig| orig.derivation().iter().rev().nth(1))
                 .copied()
                 .map(u32::from)
                 .filter(|index| *index == RGB_NATIVE_DERIVATION_INDEX || *index == RGB_TAPRET_DERIVATION_INDEX)
                 .is_some()
             {
                 let class = outp.rgb_velocity_hint().unwrap_or_default();
-                out_classes.entry(class).or_default().push(no as u32);
+                out_classes.entry(class).or_default().push(no);
             }
         }
         let mut out_classes = out_classes
@@ -163,7 +137,7 @@ impl Runtime {
             .collect::<HashMap<_, _>>();
         let mut output_for_assignment = |suppl: Option<&ContractSuppl>,
                                          assignment_type: AssignmentType|
-         -> Result<BuilderSeal<GraphSeal>, PayError<_, _>> {
+         -> Result<BuilderSeal<GraphSeal>, PayError> {
             let velocity = suppl
                 .and_then(|suppl| suppl.owned_state.get(&assignment_type))
                 .map(|s| s.velocity)
@@ -178,7 +152,7 @@ impl Runtime {
                 })
                 .ok_or(PayError::NoBlankOrChange(velocity, assignment_type))?;
             let seal = GraphSeal::new_vout(method, vout);
-            Ok(BuilderSeal::Revealed(seal))
+            Ok(BuilderSeal::Revealed(SealDefinition::Bitcoin(seal)))
         };
 
         // 2. Prepare and self-consume transition
@@ -196,12 +170,12 @@ impl Runtime {
             .and_then(|set| set.first())
             .cloned();
         let mut sum_inputs = 0u64;
-        for (opout, state) in self.state_for_outpoints(contract_id, prev_outputs.iter().copied())? {
+        for (opout, state) in self.state_for_outputs(contract_id, prev_outpoints)? {
             main_builder = main_builder.add_input(opout)?;
             if opout.ty != assignment_id {
                 let seal = output_for_assignment(suppl.as_ref(), opout.ty)?;
                 main_builder = main_builder.add_raw_state(opout.ty, seal, state)?;
-            } else if let TypedState::Amount(value) = state {
+            } else if let TypedState::Amount(value, _) = state {
                 sum_inputs += value;
             }
         }
@@ -229,7 +203,7 @@ impl Runtime {
         // 3. Prepare and self-consume other transitions
         let mut contract_inputs = HashMap::<ContractId, Vec<Outpoint>>::new();
         let mut spent_state = HashMap::<ContractId, BTreeMap<Opout, TypedState>>::new();
-        for outpoint in prev_outputs {
+        for outpoint in prev_outpoints {
             for id in self.contracts_by_outpoints([outpoint])? {
                 contract_inputs.entry(id).or_default().push(outpoint);
                 if id == contract_id {
@@ -262,9 +236,8 @@ impl Runtime {
         other_transitions.insert(contract_id, transition);
         for (id, transition) in other_transitions {
             let inputs = contract_inputs.remove(&id).unwrap_or_default();
-            for (input, txin) in psbt.inputs.iter_mut().zip(&psbt.unsigned_tx.input) {
-                let prevout = txin.previous_output;
-                let outpoint = Outpoint::new(prevout.txid.to_byte_array().into(), prevout.vout);
+            for input in psbt.inputs() {
+                let outpoint = input.prevout().outpoint();
                 if inputs.contains(&outpoint) {
                     input.set_rgb_consumer(id, transition.id())?;
                 }
