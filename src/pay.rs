@@ -200,7 +200,8 @@ impl Runtime {
             }
         };
 
-        // 3. Prepare and self-consume other transitions
+        // 3. Prepare other transitions
+        // Enumerate state
         let mut contract_inputs = HashMap::<ContractId, Vec<Outpoint>>::new();
         let mut spent_state = HashMap::<ContractId, BTreeMap<Opout, TypedState>>::new();
         for outpoint in prev_outpoints {
@@ -215,7 +216,7 @@ impl Runtime {
                     .extend(self.state_for_outpoints(id, [outpoint])?);
             }
         }
-        // Construct blank transitions, self-consume them
+        // Construct blank transitions
         let mut other_transitions = HashMap::with_capacity(spent_state.len());
         for (id, opouts) in spent_state {
             let mut blank_builder = self.blank_builder(id, iface.clone())?;

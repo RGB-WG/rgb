@@ -150,11 +150,11 @@ pub enum Command {
         /// Fee
         fee: Sats,
 
-        /// File for generated PSBT
-        psbt: PathBuf,
-
         /// File for generated transfer consignment
         consignment: PathBuf,
+
+        /// Name of PSBT file to save. If not given, prints PSBT to STDOUT
+        psbt: Option<PathBuf>,
     },
 
     /// Inspects any RGB data file
@@ -572,13 +572,26 @@ impl Exec for RgbArgs {
                 psbt: psbt_filename,
                 consignment: out_file,
             } => {
+                // 1. BP Wallet: Do coin selection (using Layer2 components)
+                // 2. BP Wallet: Construct PSBT prototype (no state transitions)
+                // ... complete PSBT structure updates in multi-party protocols
+                // 3. RGB Std: Prepare stencil - main state transition and blank state
+                //    transitions
+                // 4. RGB PSBT: Embed stencil into PSBT
+                // ... complete PSBT client-side updates in multi-party protocols
+                // 5. RGB PSBT: Anchorize PSBT, extract disclosure
+                // 6. RGB Std: Merge disclosure into the stash, cache and index
+                // 7. RGB Std: Prepare consignment
+
                 let mut runtime = self.rgb_runtime(&config)?;
 
+                // TODO: Support lock time and RBFs
+                let params = TxParams::with(*fee);
+
                 eprint!("Constructing PSBT ... ");
-                let mut psbt =
-                    runtime
-                        .wallet_mut()
-                        .construct_psbt(coins, Invoice, TxParams::with(*fee))?;
+                let mut psbt = runtime
+                    .wallet_mut()
+                    .construct_psbt(coins, Invoice, params)?;
                 eprintln!("success");
 
                 eprint!("Constructing transfer consignment ... ");
