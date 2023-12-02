@@ -1,12 +1,10 @@
 [workspace]
 members = [
-    "invoice",
     "cli",
     "fs",
     "."
 ]
 default-members = [
-    "invoice",
     "cli",
     "fs",
     "."
@@ -71,7 +69,6 @@ bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
 psbt = { workspace = true }
 rgb-std = { workspace = true }
-rgb-invoice = { version = "0.11.0-alpha.1", path = "./invoice" }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "fs" }
 indexmap = { workspace = true }
 chrono = { workspace = true }
