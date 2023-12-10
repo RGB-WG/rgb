@@ -1,8 +1,8 @@
 [package]
-name = "psbt-"
-version = "0.10.10"
-description = "RGB smart contract invoicing library"
-keywords = ["bitcoin", "invoices", "rgb", "smart-contracts", "lnp-bp"]
+name = "psbt-rgb"
+version = { workspace = true }
+description = "Partially signed bitcoin transaction RGB extensions"
+keywords = ["bitcoin", "invoices", "rgb", "smart-contracts", "psbt"]
 categories = ["cryptography::cryptocurrencies"]
 authors = { workspace = true }
 repository = { workspace = true }
@@ -13,15 +13,15 @@ rust-version = { workspace = true }
 readme = "../README.md"
 
 [lib]
-name = "rgbpsbt"
+name = "psbt"
 crate-type = ["cdylib", "rlib"] # We need this for WASM
 
 [dependencies]
 amplify = { workspace = true }
 baid58 = { workspace = true }
 bp-std = { workspace = true }
-psbt = "=0.10.0-BP-beta.1"
-rgb-std = { version = "0.10.10", path = "../std" }
+psbt = { workspace = true }
+rgb-std = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"

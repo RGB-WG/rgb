@@ -1,10 +1,12 @@
 [workspace]
 members = [
+    "psbt",
     "cli",
     "fs",
     "."
 ]
 default-members = [
+    "psbt",
     "cli",
     "fs",
     "."
@@ -84,3 +86,8 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
