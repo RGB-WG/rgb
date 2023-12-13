@@ -24,11 +24,12 @@ use std::convert::Infallible;
 use std::iter;
 
 use bp::seals::txout::CloseMethod;
-use bp::Vout;
+use bp::{Sats, Vout};
+use bpwallet::{Invoice, PsbtMeta, TxParams};
 use psbt::Psbt;
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
-use rgbstd::interface::{BuilderError, ContractSuppl, TypedState, VelocityHint};
-use rgbstd::invoice::{Beneficiary, RgbInvoice};
+use rgbstd::interface::{BuilderError, ContractSuppl, FilterIncludeAll, TypedState, VelocityHint};
+use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{ConsignerError, Inventory, InventoryError, Stash};
 use rgbstd::{
     AssignmentType, ContractId, GraphSeal, Operation, Opout, SealDefinition,
@@ -38,99 +39,134 @@ use rgbstd::{
 use crate::Runtime;
 
 #[derive(Debug, Display, Error, From)]
-#[display(inner)]
+#[display(doc_comments)]
 pub enum PayError {
-    /// unspecified contract
-    #[display(doc_comments)]
+    /// unspecified contract.
     NoContract,
 
-    /// unspecified interface
-    #[display(doc_comments)]
+    /// unspecified interface.
     NoIface,
+
+    /// invoice doesn't provide information about the operation, and the used
+    /// interface do not define default operation.
+    NoOperation,
+
+    /// invoice doesn't provide information about the assignment type, and the
+    /// used interface do not define default assignment type.
+    NoAssignment,
 
     /// state provided via PSBT inputs is not sufficient to cover invoice state
     /// requirements.
-    #[display(doc_comments)]
     InsufficientState,
 
-    /// the invoice has expired
-    #[display(doc_comments)]
+    /// the invoice has expired.
     InvoiceExpired,
 
+    /// non-fungible state is not yet supported by the invoices.
+    Unsupported,
+
     #[from]
+    #[display(inner)]
     Inventory(InventoryError<Infallible>),
 
     #[from]
+    #[display(inner)]
     Builder(BuilderError),
 
     #[from]
+    #[display(inner)]
     Consigner(ConsignerError<Infallible, Infallible>),
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct Payment {
-    pub unsigned_psbt: Psbt,
-    pub transfer: Bindle<Transfer>,
+pub struct TransferParams {
+    pub tx: TxParams,
+    pub min_amount: Sats,
 }
 
 impl Runtime {
-    pub fn pay(&mut self, invoice: RgbInvoice, method: CloseMethod) -> Result<Payment, PayError> {
-        // 2. Construct PSBT
-        let beneficiary_output = match invoice.beneficiary {
-            Beneficiary::BlindedSeal(seal) => None,
-            Beneficiary::WitnessUtxo(addr) => psbt
-                .outputs()
-                .position(|out| out.script == addr.script_pubkey())
-                .ok_or(PayError::NoBeneficiaryOutput)?,
-        };
-        let prev_outpoints = psbt.inputs().map(|inp| inp.prevout().outpoint());
+    pub fn pay(
+        &self,
+        invoice: &RgbInvoice,
+        method: CloseMethod,
+        params: TransferParams,
+    ) -> Result<(Psbt, PsbtMeta, Bindle<Transfer>), PayError> {
+        let (mut psbt, meta) = self.construct_psbt(invoice, method, params)?;
+        // ... here we pass PSBT around signers, if necessary
+        let transfer = self.transfer(invoice, &mut psbt)?;
+        Ok((psbt, meta, transfer))
+    }
 
-        // Classify PSBT outputs which can be used for assignments
-        let mut out_classes = HashMap::<VelocityHint, Vec<Vout>>::new();
-        for (no, outp) in psbt.outputs().enumerate() {
-            if beneficiary_output == Some(no) {
-                continue;
-            }
-            if outp
-                // NB: Here we assume that if output has derivation information it belongs to our wallet.
-                .bip32_derivation
-                .first()
-                .map(|(_, src)| src)
-                .or_else(|| outp.tap_bip32_derivation.first().map(|(_, d)| &d.origin))
-                .and_then(|orig| orig.derivation().iter().rev().nth(1))
-                .copied()
-                .map(u32::from)
-                .filter(|index| *index == RGB_NATIVE_DERIVATION_INDEX || *index == RGB_TAPRET_DERIVATION_INDEX)
-                .is_some()
-            {
-                let class = outp.rgb_velocity_hint().unwrap_or_default();
-                out_classes.entry(class).or_default().push(no);
-            }
-        }
-        let mut out_classes = out_classes
-            .into_iter()
-            .map(|(class, indexes)| (class, indexes.into_iter().cycle()))
-            .collect::<HashMap<_, _>>();
-        let allocator = |id: ContractId,
-                         assignment_type: AssignmentType,
-                         velocity: VelocityHint|
-         -> Option<Vout> {
-            out_classes
-                .get_mut(&velocity)
-                .and_then(iter::Cycle::next)
-                .or_else(|| {
-                    out_classes
-                        .get_mut(&VelocityHint::default())
-                        .and_then(iter::Cycle::next)
-                })
-        };
+    pub fn construct_psbt(
+        &self,
+        invoice: &RgbInvoice,
+        method: CloseMethod,
+        params: TransferParams,
+    ) -> Result<(Psbt, PsbtMeta), PayError> {
+        let contract_id = invoice.contract.ok_or(PayError::NoContract)?;
 
-        // 4. Add transitions to PSBT
+        let iface_name = invoice.iface.ok_or(PayError::NoIface)?;
+        let iface = self.stock().iface_by_name(&iface_name)?;
+        let contract = self.contract_iface_named(contract_id, iface_name)?;
+        let operation = invoice
+            .operation
+            .or_else(|| iface.default_operation)
+            .ok_or(PayError::NoOperation)?;
+        let assignment_name = invoice
+            .assignment
+            .or_else(|| {
+                iface
+                    .transitions
+                    .get(&operation)
+                    .and_then(|t| t.default_assignment)
+            })
+            .ok_or(PayError::NoAssignment)?;
+        let outputs = match invoice.owned_state {
+            InvoiceState::Amount(amount) => {
+                let mut state = contract.fungible(assignment_name, &FilterIncludeAll)?;
+                state.sort_by_key(|a| a.value);
+                let mut sum = 0u64;
+                state
+                    .iter()
+                    .rev()
+                    .take_while(|a| {
+                        if sum >= amount {
+                            false
+                        } else {
+                            sum += amount;
+                            true
+                        }
+                    })
+                    .map(|a| a.owner)
+                    .collect::<Vec<_>>()
+            }
+            _ => return Err(PayError::Unsupported),
+        };
+        let inv = match invoice.beneficiary {
+            Beneficiary::BlindedSeal(_) => Invoice::with_max(self.wallet().next_address()),
+            Beneficiary::WitnessVoutBitcoin(addr) => Invoice::new(addr, params.min_amount),
+        };
+        let (mut psbt, meta) = self.wallet().construct_psbt(&outputs, inv, params.tx)?;
+
+        let batch =
+            self.compose(&invoice, outputs, method, meta.change_vout, |_, _, _| meta.change_vout)?;
         psbt.rgb_embed(batch)?;
+        Ok((psbt, meta))
+    }
 
-        // 5. Prepare transfer
+    pub fn transfer(
+        &self,
+        invoice: &RgbInvoice,
+        psbt: &mut Psbt,
+    ) -> Result<Bindle<Transfer>, PayError> {
+        let contract_id = invoice.contract.ok_or(PayError::NoContract)?;
+
+        psbt.dbc_finalize()?;
+        let fascia = psbt.rgb_extract()?;
+
         let witness_txid = psbt.txid();
-        let beneficiary = match beneficiary {
+        self.stock().consume(fascia)?;
+        let beneficiary = match invoice.beneficiary {
             BuilderSeal::Revealed(seal) => BuilderSeal::Revealed(seal.resolve(witness_txid)),
             BuilderSeal::Concealed(seal) => BuilderSeal::Concealed(seal),
         };
