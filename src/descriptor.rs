@@ -31,7 +31,7 @@ use bpstd::{
     IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, Terminal,
     XOnlyPk, XpubDerivable, XpubSpec,
 };
-use descriptors::{Descriptor, StdDescr, TrKey};
+use descriptors::{Descriptor, SpkClass, StdDescr, TrKey};
 use indexmap::IndexMap;
 
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
@@ -148,6 +148,8 @@ impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
     type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
     type XpubIter<'x> = iter::Once<&'x XpubSpec> where Self: 'x;
 
+    fn class(&self) -> SpkClass { SpkClass::P2tr }
+
     fn keys(&self) -> Self::KeyIter<'_> { iter::once(&self.internal_key) }
     fn vars(&self) -> Self::VarIter<'_> { iter::empty() }
     fn xpubs(&self) -> Self::XpubIter<'_> { iter::once(self.internal_key.xpub_spec()) }
@@ -215,6 +217,12 @@ where Self: Derive<DerivedScript>
     type KeyIter<'k> = vec::IntoIter<&'k K> where Self: 'k, K: 'k;
     type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
     type XpubIter<'x> = vec::IntoIter<&'x XpubSpec> where Self: 'x;
+
+    fn class(&self) -> SpkClass {
+        match self {
+            RgbDescr::TapretKey(d) => d.class(),
+        }
+    }
 
     fn keys(&self) -> Self::KeyIter<'_> {
         match self {
