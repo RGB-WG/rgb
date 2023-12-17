@@ -19,22 +19,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::convert::Infallible;
-use std::iter;
 
 use bp::seals::txout::CloseMethod;
-use bp::{Sats, Vout};
-use bpwallet::{Invoice, PsbtMeta, TxParams};
+use bp::{Outpoint, Sats, Vout};
+use bpwallet::{Beneficiary as BpBeneficiary, PsbtMeta, TxParams};
 use psbt::Psbt;
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
-use rgbstd::interface::{BuilderError, ContractSuppl, FilterIncludeAll, TypedState, VelocityHint};
+use rgbstd::interface::{BuilderError, FilterIncludeAll};
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{ConsignerError, Inventory, InventoryError, Stash};
-use rgbstd::{
-    AssignmentType, ContractId, GraphSeal, Operation, Opout, SealDefinition,
-    RGB_NATIVE_DERIVATION_INDEX, RGB_TAPRET_DERIVATION_INDEX,
-};
 
 use crate::Runtime;
 
@@ -78,7 +72,7 @@ pub enum PayError {
     Consigner(ConsignerError<Infallible, Infallible>),
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TransferParams {
     pub tx: TxParams,
     pub min_amount: Sats,
@@ -142,11 +136,13 @@ impl Runtime {
             }
             _ => return Err(PayError::Unsupported),
         };
-        let inv = match invoice.beneficiary {
-            Beneficiary::BlindedSeal(_) => Invoice::with_max(self.wallet().next_address()),
-            Beneficiary::WitnessVoutBitcoin(addr) => Invoice::new(addr, params.min_amount),
+        let beneficiary = match invoice.beneficiary {
+            Beneficiary::BlindedSeal(seal) => BpBeneficiary::with_max(self.wallet().next_address()),
+            Beneficiary::WitnessVoutBitcoin(addr) => BpBeneficiary::new(addr, params.min_amount),
         };
-        let (mut psbt, meta) = self.wallet().construct_psbt(&outputs, inv, params.tx)?;
+        let (mut psbt, meta) = self
+            .wallet()
+            .construct_psbt(&outputs, [beneficiary], params.tx)?;
 
         let batch =
             self.compose(&invoice, outputs, method, meta.change_vout, |_, _, _| meta.change_vout)?;
@@ -161,15 +157,23 @@ impl Runtime {
     ) -> Result<Bindle<Transfer>, PayError> {
         let contract_id = invoice.contract.ok_or(PayError::NoContract)?;
 
-        psbt.dbc_finalize()?;
-        let fascia = psbt.rgb_extract()?;
-
-        let witness_txid = psbt.txid();
-        self.stock().consume(fascia)?;
         let beneficiary = match invoice.beneficiary {
-            BuilderSeal::Revealed(seal) => BuilderSeal::Revealed(seal.resolve(witness_txid)),
-            BuilderSeal::Concealed(seal) => BuilderSeal::Concealed(seal),
+            Beneficiary::WitnessVoutBitcoin(addr) => {
+                let s = addr.script_pubkey();
+                let vout = psbt
+                    .outputs()
+                    .position(|output| output.script == s)
+                    .ok_or(PayError::NoBeneficiaryOutput)?;
+                let witness_txid = psbt.txid();
+                BuilderSeal::Revealed(
+                    Outpoint::new(witness_txid, Vout::from_u32(vout as u32)).into(),
+                )
+            }
+            Beneficiary::BlindedSeal(seal) => BuilderSeal::Concealed(seal),
         };
+
+        let fascia = psbt.rgb_commit()?;
+        self.stock().consume(fascia)?;
         let transfer = self.stock().transfer(contract_id, [beneficiary])?;
 
         Ok(transfer)

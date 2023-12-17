@@ -19,52 +19,103 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+#[macro_use]
+extern crate amplify;
 
-use bpstd::secp256k1::serde::{Deserialize, Serialize};
-use psbt::Psbt;
-use rgbstd::{AnchoredBundle, ContractId, Outpoint, Transition};
+mod rgb;
 
-/// A batch of state transitions under different contracts which are associated
-/// with some specific transfer and will be anchored within a single layer 1
-/// transaction.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
-pub struct Batch {
-    pub transitions: Vec<Transition>,
+use bp::dbc::opret::OpretProof;
+use bp::dbc::tapret::TapretProof;
+use psbt::{DbcPsbtError, Psbt};
+use rgbstd::containers::{Batch, Fascia, XchainOutpoint};
+use rgbstd::{AnchorSet, XAnchor};
+
+pub use self::rgb::{
+    ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
+    PSBT_IN_RGB_CONSUMED_BY, PSBT_OUT_RGB_VELOCITY_HINT, PSBT_RGB_PREFIX,
+};
+
+#[derive(Clone, Eq, PartialEq, Debug, Display, Error)]
+#[display(doc_comments)]
+pub enum EmbedError {
+    /// provided transaction batch references inputs which are absent from the
+    /// PSBT. Possible it was created for a different PSBT.
+    AbsentInputs,
+
+    /// the provided PSBT is invalid since it doublespends on some of its
+    /// inputs.
+    PsbtRepeatedInputs,
 }
 
-/// Structure exported from a PSBT for merging into the stash. It contains a set
-/// of finalized state transitions, packed into bundles, and anchored to a
-/// single layer 1 transaction.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
-pub struct Fascia {
-    pub bundles: Vec<AnchoredBundle>,
+#[derive(Clone, Eq, PartialEq, Debug, Display, Error, From)]
+#[display(inner)]
+pub enum CommitError {
+    #[from]
+    Rgb(RgbPsbtError),
+
+    #[from]
+    Dbc(DbcPsbtError),
 }
 
-pub enum EmbedError {}
+#[derive(Clone, Eq, PartialEq, Debug, Display, Error)]
+#[display(doc_comments)]
 pub enum ExtractError {}
+
+// TODO: Batch must be homomorphic by the outpoint type (chain)
 
 pub trait RgbPsbt {
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError>;
-    fn rgb_extract(&mut self) -> Result<Fascia, ExtractError>;
+    fn rgb_commit(&mut self) -> Result<Fascia, CommitError>;
+    fn rgb_extract(&self) -> Result<Fascia, ExtractError>;
 }
 
 impl RgbPsbt for Psbt {
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError> {
-        let mut contract_inputs = HashMap::<ContractId, Vec<Outpoint>>::new();
-
-        contract_inputs.entry(id).or_default().push(output);
-        for (op_id, transition) in batch {
+        for info in batch {
+            let contract_id = info.transition.contract_id;
+            let mut inputs = info.inputs.into_inner();
             for input in self.inputs_mut() {
                 let outpoint = input.prevout().outpoint();
-                if inputs.contains(&outpoint) {
-                    input.set_rgb_consumer(transition.contract_id, op_id)?;
+                if let Some(pos) = inputs
+                    .iter()
+                    .position(|i| i == &XchainOutpoint::Bitcoin(outpoint))
+                {
+                    inputs.remove(pos);
+                    input
+                        .set_rgb_consumer(contract_id, info.id)
+                        .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
                 }
             }
-            self.push_rgb_transition(transition)?;
+            if !inputs.is_empty() {
+                return Err(EmbedError::AbsentInputs);
+            }
+            self.push_rgb_transition(info.transition, info.methods)
+                .expect("transitions are unique since they are in BTreeMap indexed by opid");
         }
         Ok(())
     }
 
-    fn rgb_extract(&mut self) -> Result<Fascia, ExtractError> {}
+    fn rgb_commit(&mut self) -> Result<Fascia, CommitError> {
+        // Convert RGB data to MPCs? Or should we do it at the moment we add them... No,
+        // since we may require more DBC methods with each additional state transition
+        let (bundles, methods) = self.rgb_bundles_to_mpc()?;
+        // DBC commitment for the required methods
+        let (mut tapret_anchor, mut opret_anchor) = (None, None);
+        if methods.has_tapret_first() {
+            tapret_anchor = Some(self.dbc_commit::<TapretProof>()?);
+        }
+        if methods.has_opret_first() {
+            opret_anchor = Some(self.dbc_commit::<OpretProof>()?);
+        }
+        let anchor = AnchorSet::from_split(tapret_anchor, opret_anchor)
+            .expect("at least one of DBC are present due to CloseMethodSet type guarantees");
+        Ok(Fascia {
+            anchor: XAnchor::Bitcoin(anchor),
+            bundles,
+        })
+    }
+
+    fn rgb_extract(&self) -> Result<Fascia, ExtractError> {
+        todo!("implement RGB PSBT fascia extraction for multi-party protocols")
+    }
 }

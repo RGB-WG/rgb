@@ -29,12 +29,11 @@ use std::{fs, io};
 use bpstd::{AddressNetwork, Network, XpubDerivable};
 use bpwallet::Wallet;
 use rgbfs::StockFs;
-use rgbstd::containers::{Contract, LoadError, Transfer};
+use rgbstd::containers::{Contract, LoadError, Transfer, XchainOutpoint};
 use rgbstd::interface::{BuilderError, OutpointFilter};
 use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveTx};
-use rgbstd::Output;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
@@ -118,10 +117,11 @@ impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
 }
 
 impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
-    fn include_output(&self, output: Output) -> bool {
+    fn include_output(&self, output: impl Into<XchainOutpoint>) -> bool {
+        let output = output.into();
         self.wallet
             .coins()
-            .any(|utxo| Output::Bitcoin(utxo.outpoint) == output)
+            .any(|utxo| XchainOutpoint::Bitcoin(utxo.outpoint) == output)
     }
 }
 

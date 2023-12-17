@@ -29,8 +29,7 @@ dependencies = [
 [[package]]
 name = "aluvm"
 version = "0.11.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134a93e142c6aabca39c69c501c7d34ec99b04a5cb25738e1c0d1382f14b02a1"
+source = "git+https://github.com/AluVM/rust-aluvm?branch=v0.11#34894fe14cbbd3312122a7854072056756798a03"
 dependencies = [
  "amplify",
  "baid58",
@@ -89,11 +88,12 @@ dependencies = [
 
 [[package]]
 name = "amplify_num"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddce3bc63e807ea02065e8d8b702695f3d302ae4158baddff8b0ce5c73947251"
+checksum = "9681187211554ab98f138ba159e90861b136c20afc680dcff2ba82d020721e27"
 dependencies = [
  "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -310,7 +310,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#31e9b11b96a8678afa3d39a774bfa686cb9c0def"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#d3a57c213f34d9012101b9969cdc8b0d60a6fe60"
 dependencies = [
  "amplify",
  "chrono",
@@ -324,8 +324,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.11.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ece2f2e6f91bdbf5684f26a105c078e50394f98e37dc173c20b23eba53e7be09"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#d3a57c213f34d9012101b9969cdc8b0d60a6fe60"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -341,8 +340,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.11.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0d9d7bbc4dc2debd9c30469752963410b44adee55af807378589e88c5fd913a"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#d3a57c213f34d9012101b9969cdc8b0d60a6fe60"
 dependencies = [
  "amplify",
  "base85",
@@ -356,7 +354,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#04dc07f0c93359d5ceef26efc28365a7a507866f"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#64dc394e6b4d33d4f12a9b1eccd6429d6aa5bbe4"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -385,7 +383,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#04dc07f0c93359d5ceef26efc28365a7a507866f"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#64dc394e6b4d33d4f12a9b1eccd6429d6aa5bbe4"
 dependencies = [
  "amplify",
  "bech32",
@@ -397,8 +395,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.11.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3661c2c7bddda0b6fd37dafa1a56c863ba0ff9787ebc06d05eb8ac676f1d469e"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#d3a57c213f34d9012101b9969cdc8b0d60a6fe60"
 dependencies = [
  "amplify",
  "baid58",
@@ -414,7 +411,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#04dc07f0c93359d5ceef26efc28365a7a507866f"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#64dc394e6b4d33d4f12a9b1eccd6429d6aa5bbe4"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -428,7 +425,7 @@ dependencies = [
 [[package]]
 name = "bp-util"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#7a1ade93df870e769ce8bbf80014ba2195480e7c"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#07dc6312f8aa80f4b8299d720fcdbd6858f08f82"
 dependencies = [
  "amplify",
  "base64",
@@ -450,7 +447,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#7a1ade93df870e769ce8bbf80014ba2195480e7c"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#07dc6312f8aa80f4b8299d720fcdbd6858f08f82"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -559,8 +556,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 [[package]]
 name = "commit_encoding_derive"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00033f14d67c4169d588f085ea2faeb7b610cf03a74d42ea09eeba31abef2047"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.11#6b634bccd96d2cb857a44ae48417f8e35ecb3de7"
 dependencies = [
  "amplify",
  "amplify_syn",
@@ -572,8 +568,7 @@ dependencies = [
 [[package]]
 name = "commit_verify"
 version = "0.11.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82c1a7d13181451d927abcc477d4565f23eb06ab36820599cc75ed3161147daa"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.11#6b634bccd96d2cb857a44ae48417f8e35ecb3de7"
 dependencies = [
  "amplify",
  "commit_encoding_derive",
@@ -699,7 +694,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#04dc07f0c93359d5ceef26efc28365a7a507866f"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#64dc394e6b4d33d4f12a9b1eccd6429d6aa5bbe4"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1362,15 +1357,18 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#04dc07f0c93359d5ceef26efc28365a7a507866f"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#64dc394e6b4d33d4f12a9b1eccd6429d6aa5bbe4"
 dependencies = [
  "amplify",
  "base64",
+ "bp-core",
  "bp-derive",
  "chrono",
+ "commit_verify",
  "descriptors",
  "indexmap 2.1.0",
  "serde",
+ "strict_encoding",
 ]
 
 [[package]]
@@ -1379,11 +1377,14 @@ version = "0.11.0-alpha.2"
 dependencies = [
  "amplify",
  "baid58",
+ "bp-core",
  "bp-std",
+ "commit_verify",
  "getrandom",
  "psbt",
  "rand",
  "rgb-std",
+ "strict_encoding",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -1518,7 +1519,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.11#1fc21032159d2b04443b823f6e6bfb3340ef0622"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=canary#f12b208ccec4a11de0de1ad0b0cd4048d5fd0e11"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1538,7 +1539,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#49bd860a9cf61400debf059fecdb245b869526c4"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#b65cf9ec35a4748862dd02b59ca72fb6b7370692"
 dependencies = [
  "amplify",
  "baid58",
@@ -1587,7 +1588,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#49bd860a9cf61400debf059fecdb245b869526c4"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#b65cf9ec35a4748862dd02b59ca72fb6b7370692"
 dependencies = [
  "amplify",
  "baid58",
@@ -2118,18 +2119,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
+checksum = "f11c217e1416d6f036b870f14e0413d480dbf28edbee1f877abaf0206af43bb7"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
+checksum = "01742297787513b79cf8e29d1056ede1313e2420b7b3b15d0a768b4921f549df"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2325,9 +2326,9 @@ dependencies = [
 
 [[package]]
 name = "unsafe-libyaml"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f28467d3e1d3c6586d8f25fa243f544f5800fec42d97032474e17222c2b75cfa"
+checksum = "ab4c90930b95a82d00dc9e9ac071b4991924390d46cbd0dfe566148667605e4b"
 
 [[package]]
 name = "untrusted"
