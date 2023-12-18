@@ -26,6 +26,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
+use amplify::IoError;
 use bpstd::{AddressNetwork, Network, XpubDerivable};
 use bpwallet::Wallet;
 use rgbfs::StockFs;
@@ -42,7 +43,8 @@ use crate::{DescriptorRgb, RgbDescr};
 #[display(inner)]
 pub enum RuntimeError {
     #[from]
-    Io(io::Error),
+    #[from(io::Error)]
+    Io(IoError),
 
     #[from]
     Serialize(SerializeError),
@@ -99,6 +101,7 @@ impl From<Infallible> for RuntimeError {
 #[derive(Getters)]
 pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
     stock_path: PathBuf,
+    #[getter(as_mut)]
     stock: Stock,
     #[getter(as_mut)]
     wallet: Wallet<K, D /* TODO: Add layer 2 */>,

@@ -20,21 +20,22 @@
 // limitations under the License.
 
 use std::fs;
+use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::{Sats, Txid};
-use bpwallet::{Invoice, TxParams};
-use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError};
+use psbt::PsbtVer;
+use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
-use rgbstd::SealDefinition;
+use rgbstd::XSeal;
 use seals::txout::{CloseMethod, ExplicitSeal};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -139,9 +140,18 @@ pub enum Command {
     /// Transfer RGB assets
     #[display("transfer")]
     Transfer {
+        /// Encode PSBT as V2
+        #[clap(short = '2')]
+        v2: bool,
+
         /// Method for single-use-seals
         #[clap(long, default_value = "tapret1st")]
         method: CloseMethod,
+
+        /// Amount of satoshis which should be paid to the address-based
+        /// beneficiary
+        #[clap(long, default_value = "2000")]
+        sats: Sats,
 
         /// Invoice data
         invoice: RgbInvoice,
@@ -295,7 +305,7 @@ impl Exec for RgbArgs {
                 contract,
                 file,
             } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+                let runtime = self.rgb_runtime(&config)?;
                 let bindle = runtime
                     .export_contract(*contract)
                     .map_err(|err| err.to_string())?;
@@ -471,7 +481,7 @@ impl Exec for RgbArgs {
                             .expect("seal must be a string");
                         let seal =
                             ExplicitSeal::<Txid>::from_str(seal).expect("invalid seal definition");
-                        let seal = GenesisSeal::from(seal);
+                        let seal = XSeal::Bitcoin(GenesisSeal::from(seal));
 
                         // Workaround for borrow checker:
                         let field_name =
@@ -537,7 +547,7 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessUtxo(addr)
+                        Beneficiary::WitnessVoutBitcoin(addr)
                     }
                     (_, Some(outpoint)) => {
                         let seal = GraphSeal::new(
@@ -545,7 +555,7 @@ impl Exec for RgbArgs {
                             outpoint.txid,
                             outpoint.vout,
                         );
-                        runtime.store_seal_secret(SealDefinition::Bitcoin(seal))?;
+                        runtime.store_seal_secret(XSeal::Bitcoin(seal))?;
                         Beneficiary::BlindedSeal(seal.to_concealed_seal())
                     }
                 };
@@ -565,40 +575,36 @@ impl Exec for RgbArgs {
             }
             #[allow(unused_variables)]
             Command::Transfer {
+                v2,
                 method,
                 invoice,
                 fee,
-                psbt: psbt_filename,
+                sats,
+                psbt: psbt_file,
                 consignment: out_file,
             } => {
-                // 1. BP Wallet: Do coin selection (using Layer2 components)
-                // 2. BP Wallet: Construct PSBT prototype (no state transitions)
-                // ... complete PSBT structure updates in multi-party protocols
-                // 3. RGB Std: Prepare stencil - main state transition and blank state
-                //    transitions
-                // 4. RGB PSBT: Embed stencil into PSBT
-                // ... complete PSBT client-side updates in multi-party protocols
-                // 5. RGB PSBT: Anchorize PSBT, extract disclosure
-                // 6. RGB Std: Merge disclosure into the stash, cache and index
-                // 7. RGB Std: Prepare consignment
-
                 let mut runtime = self.rgb_runtime(&config)?;
-
                 // TODO: Support lock time and RBFs
-                let params = TxParams::with(*fee);
+                let params = TransferParams::with(*fee, *sats);
 
-                eprint!("Constructing PSBT ... ");
-                let mut psbt = runtime
-                    .wallet_mut()
-                    .construct_psbt(coins, Invoice, params)?;
-                eprintln!("success");
-
-                eprint!("Constructing transfer consignment ... ");
-                let transfer = runtime
-                    .pay(invoice, &mut psbt, method)
+                let (psbt, meta, transfer) = runtime
+                    .pay(invoice, *method, params)
                     .map_err(|err| err.to_string())?;
+
                 transfer.save(&out_file)?;
-                eprintln!("success");
+
+                let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
+                eprintln!("{}", serde_yaml::to_string(&psbt).unwrap());
+                match psbt_file {
+                    Some(file_name) => {
+                        let mut psbt_file = File::create(file_name)?;
+                        psbt.encode(ver, &mut psbt_file)?;
+                    }
+                    None => match ver {
+                        PsbtVer::V0 => println!("{psbt}"),
+                        PsbtVer::V2 => println!("{psbt:#}"),
+                    },
+                }
             }
             Command::Inspect { file, format } => {
                 let bindle = UniversalBindle::load_file(file)?;
@@ -651,7 +657,11 @@ impl Exec for RgbArgs {
                         format!("{root_dir}/stash/geneses/{id}.yaml"),
                         serde_yaml::to_string(runtime.genesis(id)?)?,
                     )?;
-                    for (no, suppl) in runtime.contract_suppl(id).into_iter().flatten().enumerate()
+                    for (no, suppl) in runtime
+                        .contract_suppl_all(id)
+                        .into_iter()
+                        .flatten()
+                        .enumerate()
                     {
                         fs::write(
                             format!("{root_dir}/stash/geneses/{id}.suppl.{no:03}.yaml"),
@@ -665,7 +675,7 @@ impl Exec for RgbArgs {
                         serde_yaml::to_string(runtime.bundle(id)?)?,
                     )?;
                 }
-                for id in runtime.anchor_ids()? {
+                for id in runtime.witness_ids()? {
                     fs::write(
                         format!("{root_dir}/stash/anchors/{id}.yaml"),
                         serde_yaml::to_string(runtime.anchor(id)?)?,

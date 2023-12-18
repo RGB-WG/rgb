@@ -1,5 +1,5 @@
 [package]
-name = "psbt-rgb"
+name = "rgb-psbt"
 version = { workspace = true }
 description = "Partially signed bitcoin transaction RGB extensions"
 keywords = ["bitcoin", "invoices", "rgb", "smart-contracts", "psbt"]

@@ -25,6 +25,7 @@ use std::{iter, vec};
 
 use amplify::Wrapper;
 use bp::dbc::tapret::TapretCommitment;
+use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bpstd::{
     CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase,
@@ -64,6 +65,13 @@ impl RgbKeychain {
         k == Self::Rgb as u8 || k == Self::Tapret as u8
     }
     pub fn is_seal(self) -> bool { self == Self::Rgb || self == Self::Tapret }
+
+    pub const fn for_method(method: Method) -> Self {
+        match method {
+            Method::OpretFirst => Self::Rgb,
+            Method::TapretFirst => Self::Tapret,
+        }
+    }
 }
 
 impl FromStr for RgbKeychain {

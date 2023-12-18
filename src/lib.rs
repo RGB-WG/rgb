@@ -33,4 +33,5 @@ mod descriptor;
 mod pay;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapretKey};
+pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
 pub use runtime::{Runtime, RuntimeError};

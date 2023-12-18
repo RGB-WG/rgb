@@ -425,7 +425,7 @@ dependencies = [
 [[package]]
 name = "bp-util"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#07dc6312f8aa80f4b8299d720fcdbd6858f08f82"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#6418b4eaef62b78c092714582818046b6e2a2d03"
 dependencies = [
  "amplify",
  "base64",
@@ -447,7 +447,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#07dc6312f8aa80f4b8299d720fcdbd6858f08f82"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#6418b4eaef62b78c092714582818046b6e2a2d03"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -1006,9 +1006,9 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
-version = "0.14.27"
+version = "0.14.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb1cfd654a8219eaef89881fdb3bb3b1cdc5fa75ded05d6933b2b382e395468"
+checksum = "bf96e135eb83a2a8ddf766e426a841d8ddd7449d5f00d34ea02b41d2f19eef80"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -1021,7 +1021,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.4.10",
+ "socket2",
  "tokio",
  "tower-service",
  "tracing",
@@ -1372,24 +1372,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "psbt-rgb"
-version = "0.11.0-alpha.2"
-dependencies = [
- "amplify",
- "baid58",
- "bp-core",
- "bp-std",
- "commit_verify",
- "getrandom",
- "psbt",
- "rand",
- "rgb-std",
- "strict_encoding",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1539,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#b65cf9ec35a4748862dd02b59ca72fb6b7370692"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#f73f03bf8dca1953ae79d852e44f34255f876c7c"
 dependencies = [
  "amplify",
  "baid58",
@@ -1564,6 +1546,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rgb-psbt"
+version = "0.11.0-alpha.2"
+dependencies = [
+ "amplify",
+ "baid58",
+ "bp-core",
+ "bp-std",
+ "commit_verify",
+ "getrandom",
+ "psbt",
+ "rand",
+ "rgb-std",
+ "strict_encoding",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "rgb-runtime"
 version = "0.11.0-alpha.2"
 dependencies = [
@@ -1577,8 +1577,8 @@ dependencies = [
  "descriptors",
  "indexmap 2.1.0",
  "log",
- "psbt",
  "rgb-persist-fs",
+ "rgb-psbt",
  "rgb-std",
  "serde",
  "serde_yaml",
@@ -1588,7 +1588,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#b65cf9ec35a4748862dd02b59ca72fb6b7370692"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#f73f03bf8dca1953ae79d852e44f34255f876c7c"
 dependencies = [
  "amplify",
  "baid58",
@@ -1957,16 +1957,6 @@ dependencies = [
 
 [[package]]
 name = "socket2"
-version = "0.4.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f7916fc008ca5542385b89a3d3ce689953c143e9304a9bf8beec1de48994c0d"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
-name = "socket2"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b5fac59a5cb5dd637972e5fca70daf0523c9067fcdc4842f053dae04a18f8e9"
@@ -2192,7 +2182,7 @@ dependencies = [
  "libc",
  "mio",
  "pin-project-lite",
- "socket2 0.5.5",
+ "socket2",
  "windows-sys 0.48.0",
 ]
 

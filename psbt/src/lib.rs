@@ -26,7 +26,7 @@ mod rgb;
 
 use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
-use psbt::{DbcPsbtError, Psbt};
+pub use psbt::*;
 use rgbstd::containers::{Batch, Fascia, XchainOutpoint};
 use rgbstd::{AnchorSet, XAnchor};
 
