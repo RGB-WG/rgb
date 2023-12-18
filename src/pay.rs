@@ -140,6 +140,7 @@ impl TransferParams {
 }
 
 impl Runtime {
+    #[allow(clippy::result_large_err)]
     pub fn pay(
         &mut self,
         invoice: &RgbInvoice,
@@ -152,6 +153,7 @@ impl Runtime {
         Ok((psbt, meta, transfer))
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn construct_psbt(
         &mut self,
         invoice: &RgbInvoice,
@@ -166,7 +168,7 @@ impl Runtime {
         let operation = invoice
             .operation
             .as_ref()
-            .or_else(|| iface.default_operation.as_ref())
+            .or(iface.default_operation.as_ref())
             .ok_or(CompositionError::NoOperation)?;
         let assignment_name = invoice
             .assignment
@@ -229,13 +231,13 @@ impl Runtime {
             Beneficiary::BlindedSeal(_) => (None, none!()),
         };
         let batch =
-            self.compose(&invoice, outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
+            self.compose(invoice, outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
 
         let methods = batch.close_method_set();
         if methods.has_tapret_first() {
             let output = psbt
                 .outputs_mut()
-                .find(|o| o.script.is_p2tr() && &o.script != &beneficiary_script)
+                .find(|o| o.script.is_p2tr() && o.script != beneficiary_script)
                 .ok_or(CompositionError::TapretRequired)?;
             output.set_tapret_host().expect("just created");
         }
@@ -248,6 +250,7 @@ impl Runtime {
         Ok((psbt, meta))
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn transfer(
         &mut self,
         invoice: &RgbInvoice,

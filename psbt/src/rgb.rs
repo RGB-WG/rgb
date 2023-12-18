@@ -258,7 +258,7 @@ impl RgbExt for Psbt {
                 return Ok(Some(method));
             }
         }
-        return Err(RgbPsbtError::InvalidCloseMethod(opid));
+        Err(RgbPsbtError::InvalidCloseMethod(opid))
     }
 
     fn push_rgb_transition(

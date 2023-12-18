@@ -591,7 +591,7 @@ impl Exec for RgbArgs {
                     .pay(invoice, *method, params)
                     .map_err(|err| err.to_string())?;
 
-                transfer.save(&out_file)?;
+                transfer.save(out_file)?;
 
                 let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
                 eprintln!("{}", serde_yaml::to_string(&psbt).unwrap());

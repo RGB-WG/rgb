@@ -65,6 +65,7 @@ pub enum ExtractError {}
 
 pub trait RgbPsbt {
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError>;
+    #[allow(clippy::result_large_err)]
     fn rgb_commit(&mut self) -> Result<Fascia, CommitError>;
     fn rgb_extract(&self) -> Result<Fascia, ExtractError>;
 }
