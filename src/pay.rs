@@ -23,7 +23,7 @@ use std::convert::Infallible;
 
 use bp::seals::txout::CloseMethod;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
-use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
+use bpwallet::{ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
 use rgbstd::interface::{ContractError, FilterIncludeAll};
@@ -33,7 +33,7 @@ use rgbstd::persistence::{
 };
 use rgbstd::XSeal;
 
-use crate::{RgbKeychain, Runtime};
+use crate::Runtime;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -204,20 +204,13 @@ impl Runtime {
             }
             _ => return Err(CompositionError::Unsupported),
         };
-        let beneficiary = match invoice.beneficiary {
-            Beneficiary::BlindedSeal(_) => BpBeneficiary::with_max(
-                self.wallet_mut()
-                    .next_address(RgbKeychain::for_method(method), true),
-            ),
-            Beneficiary::WitnessVoutBitcoin(addr) => BpBeneficiary::new(addr, params.min_amount),
-        };
         let outpoints = outputs
             .iter()
             .filter_map(|o| o.reduce_to_bp())
             .map(|o| Outpoint::new(o.txid, o.vout));
-        let (mut psbt, meta) =
-            self.wallet_mut()
-                .construct_psbt(outpoints, &[beneficiary], params.tx)?;
+        let (mut psbt, meta) = self
+            .wallet_mut()
+            .construct_psbt(outpoints, &[], params.tx)?;
 
         let (beneficiary_vout, beneficiary_script) = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
