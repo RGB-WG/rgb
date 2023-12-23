@@ -170,17 +170,20 @@ impl Runtime {
             .as_ref()
             .or(iface.default_operation.as_ref())
             .ok_or(CompositionError::NoOperation)?;
+
         let assignment_name = invoice
             .assignment
             .as_ref()
             .or_else(|| {
-                iface
-                    .transitions
-                    .get(operation)
-                    .and_then(|t| t.default_assignment.as_ref())
+                iface.transitions.get(operation).and_then(|t| {
+                    t.default_assignment
+                        .as_ref()
+                        .and_then(|f| t.assignments.get(f).and_then(|arg| (&arg.name).into()))
+                })
             })
             .cloned()
             .ok_or(CompositionError::NoAssignment)?;
+
         let outputs = match invoice.owned_state {
             InvoiceState::Amount(amount) => {
                 let mut state = contract
