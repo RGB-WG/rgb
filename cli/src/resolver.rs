@@ -43,18 +43,7 @@ impl ResolveTx for PanickingResolver {
 }
 
 impl RgbArgs {
-    pub fn resolver(&self) -> impl ResolveTx + ResolveHeight {
-        #[derive(Default)]
-        struct DumbResolver();
-        impl ResolveHeight for DumbResolver {
-            type Error = Infallible;
-            fn resolve_anchor(&mut self, _: &XAnchor) -> Result<WitnessAnchor, Self::Error> {
-                todo!()
-            }
-        }
-        impl ResolveTx for DumbResolver {
-            fn resolve_bp_tx(&self, _: Layer1, _: Txid) -> Result<Tx, TxResolverError> { todo!() }
-        }
-        DumbResolver::default()
+    pub fn resolver(&self) -> Result<impl ResolveTx + ResolveHeight, esplora::Error> {
+        esplora::Builder::new(&self.resolver.esplora).build_blocking()
     }
 }

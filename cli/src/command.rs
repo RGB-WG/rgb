@@ -270,7 +270,7 @@ impl Exec for RgbArgs {
                             );
                         }
                         UniversalBindle::Contract(bindle) => {
-                            let mut resolver = self.resolver();
+                            let mut resolver = self.resolver()?;
                             let id = bindle.id();
                             let contract = bindle
                                 .unbindle()
@@ -714,7 +714,7 @@ impl Exec for RgbArgs {
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
             }
             Command::Validate { file } => {
-                let mut resolver = self.resolver();
+                let mut resolver = self.resolver()?;
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let status = match bindle
                     .unbindle()
@@ -728,7 +728,7 @@ impl Exec for RgbArgs {
             }
             Command::Accept { force, file } => {
                 let mut runtime = self.rgb_runtime(&config)?;
-                let mut resolver = self.resolver();
+                let mut resolver = self.resolver()?;
                 let bindle = Bindle::<Transfer>::load_file(file)?;
                 let transfer = bindle
                     .unbindle()

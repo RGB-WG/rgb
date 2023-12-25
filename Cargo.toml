@@ -69,7 +69,7 @@ strict_types = { workspace = true }
 bp-core = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
-bp-esplora = { workspace = true, optional = true }
+bp-esplora = { workspace = true, features = ["rgb"], optional = true }
 descriptors = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }

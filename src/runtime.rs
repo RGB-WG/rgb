@@ -88,6 +88,9 @@ pub enum RuntimeError {
     Bp(bpwallet::RuntimeError),
 
     #[from]
+    Esplora(esplora::Error),
+
+    #[from]
     Yaml(serde_yaml::Error),
 
     #[from]
