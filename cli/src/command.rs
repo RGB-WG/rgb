@@ -113,8 +113,13 @@ pub enum Command {
     /// Reports information about state of a contract
     #[display("state")]
     State {
+        /// Show all state - not just the one owned by the wallet
+        #[clap(short, long)]
+        all: bool,
+
         /// Contract identifier
         contract_id: ContractId,
+
         /// Interface to interpret the state data
         iface: String,
     },
@@ -362,7 +367,11 @@ impl Exec for RgbArgs {
                 println!("{bindle}");
             }
 
-            Command::State { contract_id, iface } => {
+            Command::State {
+                contract_id,
+                iface,
+                all,
+            } => {
                 let mut runtime = self.rgb_runtime(&config)?;
                 let bp_runtime = self.bp_runtime::<RgbDescr>(&config)?;
                 runtime.attach(bp_runtime.detach());
@@ -384,20 +393,22 @@ impl Exec for RgbArgs {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &runtime) {
                         for allocation in allocations {
-                            print!(
+                            println!(
                                 "    amount={}, utxo={}, witness={} # owned by the wallet",
                                 allocation.value, allocation.owner, allocation.witness
                             );
                         }
                     }
-                    if let Ok(allocations) =
-                        contract.fungible(owned.name.clone(), &FilterExclude(&runtime))
-                    {
-                        for allocation in allocations {
-                            print!(
-                                "    amount={}, utxo={}, witness={} # owner unknown",
-                                allocation.value, allocation.owner, allocation.witness
-                            );
+                    if *all {
+                        if let Ok(allocations) =
+                            contract.fungible(owned.name.clone(), &FilterExclude(&runtime))
+                        {
+                            for allocation in allocations {
+                                println!(
+                                    "    amount={}, utxo={}, witness={} # owner unknown",
+                                    allocation.value, allocation.owner, allocation.witness
+                                );
+                            }
                         }
                     }
                     // TODO: Print out other types of state
