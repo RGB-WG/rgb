@@ -310,7 +310,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.11.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#536e773c0eea4f1706aad4418921083bc75f6833"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#241eee511a7c584716b31eb5d897a94a9d8ce56e"
 dependencies = [
  "amplify",
  "chrono",
@@ -324,7 +324,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#536e773c0eea4f1706aad4418921083bc75f6833"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#241eee511a7c584716b31eb5d897a94a9d8ce56e"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#536e773c0eea4f1706aad4418921083bc75f6833"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#241eee511a7c584716b31eb5d897a94a9d8ce56e"
 dependencies = [
  "amplify",
  "base85",
@@ -395,7 +395,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#536e773c0eea4f1706aad4418921083bc75f6833"
+source = "git+https://github.com/BP-WG/bp-core?branch=doubleanchors#241eee511a7c584716b31eb5d897a94a9d8ce56e"
 dependencies = [
  "amplify",
  "baid58",
@@ -556,7 +556,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 [[package]]
 name = "commit_encoding_derive"
 version = "0.10.0"
-source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.11#6b634bccd96d2cb857a44ae48417f8e35ecb3de7"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.11#2ec2bca60028d12af5657580a350e292f9ff13eb"
 dependencies = [
  "amplify",
  "amplify_syn",
@@ -568,7 +568,7 @@ dependencies = [
 [[package]]
 name = "commit_verify"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.11#6b634bccd96d2cb857a44ae48417f8e35ecb3de7"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.11#2ec2bca60028d12af5657580a350e292f9ff13eb"
 dependencies = [
  "amplify",
  "commit_encoding_derive",
