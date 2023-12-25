@@ -76,6 +76,7 @@ impl RgbArgs {
         Ok(runtime)
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn resolver(&self) -> Result<Resolver, ResolverError> {
         Resolver::new(&self.resolver.esplora)
     }

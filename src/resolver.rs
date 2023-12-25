@@ -33,6 +33,7 @@ pub struct Resolver {
     terminal_txes: HashMap<Txid, Tx>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum AnchorResolverError {
@@ -45,6 +46,7 @@ pub enum AnchorResolverError {
 }
 
 impl Resolver {
+    #[allow(clippy::result_large_err)]
     pub fn new(url: &str) -> Result<Self, ResolverError> {
         let esplora_client = esplora::Builder::new(url).build_blocking()?;
         Ok(Self {
