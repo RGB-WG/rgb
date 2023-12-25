@@ -21,12 +21,13 @@
 
 use std::convert::Infallible;
 
+use amplify::confinement::Confined;
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::CloseMethod;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
-use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
+use rgbstd::containers::{Bindle, BuilderSeal, TerminalSeal, Transfer, VoutSeal};
 use rgbstd::interface::{ContractError, FilterIncludeAll};
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
@@ -288,23 +289,37 @@ impl Runtime {
                 .add_tapret_tweak(terminal.index, tapret_commitment)?;
         }
 
-        let beneficiary = match invoice.beneficiary {
+        let (beneficiary, terminal_seal) = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
                     .outputs()
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
+                let vout = Vout::from_u32(vout as u32);
                 let witness_txid = psbt.txid();
-                BuilderSeal::Revealed(XSeal::Bitcoin(
-                    Outpoint::new(witness_txid, Vout::from_u32(vout as u32)).into(),
-                ))
+                let method = self.wallet().seal_close_method();
+                let seal = XSeal::Bitcoin(Outpoint::new(witness_txid, vout).into());
+                (
+                    BuilderSeal::Revealed(seal),
+                    TerminalSeal::BitcoinWitnessVout(VoutSeal::new(method, vout)),
+                )
             }
-            Beneficiary::BlindedSeal(seal) => BuilderSeal::Concealed(seal),
+            Beneficiary::BlindedSeal(seal) => {
+                (BuilderSeal::Concealed(seal), TerminalSeal::ConcealedUtxo(seal))
+            }
         };
 
         self.stock_mut().consume(fascia)?;
-        let transfer = self.stock().transfer(contract_id, [beneficiary])?;
+        let mut transfer = self.stock().transfer(contract_id, [beneficiary])?;
+        let mut terminals = transfer.terminals.to_inner();
+        for terminal in terminals.values_mut() {
+            if terminal.seals.contains(&terminal_seal) {
+                // TODO: Store unsigned tx
+                terminal.tx = Some(psbt.to_unsigned_tx().into())
+            }
+        }
+        transfer.terminals = Confined::from_collection_unsafe(terminals);
 
         Ok(transfer)
     }
