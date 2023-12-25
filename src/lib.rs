@@ -31,7 +31,9 @@ extern crate serde_crate as serde;
 mod runtime;
 mod descriptor;
 mod pay;
+mod resolver;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapretKey};
 pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
+pub use resolver::{AnchorResolverError, Resolver, ResolverError};
 pub use runtime::{Runtime, RuntimeError};

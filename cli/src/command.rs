@@ -715,22 +715,23 @@ impl Exec for RgbArgs {
             Command::Validate { file } => {
                 let mut resolver = self.resolver()?;
                 let bindle = Bindle::<Transfer>::load_file(file)?;
-                let status = match bindle
-                    .unbindle()
-                    .validate(&mut resolver, self.general.network.is_testnet())
-                {
-                    Ok(consignment) => consignment.into_validation_status(),
-                    Err(consignment) => consignment.into_validation_status(),
-                }
-                .expect("just validated");
+                let consignment = bindle.unbindle();
+                resolver.add_terminals(&consignment);
+                let status =
+                    match consignment.validate(&mut resolver, self.general.network.is_testnet()) {
+                        Ok(consignment) => consignment.into_validation_status(),
+                        Err(consignment) => consignment.into_validation_status(),
+                    }
+                    .expect("just validated");
                 eprintln!("{status}");
             }
             Command::Accept { force, file } => {
                 let mut runtime = self.rgb_runtime(&config)?;
                 let mut resolver = self.resolver()?;
                 let bindle = Bindle::<Transfer>::load_file(file)?;
-                let transfer = bindle
-                    .unbindle()
+                let consignment = bindle.unbindle();
+                resolver.add_terminals(&consignment);
+                let transfer = consignment
                     .validate(&mut resolver, self.general.network.is_testnet())
                     .unwrap_or_else(|c| c);
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
