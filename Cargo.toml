@@ -1,19 +1,19 @@
 [workspace]
 members = [
-    "invoice",
+    "psbt",
     "cli",
     "fs",
     "."
 ]
 default-members = [
-    "invoice",
+    "psbt",
     "cli",
     "fs",
     "."
 ]
 
 [workspace.package]
-version = "0.11.0-alpha.2"
+version = "0.11.0-beta.2"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -26,16 +26,21 @@ license = "Apache-2.0"
 [workspace.dependencies]
 amplify = "4.5.0"
 baid58 = "0.4.4"
+commit_verify = "0.11.0-beta.2"
 strict_encoding = "2.6.1"
 strict_types = "1.6.3"
-bp-core = "0.11.0-beta.1"
-bp-seals = "0.11.0-beta.1"
-bp-std = "0.11.0-beta.2"
-bp-wallet = "0.11.0-beta.2"
-bp-utils = "0.11.0-beta.2"
-bp-esplora = "0.11.0-beta.1"
-rgb-std = { version = "0.11.0-beta.2", features = ["fs"] }
+bp-core = "0.11.0-beta.2"
+bp-seals = "0.11.0-beta.2"
+bp-std = "0.11.0-beta.3"
+bp-wallet = "0.11.0-beta.3"
+bp-util = "0.11.0-beta.3"
+bp-esplora = "0.11.0-beta.2"
+descriptors = "0.11.0-beta.2"
+psbt = { version = "0.11.0-beta.2", features = ["client-side-validation"] }
+rgb-std = { version = "0.11.0-beta.3", features = ["fs"] }
+rgb-psbt = { version = "0.11.0-beta.2", path = "psbt" }
 indexmap = "2.0.2"
+chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
@@ -60,24 +65,27 @@ name = "rgb_rt"
 [dependencies]
 amplify = { workspace = true }
 baid58 = { workspace = true }
+commit_verify = { workspace = true }
 strict_types = { workspace = true }
 bp-core = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
-descriptors = "0.11.0-beta.2"
+descriptors = { workspace = true }
 rgb-std = { workspace = true }
+rgb-psbt = { workspace = true }
 rgb-persist-fs = { version = "0.11.0-alpha", path = "fs" }
 indexmap = { workspace = true }
+chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
-default = []
+default = ["esplora"]
 all = ["esplora",  "serde", "log"]
 esplora = ["bp-esplora", "bp-wallet/esplora"]
-serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]
+serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]

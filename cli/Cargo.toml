@@ -20,15 +20,14 @@ path = "src/main.rs"
 amplify = { workspace = true }
 baid58 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
-commit_verify = "0.11.0-beta.1"
+commit_verify = { workspace = true }
 bp-seals = { workspace = true }
 bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true }
-bp-esplora = { workspace = true }
-bp-util = "0.11.0-beta.2"
+bp-util = { workspace = true }
+psbt = { workspace = true }
 rgb-std = { workspace = true, features = ["serde"] }
-rgb-invoice = { version = "0.11.0-alpha.2", path = "../invoice" }
-rgb-runtime = { version = "0.11.0-alpha.2", path = "..", features = ["log", "serde"] }
+rgb-runtime = { version = "0.11.0-beta.1", path = "..", features = ["esplora", "log", "serde"] }
 log = { workspace = true }
 env_logger = "0.10.1"
 clap = { version = "4.4.8", features = ["derive", "env"] }

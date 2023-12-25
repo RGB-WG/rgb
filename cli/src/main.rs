@@ -31,7 +31,6 @@ extern crate serde_crate as serde;
 
 mod command;
 mod args;
-mod resolver;
 
 use std::process::ExitCode;
 
@@ -41,7 +40,6 @@ use rgb_rt::RuntimeError;
 
 pub use crate::args::RgbArgs;
 pub use crate::command::Command;
-pub use crate::resolver::PanickingResolver;
 
 fn main() -> ExitCode {
     if let Err(err) = run() {

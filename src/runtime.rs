@@ -1,4 +1,4 @@
-// RGB smart contract wallet runtime
+// RGB wallet library for smart contracts on Bitcoin & Lightning network
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -26,15 +26,15 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::{fs, io};
 
+use amplify::IoError;
 use bpstd::{AddressNetwork, Network, XpubDerivable};
 use bpwallet::Wallet;
 use rgbfs::StockFs;
-use rgbstd::containers::{Contract, LoadError, Transfer};
+use rgbstd::containers::{Contract, LoadError, Transfer, XchainOutpoint};
 use rgbstd::interface::{BuilderError, OutpointFilter};
 use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveTx};
-use rgbstd::Output;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
@@ -43,7 +43,8 @@ use crate::{DescriptorRgb, RgbDescr};
 #[display(inner)]
 pub enum RuntimeError {
     #[from]
-    Io(io::Error),
+    #[from(io::Error)]
+    Io(IoError),
 
     #[from]
     Serialize(SerializeError),
@@ -63,6 +64,9 @@ pub enum RuntimeError {
 
     #[from]
     Builder(BuilderError),
+
+    #[from]
+    PsbtDecode(psbt::DecodeError),
 
     /// wallet with id '{0}' is not known to the system.
     #[display(doc_comments)]
@@ -86,6 +90,10 @@ pub enum RuntimeError {
     #[from(bpwallet::LoadError)]
     Bp(bpwallet::RuntimeError),
 
+    #[cfg(feature = "esplora")]
+    #[from]
+    Esplora(esplora::Error),
+
     #[from]
     Yaml(serde_yaml::Error),
 
@@ -100,6 +108,7 @@ impl From<Infallible> for RuntimeError {
 #[derive(Getters)]
 pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
     stock_path: PathBuf,
+    #[getter(as_mut)]
     stock: Stock,
     #[getter(as_mut)]
     wallet: Wallet<K, D /* TODO: Add layer 2 */>,
@@ -118,10 +127,11 @@ impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
 }
 
 impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
-    fn include_output(&self, output: Output) -> bool {
+    fn include_output(&self, output: impl Into<XchainOutpoint>) -> bool {
+        let output = output.into();
         self.wallet
             .coins()
-            .any(|utxo| Output::Bitcoin(utxo.outpoint) == output)
+            .any(|utxo| XchainOutpoint::Bitcoin(utxo.outpoint) == output)
     }
 }
 
@@ -223,37 +233,9 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
 
     pub fn attach(&mut self, wallet: Wallet<K, D>) { self.wallet = wallet }
 
-    pub fn descriptor(&self) -> &D { self.wallet.deref() }
-
     pub fn unload(self) {}
 
     pub fn address_network(&self) -> AddressNetwork { self.network.into() }
-
-    /*
-    pub fn create_wallet(
-        &mut self,
-        name: &Ident,
-        xpub: ExtendedPubKey,
-    ) -> Result<&RgbDescr, RuntimeError> {
-        let descr = RgbDescr::Tapret(Tapret {
-            xpub,
-            taprets: empty!(),
-        });
-        let entry = match self.wallets.entry(name.clone()) {
-            Entry::Occupied(_) => return Err(format!("wallet named {name} already exists").into()),
-            Entry::Vacant(entry) => entry.insert(descr),
-        };
-        Ok(entry)
-    }
-
-    pub fn wallet(&mut self, name: &Ident) -> Result<RgbWallet, RuntimeError> {
-        let descr = self
-            .wallets
-            .get(name)
-            .ok_or(RuntimeError::WalletUnknown(name.clone()))?;
-        Ok(RgbWallet::new(descr.clone()))
-    }
-    */
 
     pub fn import_contract<R: ResolveHeight>(
         &mut self,
