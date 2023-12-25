@@ -35,6 +35,7 @@ use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
+use rgbstd::validation::Validity;
 use rgbstd::XSeal;
 use seals::txout::{CloseMethod, ExplicitSeal};
 use strict_types::encoding::{FieldName, TypeName};
@@ -820,7 +821,11 @@ impl Exec for RgbArgs {
                         Err(consignment) => consignment.into_validation_status(),
                     }
                     .expect("just validated");
-                eprintln!("{status}");
+                if status.validity() == Validity::Valid {
+                    eprintln!("The provided consignment is valid")
+                } else {
+                    eprintln!("{status}");
+                }
             }
             Command::Accept { force, file } => {
                 let mut runtime = self.rgb_runtime(&config)?;
