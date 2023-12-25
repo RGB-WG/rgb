@@ -202,17 +202,6 @@ pub enum Command {
         /// File with the transfer consignment
         file: PathBuf,
     },
-
-    /// Set first opret/tapret output to host a commitment
-    #[display("set-host")]
-    SetHost {
-        /// Method for single-use-seals
-        #[arg(long, default_value = "tapret1st")]
-        method: CloseMethod,
-
-        /// PSBT file
-        psbt_file: PathBuf,
-    },
 }
 
 impl Exec for RgbArgs {
@@ -744,51 +733,6 @@ impl Exec for RgbArgs {
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
                 runtime.accept_transfer(transfer, &mut resolver, *force)?;
                 eprintln!("Transfer accepted into the stash");
-            }
-            #[allow(unused_variables)]
-            Command::SetHost { method, psbt_file } => {
-                todo!();
-                /*
-                let psbt_data = fs::read(&psbt_file)?;
-                let mut psbt = Psbt::deserialize(&psbt_data)?;
-                let mut psbt_modified = false;
-                match method {
-                    CloseMethod::OpretFirst => {
-                        psbt.unsigned_tx
-                            .output
-                            .iter()
-                            .zip(&mut psbt.outputs)
-                            .find(|(o, outp)| {
-                                o.script_pubkey.is_op_return() && !outp.is_opret_host()
-                            })
-                            .and_then(|(_, outp)| {
-                                psbt_modified = true;
-                                outp.set_opret_host().ok()
-                            });
-                    }
-                    CloseMethod::TapretFirst => {
-                        psbt.unsigned_tx
-                            .output
-                            .iter()
-                            .zip(&mut psbt.outputs)
-                            .find(|(o, outp)| {
-                                o.script_pubkey.is_v1_p2tr() && !outp.is_tapret_host()
-                            })
-                            .and_then(|(_, outp)| {
-                                psbt_modified = true;
-                                outp.set_tapret_host().ok()
-                            });
-                    }
-                    _ => {}
-                };
-                fs::write(&psbt_file, psbt.serialize())?;
-                if psbt_modified {
-                    eprintln!(
-                        "PSBT file '{}' is updated with {method} host now set.",
-                        psbt_file.display()
-                    );
-                }
-                 */
             }
         }
 
