@@ -90,6 +90,7 @@ pub enum RuntimeError {
     #[from(bpwallet::LoadError)]
     Bp(bpwallet::RuntimeError),
 
+    #[cfg(feature = "esplora")]
     #[from]
     Esplora(esplora::Error),
 

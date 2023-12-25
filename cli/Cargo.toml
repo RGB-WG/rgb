@@ -27,7 +27,7 @@ bp-wallet = { workspace = true }
 bp-util = { workspace = true }
 psbt = { workspace = true }
 rgb-std = { workspace = true, features = ["serde"] }
-rgb-runtime = { version = "0.11.0-alpha.2", path = "..", features = ["log", "serde"] }
+rgb-runtime = { version = "0.11.0-alpha.2", path = "..", features = ["esplora", "log", "serde"] }
 log = { workspace = true }
 env_logger = "0.10.1"
 clap = { version = "4.4.8", features = ["derive", "env"] }

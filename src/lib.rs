@@ -31,9 +31,11 @@ extern crate serde_crate as serde;
 mod runtime;
 mod descriptor;
 mod pay;
+#[cfg(feature = "esplora")]
 mod resolver;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
 pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
+#[cfg(feature = "esplora")]
 pub use resolver::{AnchorResolverError, Resolver, ResolverError};
 pub use runtime::{Runtime, RuntimeError};

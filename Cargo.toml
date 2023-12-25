@@ -82,7 +82,7 @@ serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
-default = []
+default = ["esplora"]
 all = ["esplora",  "serde", "log"]
 esplora = ["bp-esplora", "bp-wallet/esplora"]
 serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde",]
