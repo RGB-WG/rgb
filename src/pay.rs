@@ -249,6 +249,9 @@ impl Runtime {
             output.set_opret_host().expect("just created");
         }
 
+        psbt.sort_outputs_by(|output| !output.is_tapret_host() && !output.is_opret_host())
+            .expect("psbt must be modifiable at this stage");
+        psbt.complete_construction();
         psbt.rgb_embed(batch)?;
         Ok((psbt, meta))
     }
@@ -260,6 +263,8 @@ impl Runtime {
         psbt: &mut Psbt,
     ) -> Result<Bindle<Transfer>, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
+
+        let fascia = psbt.rgb_commit()?;
 
         let beneficiary = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
@@ -276,7 +281,6 @@ impl Runtime {
             Beneficiary::BlindedSeal(seal) => BuilderSeal::Concealed(seal),
         };
 
-        let fascia = psbt.rgb_commit()?;
         self.stock_mut().consume(fascia)?;
         let transfer = self.stock().transfer(contract_id, [beneficiary])?;
 

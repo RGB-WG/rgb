@@ -583,7 +583,6 @@ impl Exec for RgbArgs {
                 transfer.save(out_file)?;
 
                 let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
-                eprintln!("{}", serde_yaml::to_string(&psbt).unwrap());
                 match psbt_file {
                     Some(file_name) => {
                         let mut psbt_file = File::create(file_name)?;
@@ -657,6 +656,11 @@ impl Exec for RgbArgs {
                             serde_yaml::to_string(suppl)?,
                         )?;
                     }
+                    let tags = runtime.contract_asset_tags(id)?;
+                    fs::write(
+                        format!("{root_dir}/stash/geneses/{id}.tags.yaml"),
+                        serde_yaml::to_string(tags)?,
+                    )?;
                 }
                 for id in runtime.bundle_ids()? {
                     fs::write(
@@ -666,8 +670,8 @@ impl Exec for RgbArgs {
                 }
                 for id in runtime.witness_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/anchors/{id}.yaml"),
-                        serde_yaml::to_string(runtime.anchor(id)?)?,
+                        format!("{root_dir}/stash/anchors/{id}.debug"),
+                        format!("{:#?}", runtime.anchor(id)?),
                     )?;
                 }
                 for id in runtime.extension_ids()? {
