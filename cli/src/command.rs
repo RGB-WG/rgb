@@ -100,6 +100,15 @@ pub enum Command {
         file: Option<PathBuf>,
     },
 
+    /// Convert binary RGB file into a text armored version
+    #[display("convert")]
+    Armor {
+        /// File with RGB data
+        ///
+        /// If not provided, assumes `-a` and reads the data from STDIN
+        file: PathBuf,
+    },
+
     /// Reports information about state of a contract
     #[display("state")]
     State {
@@ -345,6 +354,11 @@ impl Exec for RgbArgs {
                 } else {
                     println!("{bindle}");
                 }
+            }
+
+            Command::Armor { file } => {
+                let bindle = UniversalBindle::load_file(file)?;
+                println!("{bindle}");
             }
 
             Command::State { contract_id, iface } => {
