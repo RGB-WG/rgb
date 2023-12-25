@@ -27,7 +27,7 @@ use std::str::FromStr;
 use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::{Sats, Txid};
-use psbt::PsbtVer;
+use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
@@ -134,6 +134,47 @@ pub enum Command {
 
         /// Value to transfer
         value: u64,
+    },
+
+    /// Prepare PSBT file for transferring RGB assets. In the most of cases you
+    /// need to use `transfer` command instead of `prepare` and `consign`.
+    #[display("prepare")]
+    Prepare {
+        /// Encode PSBT as V2
+        #[clap(short = '2')]
+        v2: bool,
+
+        /// Method for single-use-seals
+        #[clap(long, default_value = "tapret1st")]
+        method: CloseMethod,
+
+        /// Amount of satoshis which should be paid to the address-based
+        /// beneficiary
+        #[clap(long, default_value = "2000")]
+        sats: Sats,
+
+        /// Invoice data
+        invoice: RgbInvoice,
+
+        /// Fee
+        fee: Sats,
+
+        /// Name of PSBT file to save. If not given, prints PSBT to STDOUT
+        psbt: Option<PathBuf>,
+    },
+
+    /// Prepare consignment for transferring RGB assets. In the most of cases
+    /// you need to use `transfer` command instead of `prepare` and `consign`.
+    #[display("prepare")]
+    Consign {
+        /// Invoice data
+        invoice: RgbInvoice,
+
+        /// Name of PSBT file containing prepared transfer data
+        psbt: PathBuf,
+
+        /// File for generated transfer consignment
+        consignment: PathBuf,
     },
 
     /// Transfer RGB assets
@@ -561,7 +602,49 @@ impl Exec for RgbArgs {
                 };
                 println!("{invoice}");
             }
-            #[allow(unused_variables)]
+            Command::Prepare {
+                v2,
+                method,
+                invoice,
+                fee,
+                sats,
+                psbt: psbt_file,
+            } => {
+                let mut runtime = self.rgb_runtime(&config)?;
+                // TODO: Support lock time and RBFs
+                let params = TransferParams::with(*fee, *sats);
+
+                let (psbt, _) = runtime
+                    .construct_psbt(invoice, *method, params)
+                    .map_err(|err| err.to_string())?;
+
+                let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
+                match psbt_file {
+                    Some(file_name) => {
+                        let mut psbt_file = File::create(file_name)?;
+                        psbt.encode(ver, &mut psbt_file)?;
+                    }
+                    None => match ver {
+                        PsbtVer::V0 => println!("{psbt}"),
+                        PsbtVer::V2 => println!("{psbt:#}"),
+                    },
+                }
+            }
+            Command::Consign {
+                invoice,
+                psbt: psbt_name,
+                consignment: out_file,
+            } => {
+                let mut runtime = self.rgb_runtime(&config)?;
+                let mut psbt_file = File::open(psbt_name)?;
+                let mut psbt = Psbt::decode(&mut psbt_file)?;
+                let transfer = runtime
+                    .transfer(invoice, &mut psbt)
+                    .map_err(|err| err.to_string())?;
+                let mut psbt_file = File::create(psbt_name)?;
+                psbt.encode(psbt.version, &mut psbt_file)?;
+                transfer.save(out_file)?;
+            }
             Command::Transfer {
                 v2,
                 method,
@@ -575,7 +658,7 @@ impl Exec for RgbArgs {
                 // TODO: Support lock time and RBFs
                 let params = TransferParams::with(*fee, *sats);
 
-                let (psbt, meta, transfer) = runtime
+                let (psbt, _, transfer) = runtime
                     .pay(invoice, *method, params)
                     .map_err(|err| err.to_string())?;
 

@@ -65,6 +65,9 @@ pub enum RuntimeError {
     #[from]
     Builder(BuilderError),
 
+    #[from]
+    PsbtDecode(psbt::DecodeError),
+
     /// wallet with id '{0}' is not known to the system.
     #[display(doc_comments)]
     WalletUnknown(Ident),
