@@ -24,6 +24,8 @@
 use bp_util::{Config, DescriptorOpts};
 use bpstd::XpubDerivable;
 use rgb_rt::{RgbDescr, Runtime, RuntimeError, TapretKey};
+use rgbstd::resolvers::ResolveHeight;
+use rgbstd::validation::ResolveTx;
 
 use crate::Command;
 
@@ -74,5 +76,9 @@ impl RgbArgs {
         eprintln!("success");
 
         Ok(runtime)
+    }
+
+    pub fn resolver(&self) -> Result<impl ResolveTx + ResolveHeight, esplora::Error> {
+        esplora::Builder::new(&self.resolver.esplora).build_blocking()
     }
 }

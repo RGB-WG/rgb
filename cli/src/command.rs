@@ -40,7 +40,6 @@ use seals::txout::{CloseMethod, ExplicitSeal};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
-use crate::resolver::PanickingResolver;
 use crate::RgbArgs;
 
 // TODO: For now, serde implementation doesn't work for consignments due to
@@ -495,7 +494,7 @@ impl Exec for RgbArgs {
 
                 let contract = builder.issue_contract().expect("failure issuing contract");
                 let id = contract.contract_id();
-                let mut resolver = PanickingResolver;
+                let mut resolver = self.resolver()?;
                 let validated_contract = contract
                     .validate(&mut resolver, self.general.network.is_testnet())
                     .map_err(|consignment| {
