@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 use std::str::FromStr;
 use std::{iter, vec};
 
@@ -29,14 +29,24 @@ use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bpstd::{
     CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase,
-    IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, Terminal,
-    XOnlyPk, XpubDerivable, XpubSpec,
+    IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, TapScript,
+    TapTree, Terminal, XOnlyPk, XpubDerivable, XpubSpec,
 };
+use commit_verify::CommitVerify;
 use descriptors::{Descriptor, SpkClass, StdDescr, TrKey};
 use indexmap::IndexMap;
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
+#[display("terminal derivation /10/{0} already has a taptweak assigned")]
+pub struct TapTweakAlreadyAssigned(pub NormalIndex);
+
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
     fn seal_close_method(&self) -> CloseMethod;
+    fn add_tapret_tweak(
+        &mut self,
+        index: NormalIndex,
+        tweak: TapretCommitment,
+    ) -> Result<(), TapTweakAlreadyAssigned>;
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
@@ -96,12 +106,13 @@ impl From<RgbKeychain> for Keychain {
     fn from(keychain: RgbKeychain) -> Self { Keychain::from(keychain as u8) }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "serde_crate", rename_all = "camelCase")]
 pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
     pub internal_key: K,
-    pub tweaks: BTreeMap<NormalIndex, TapretCommitment>,
+    // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
+    pub tweaks: HashMap<NormalIndex, TapretCommitment>,
 }
 
 impl<K: DeriveXOnly> TapretKey<K> {
@@ -127,8 +138,16 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
     }
 
     fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
-        // TODO: Apply tweaks
+        let change = change.into();
+        let index = index.into();
         let internal_key = self.internal_key.derive(change, index);
+        if change.into_inner() == RgbKeychain::Tapret as u8 {
+            if let Some(tweak) = self.tweaks.get(&index) {
+                let script_commitment = TapScript::commit(tweak);
+                let tap_tree = TapTree::with_single_leaf(script_commitment);
+                return DerivedScript::TaprootScript(internal_key.into(), tap_tree);
+            }
+        }
         DerivedScript::TaprootKeyOnly(internal_key.into())
     }
 }
@@ -182,9 +201,21 @@ impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
 
 impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
     fn seal_close_method(&self) -> CloseMethod { CloseMethod::TapretFirst }
+
+    fn add_tapret_tweak(
+        &mut self,
+        index: NormalIndex,
+        tweak: TapretCommitment,
+    ) -> Result<(), TapTweakAlreadyAssigned> {
+        if self.tweaks.contains_key(&index) {
+            return Err(TapTweakAlreadyAssigned(index));
+        }
+        self.tweaks.insert(index, tweak);
+        Ok(())
+    }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug, From)]
+#[derive(Clone, Eq, PartialEq, Debug, From)]
 #[derive(Serialize, Deserialize)]
 #[serde(
     crate = "serde_crate",
@@ -272,6 +303,16 @@ where Self: Derive<DerivedScript>
     fn seal_close_method(&self) -> CloseMethod {
         match self {
             RgbDescr::TapretKey(d) => d.seal_close_method(),
+        }
+    }
+
+    fn add_tapret_tweak(
+        &mut self,
+        index: NormalIndex,
+        tweak: TapretCommitment,
+    ) -> Result<(), TapTweakAlreadyAssigned> {
+        match self {
+            RgbDescr::TapretKey(d) => d.add_tapret_tweak(index, tweak),
         }
     }
 }

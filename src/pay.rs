@@ -21,10 +21,11 @@
 
 use std::convert::Infallible;
 
+use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::CloseMethod;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
-use psbt::{CommitError, EmbedError, Psbt, RgbPsbt};
+use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
 use rgbstd::interface::{ContractError, FilterIncludeAll};
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
@@ -33,7 +34,7 @@ use rgbstd::persistence::{
 };
 use rgbstd::XSeal;
 
-use crate::{RgbKeychain, Runtime};
+use crate::{DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -111,6 +112,17 @@ pub enum CompletionError {
     /// the provided PSBT doesn't pay any sats to the RGB beneficiary address.
     NoBeneficiaryOutput,
 
+    /// the provided PSBT has conflicting descriptor in the taptweak output.
+    InconclusiveDerivation,
+
+    #[from]
+    #[display(inner)]
+    MultipleTweaks(TapTweakAlreadyAssigned),
+
+    #[from]
+    #[display(inner)]
+    TapretKey(TapretKeyError),
+
     #[from]
     #[display(inner)]
     Inventory(InventoryError<Infallible>),
@@ -158,7 +170,7 @@ impl Runtime {
         &mut self,
         invoice: &RgbInvoice,
         method: CloseMethod,
-        params: TransferParams,
+        mut params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
 
@@ -207,20 +219,21 @@ impl Runtime {
             }
             _ => return Err(CompositionError::Unsupported),
         };
-        let beneficiary = match invoice.beneficiary {
-            Beneficiary::BlindedSeal(_) => BpBeneficiary::with_max(
-                self.wallet_mut()
-                    .next_address(RgbKeychain::for_method(method), true),
-            ),
-            Beneficiary::WitnessVoutBitcoin(addr) => BpBeneficiary::new(addr, params.min_amount),
+        let beneficiaries = match invoice.beneficiary {
+            Beneficiary::BlindedSeal(_) => vec![],
+            Beneficiary::WitnessVoutBitcoin(addr) => {
+                vec![BpBeneficiary::new(addr, params.min_amount)]
+            }
         };
         let outpoints = outputs
             .iter()
             .filter_map(|o| o.reduce_to_bp())
             .map(|o| Outpoint::new(o.txid, o.vout));
+        params.tx.change_keychain = RgbKeychain::for_method(method).into();
         let (mut psbt, meta) =
-            self.wallet_mut()
-                .construct_psbt(outpoints, &[beneficiary], params.tx)?;
+            self.wallet()
+                .construct_psbt(outpoints, &beneficiaries, params.tx)?;
+        // TODO: Increase change index
 
         let (beneficiary_vout, beneficiary_script) = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
@@ -242,6 +255,7 @@ impl Runtime {
                 .outputs_mut()
                 .find(|o| o.script.is_p2tr() && o.script != beneficiary_script)
                 .ok_or(CompositionError::TapretRequired)?;
+            // TODO: Add descriptor id to the tapret host data
             output.set_tapret_host().expect("just created");
         }
         if methods.has_opret_first() {
@@ -265,6 +279,14 @@ impl Runtime {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
         let fascia = psbt.rgb_commit()?;
+        if let Some(output) = psbt.dbc_output::<TapretProof>() {
+            let terminal = output
+                .terminal_derivation()
+                .ok_or(CompletionError::InconclusiveDerivation)?;
+            let tapret_commitment = output.tapret_commitment()?;
+            self.wallet_mut()
+                .add_tapret_tweak(terminal.index, tapret_commitment)?;
+        }
 
         let beneficiary = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {

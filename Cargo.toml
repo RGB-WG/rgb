@@ -65,6 +65,7 @@ name = "rgb_rt"
 [dependencies]
 amplify = { workspace = true }
 baid58 = { workspace = true }
+commit_verify = { workspace = true }
 strict_types = { workspace = true }
 bp-core = { workspace = true }
 bp-std = { workspace = true }
