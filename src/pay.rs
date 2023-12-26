@@ -23,17 +23,17 @@ use std::convert::Infallible;
 
 use amplify::confinement::Confined;
 use bp::dbc::tapret::TapretProof;
-use bp::seals::txout::CloseMethod;
+use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
-use rgbstd::containers::{Bindle, BuilderSeal, TerminalSeal, Transfer, VoutSeal};
+use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
 use rgbstd::interface::{ContractError, FilterIncludeAll};
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
-use rgbstd::XSeal;
+use rgbstd::{WitnessId, XSeal};
 
 use crate::{DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned};
 
@@ -289,7 +289,8 @@ impl Runtime {
                 .add_tapret_tweak(terminal.index, tapret_commitment)?;
         }
 
-        let (beneficiary, terminal_seal) = match invoice.beneficiary {
+        let witness_txid = psbt.txid();
+        let beneficiary = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
@@ -297,25 +298,23 @@ impl Runtime {
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let witness_txid = psbt.txid();
                 let method = self.wallet().seal_close_method();
-                let seal = XSeal::Bitcoin(Outpoint::new(witness_txid, vout).into());
-                (
-                    BuilderSeal::Revealed(seal),
-                    TerminalSeal::BitcoinWitnessVout(VoutSeal::new(method, vout)),
-                )
+                let seal =
+                    XSeal::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
+                BuilderSeal::Revealed(seal)
             }
-            Beneficiary::BlindedSeal(seal) => {
-                (BuilderSeal::Concealed(seal), TerminalSeal::ConcealedUtxo(seal))
-            }
+            Beneficiary::BlindedSeal(seal) => BuilderSeal::Concealed(seal),
         };
 
         self.stock_mut().consume(fascia)?;
         let mut transfer = self.stock().transfer(contract_id, [beneficiary])?;
         let mut terminals = transfer.terminals.to_inner();
-        for terminal in terminals.values_mut() {
-            if terminal.seals.contains(&terminal_seal) {
-                // TODO: Store unsigned tx
+        for (bundle_id, terminal) in terminals.iter_mut() {
+            let Some(ab) = transfer.anchored_bundle(*bundle_id) else {
+                continue;
+            };
+            if ab.anchor.witness_id() == WitnessId::Bitcoin(witness_txid) {
+                // TODO: Use unsigned tx
                 terminal.tx = Some(psbt.to_unsigned_tx().into())
             }
         }
