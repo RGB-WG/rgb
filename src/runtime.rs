@@ -35,6 +35,7 @@ use rgbstd::interface::{BuilderError, OutpointFilter};
 use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveTx};
+use rgbstd::ContractId;
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
@@ -129,6 +130,21 @@ impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
         self.wallet()
             .coins()
             .any(|utxo| XchainOutpoint::Bitcoin(utxo.outpoint) == output)
+    }
+}
+
+pub struct ContractOutpointsFilter<'runtime, D: DescriptorRgb<K>, K> {
+    pub contract_id: ContractId,
+    pub filter: &'runtime Runtime<D, K>,
+}
+
+impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilter<'runtime, D, K> {
+    fn include_output(&self, output: impl Into<XchainOutpoint>) -> bool {
+        let output = output.into();
+        if !self.filter.include_output(output) {
+            return false;
+        }
+        matches!(self.filter.stock.state_for_outputs(self.contract_id, [output]), Ok(list) if !list.is_empty())
     }
 }
 

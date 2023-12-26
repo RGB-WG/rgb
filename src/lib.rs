@@ -38,4 +38,4 @@ pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssign
 pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
 #[cfg(feature = "esplora")]
 pub use resolver::{AnchorResolverError, Resolver, ResolverError};
-pub use runtime::{Runtime, RuntimeError};
+pub use runtime::{ContractOutpointsFilter, Runtime, RuntimeError};

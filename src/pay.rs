@@ -28,14 +28,16 @@ use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
-use rgbstd::interface::{ContractError, FilterIncludeAll};
+use rgbstd::interface::ContractError;
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
 use rgbstd::{WitnessId, XSeal};
 
-use crate::{DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned};
+use crate::{
+    ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
+};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -199,9 +201,11 @@ impl Runtime {
 
         let outputs = match invoice.owned_state {
             InvoiceState::Amount(amount) => {
-                let mut state = contract
-                    .fungible(assignment_name, &FilterIncludeAll)?
-                    .into_inner();
+                let filter = ContractOutpointsFilter {
+                    contract_id,
+                    filter: self,
+                };
+                let mut state = contract.fungible(assignment_name, &filter)?.into_inner();
                 state.sort_by_key(|a| a.value);
                 let mut sum = 0u64;
                 state
