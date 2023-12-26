@@ -52,16 +52,15 @@ Next, you need to install developer components, which are OS-specific:
 
 Finally, install RGB command-line utility shipped with this repo by running
 ```
-cargo install rgb-contracts --all-features
+cargo install rgb-wallet
 ```
 
 To use the library from other rust code add dependency to the `Cargo.toml` file:
 ```toml
 [dependencies]
-rgb-contracts = "0.10"
+rgb-std = "0.11.0-beta.3" # use the latest version
+rgb-runtime = "0.11.0-beta.1" # use the latest version
 ```
-
-Then all RGB library main components can be imported with `use rgb::prelude::*`.
 
 
 ## Using command-line
