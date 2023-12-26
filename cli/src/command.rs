@@ -63,7 +63,7 @@ pub enum InspectFormat {
 pub enum Command {
     #[clap(flatten)]
     #[display(inner)]
-    Bp(bp_util::Command),
+    General(bp_util::Command),
 
     /// Prints out list of known RGB schemata
     Schemata,
@@ -122,6 +122,13 @@ pub enum Command {
 
         /// Interface to interpret the state data
         iface: String,
+    },
+
+    /// Print operation history
+    #[display("history")]
+    History {
+        /// Contract identifier
+        contract_id: Option<ContractId>,
     },
 
     /// Issues new contract
@@ -265,7 +272,7 @@ impl Exec for RgbArgs {
 
     fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
         match &self.command {
-            Command::Bp(cmd) => {
+            Command::General(cmd) => {
                 return self
                     .inner
                     .translate(cmd)
@@ -294,6 +301,10 @@ impl Exec for RgbArgs {
                 for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
+            }
+
+            Command::History { contract_id } => {
+                todo!()
             }
 
             Command::Import { armored, file } => {

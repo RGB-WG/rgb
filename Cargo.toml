@@ -89,3 +89,12 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descri
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
+bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
