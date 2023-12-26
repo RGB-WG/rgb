@@ -431,7 +431,7 @@ dependencies = [
 [[package]]
 name = "bp-util"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#8e71ee890b67afcdea38587ae97779a8d52b60be"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#c042930e286176bae36a61b88cea45901b29de11"
 dependencies = [
  "amplify",
  "base64",
@@ -453,7 +453,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#8e71ee890b67afcdea38587ae97779a8d52b60be"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#c042930e286176bae36a61b88cea45901b29de11"
 dependencies = [
  "amplify",
  "bp-esplora",

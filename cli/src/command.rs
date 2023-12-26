@@ -131,6 +131,10 @@ pub enum Command {
         contract_id: Option<ContractId>,
     },
 
+    /// Display all known UTXOs belonging to this wallet
+    #[display("utxos")]
+    Utxos,
+
     /// Issues new contract
     #[display("issue")]
     Issue {
@@ -273,11 +277,7 @@ impl Exec for RgbArgs {
     fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
         match &self.command {
             Command::General(cmd) => {
-                return self
-                    .inner
-                    .translate(cmd)
-                    .exec(config, "rgb")
-                    .map_err(RuntimeError::from);
+                self.inner.translate(cmd).exec(config, "rgb")?;
             }
             Command::Schemata => {
                 let runtime = self.rgb_runtime(&config)?;
@@ -301,6 +301,15 @@ impl Exec for RgbArgs {
                 for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
+            }
+
+            Command::Utxos => {
+                self.inner
+                    .translate(&bp_util::BpCommand::Balance {
+                        addr: true,
+                        utxo: true,
+                    })
+                    .exec(config, "rgb")?;
             }
 
             Command::History { contract_id } => {
