@@ -311,8 +311,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.11.0-beta.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "190ac89a2a3c79d5bfb677f48e5393691832c540973341831572edaffdce0881"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#50630d40828c522f78066c6ca473f0f3291b977d"
 dependencies = [
  "amplify",
  "chrono",
@@ -326,8 +325,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.11.0-beta.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0143f6c7399cb6d0003407e6de197a03b3b42b34380fab02c8fecaf4431b061"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#50630d40828c522f78066c6ca473f0f3291b977d"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -343,8 +341,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.11.0-beta.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e3e04649c77079cfd1466ba14a62c83585053bb61d294578a39fcfe38f402db"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#50630d40828c522f78066c6ca473f0f3291b977d"
 dependencies = [
  "amplify",
  "base85",
@@ -400,8 +397,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.11.0-beta.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1e4955315fad858472320ee5a7fba8a35c61c3928bdacb581931e23d4f25c7b"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#50630d40828c522f78066c6ca473f0f3291b977d"
 dependencies = [
  "amplify",
  "baid58",
@@ -1530,7 +1526,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#9ca43de7321429bc3de1a9231a0ad4a3e4fa3a6c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#72393421592dbef2dbf36ebe851c280bc69e2ff0"
 dependencies = [
  "amplify",
  "baid58",
@@ -1591,6 +1587,7 @@ dependencies = [
  "rgb-psbt",
  "rgb-std",
  "serde",
+ "serde_with",
  "serde_yaml",
  "strict_types",
 ]
@@ -1598,7 +1595,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#9ca43de7321429bc3de1a9231a0ad4a3e4fa3a6c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#72393421592dbef2dbf36ebe851c280bc69e2ff0"
 dependencies = [
  "amplify",
  "baid58",

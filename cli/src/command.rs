@@ -65,6 +65,10 @@ pub enum Command {
     #[display(inner)]
     General(bp_util::Command),
 
+    #[clap(flatten)]
+    #[display(inner)]
+    Debug(DebugCommand),
+
     /// Prints out list of known RGB schemata
     Schemata,
     /// Prints out list of known RGB interfaces
@@ -132,7 +136,6 @@ pub enum Command {
     },
 
     /// Display all known UTXOs belonging to this wallet
-    #[display("utxos")]
     Utxos,
 
     /// Issues new contract
@@ -270,6 +273,13 @@ pub enum Command {
     },
 }
 
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
+#[display(lowercase)]
+#[clap(hide = true)]
+pub enum DebugCommand {
+    Taprets,
+}
+
 impl Exec for RgbArgs {
     type Error = RuntimeError;
     const CONF_FILE_NAME: &'static str = "rgb.toml";
@@ -278,6 +288,13 @@ impl Exec for RgbArgs {
         match &self.command {
             Command::General(cmd) => {
                 self.inner.translate(cmd).exec(config, "rgb")?;
+                None
+            }
+            Command::Debug(DebugCommand::Taprets) => {
+                let runtime = self.rgb_runtime(&config)?;
+                for (witness_id, tapret) in runtime.taprets()? {
+                    println!("{witness_id}\t{tapret}");
+                }
                 None
             }
             Command::Schemata => {

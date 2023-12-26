@@ -79,6 +79,7 @@ indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
+serde_with = "3.4.0" # TODO: make optional
 log = { workspace = true, optional = true }
 
 [features]
@@ -91,12 +92,16 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descri
 features = [ "all" ]
 
 [patch.crates-io]
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
 bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
