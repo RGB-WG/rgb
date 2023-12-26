@@ -232,9 +232,8 @@ impl Runtime {
             .map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(method).into();
         let (mut psbt, meta) =
-            self.wallet()
+            self.wallet_mut()
                 .construct_psbt(outpoints, &beneficiaries, params.tx)?;
-        // TODO: Increase change index
 
         let (beneficiary_vout, beneficiary_script) = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
@@ -286,7 +285,7 @@ impl Runtime {
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
             self.wallet_mut()
-                .add_tapret_tweak(terminal.index, tapret_commitment)?;
+                .add_tapret_tweak(terminal, tapret_commitment)?;
         }
 
         let witness_txid = psbt.txid();

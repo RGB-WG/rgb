@@ -42,6 +42,7 @@ rgb-psbt = { version = "0.11.0-beta.2", path = "psbt" }
 indexmap = "2.0.2"
 chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
+serde_with = "3.4.0"
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 
@@ -79,14 +80,14 @@ indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
-serde_with = "3.4.0" # TODO: make optional
+serde_with = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
 default = ["esplora"]
 all = ["esplora",  "serde", "log"]
 esplora = ["bp-esplora", "bp-wallet/esplora"]
-serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
+serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
