@@ -28,7 +28,7 @@ use amplify::confinement::U16;
 use bp_util::{Config, Exec};
 use bpstd::{Sats, Txid};
 use psbt::{Psbt, PsbtVer};
-use rgb_rt::{DescriptorRgb, RgbDescr, RgbKeychain, RuntimeError, TransferParams};
+use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
@@ -278,6 +278,7 @@ impl Exec for RgbArgs {
         match &self.command {
             Command::General(cmd) => {
                 self.inner.translate(cmd).exec(config, "rgb")?;
+                None
             }
             Command::Schemata => {
                 let runtime = self.rgb_runtime(&config)?;
@@ -289,18 +290,21 @@ impl Exec for RgbArgs {
                     }
                     println!();
                 }
+                None
             }
             Command::Interfaces => {
                 let runtime = self.rgb_runtime(&config)?;
                 for (id, name) in runtime.ifaces()? {
                     println!("{} {id}", name);
                 }
+                None
             }
             Command::Contracts => {
                 let runtime = self.rgb_runtime(&config)?;
                 for id in runtime.contract_ids()? {
                     println!("{id}");
                 }
+                None
             }
 
             Command::Utxos => {
@@ -310,10 +314,11 @@ impl Exec for RgbArgs {
                         utxo: true,
                     })
                     .exec(config, "rgb")?;
+                None
             }
 
             Command::History { contract_id } => {
-                todo!()
+                todo!();
             }
 
             Command::Import { armored, file } => {
@@ -363,6 +368,7 @@ impl Exec for RgbArgs {
                         }
                     };
                 }
+                Some(runtime)
             }
             Command::Export {
                 armored: _,
@@ -380,11 +386,13 @@ impl Exec for RgbArgs {
                 } else {
                     println!("{bindle}");
                 }
+                None
             }
 
             Command::Armor { file } => {
                 let bindle = UniversalBindle::load_file(file)?;
                 println!("{bindle}");
+                None
             }
 
             Command::State {
@@ -392,9 +400,7 @@ impl Exec for RgbArgs {
                 iface,
                 all,
             } => {
-                let mut runtime = self.rgb_runtime(&config)?;
-                let bp_runtime = self.bp_runtime::<RgbDescr>(&config)?;
-                runtime.attach(bp_runtime.detach());
+                let runtime = self.rgb_runtime(&config)?;
 
                 let iface = runtime.iface_by_name(&tn!(iface.to_owned()))?.clone();
                 let contract = runtime.contract_iface_id(*contract_id, iface.iface_id())?;
@@ -433,6 +439,7 @@ impl Exec for RgbArgs {
                     }
                     // TODO: Print out other types of state
                 }
+                None
             }
             Command::Issue { schema, contract } => {
                 let mut runtime = self.rgb_runtime(&config)?;
@@ -598,6 +605,7 @@ impl Exec for RgbArgs {
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
                      to export the contract."
                 );
+                Some(runtime)
             }
             Command::Invoice {
                 address_based,
@@ -647,6 +655,7 @@ impl Exec for RgbArgs {
                     unknown_query: none!(),
                 };
                 println!("{invoice}");
+                Some(runtime)
             }
             Command::Prepare {
                 v2,
@@ -675,6 +684,7 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
+                Some(runtime)
             }
             Command::Consign {
                 invoice,
@@ -690,6 +700,7 @@ impl Exec for RgbArgs {
                 let mut psbt_file = File::create(psbt_name)?;
                 psbt.encode(psbt.version, &mut psbt_file)?;
                 transfer.save(out_file)?;
+                Some(runtime)
             }
             Command::Transfer {
                 v2,
@@ -721,6 +732,7 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
+                Some(runtime)
             }
             Command::Inspect { file, format } => {
                 let bindle = UniversalBindle::load_file(file)?;
@@ -741,6 +753,7 @@ impl Exec for RgbArgs {
                     InspectFormat::Contractum => todo!("contractum representation"),
                 };
                 println!("{s}");
+                None
             }
             Command::Dump { root_dir } => {
                 let runtime = self.rgb_runtime(&config)?;
@@ -840,6 +853,7 @@ impl Exec for RgbArgs {
                     format!("{:#?}", runtime.debug_seal_secrets()),
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
+                None
             }
             Command::Validate { file } => {
                 let mut resolver = self.resolver()?;
@@ -857,6 +871,7 @@ impl Exec for RgbArgs {
                 } else {
                     eprintln!("{status}");
                 }
+                None
             }
             Command::Accept { force, file } => {
                 let mut runtime = self.rgb_runtime(&config)?;
@@ -870,8 +885,10 @@ impl Exec for RgbArgs {
                 eprintln!("{}", transfer.validation_status().expect("just validated"));
                 runtime.accept_transfer(transfer, &mut resolver, *force)?;
                 eprintln!("Transfer accepted into the stash");
+                Some(runtime)
             }
         }
+        .map(|mut runtime| runtime.store());
 
         println!();
 

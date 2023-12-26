@@ -66,11 +66,7 @@ impl RgbArgs {
     pub fn rgb_runtime(&self, config: &Config) -> Result<Runtime, RuntimeError> {
         let bprt = self.inner.bp_runtime::<RgbDescr>(config)?;
         eprint!("Loading stock ... ");
-        let runtime = Runtime::<RgbDescr>::load_attach(
-            self.general.data_dir.clone(),
-            self.general.network,
-            bprt,
-        )?;
+        let runtime = Runtime::<RgbDescr>::load_attach(self.general.base_dir(), bprt)?;
         eprintln!("success");
 
         Ok(runtime)

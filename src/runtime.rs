@@ -22,12 +22,12 @@
 #![allow(clippy::result_large_err)]
 
 use std::convert::Infallible;
+use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
-use std::{fs, io};
 
 use amplify::IoError;
-use bpstd::{AddressNetwork, Network, XpubDerivable};
+use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
 use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer, XchainOutpoint};
@@ -110,10 +110,7 @@ pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
     stock_path: PathBuf,
     #[getter(as_mut)]
     stock: Stock,
-    #[getter(as_mut)]
-    wallet: Wallet<K, D /* TODO: Add layer 2 */>,
-    #[getter(as_copy)]
-    network: Network,
+    bprt: bpwallet::Runtime<D, K /* TODO: Add layer 2 */>,
 }
 
 impl<D: DescriptorRgb<K>, K> Deref for Runtime<D, K> {
@@ -129,7 +126,7 @@ impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
 impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
     fn include_output(&self, output: impl Into<XchainOutpoint>) -> bool {
         let output = output.into();
-        self.wallet
+        self.wallet()
             .coins()
             .any(|utxo| XchainOutpoint::Bitcoin(utxo.outpoint) == output)
     }
@@ -141,101 +138,39 @@ where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
-    pub fn load(
-        data_dir: PathBuf,
-        wallet_name: &str,
-        network: Network,
-    ) -> Result<Self, RuntimeError> {
-        let mut wallet_path = data_dir.clone();
-        wallet_path.push(wallet_name);
-        let bprt =
-            bpwallet::Runtime::<D, K>::load_standard(wallet_path /* TODO: Add layer2 */)?;
-        Self::load_attach_or_init(data_dir, network, bprt.detach(), |_| {
-            Ok::<_, RuntimeError>(default!())
-        })
-    }
-
     pub fn load_attach(
-        data_dir: PathBuf,
-        network: Network,
+        mut stock_path: PathBuf,
         bprt: bpwallet::Runtime<D, K>,
     ) -> Result<Self, RuntimeError> {
-        Self::load_attach_or_init(data_dir, network, bprt.detach(), |_| {
-            Ok::<_, RuntimeError>(default!())
-        })
-    }
-
-    pub fn load_or_init<E>(
-        data_dir: PathBuf,
-        wallet_name: &str,
-        network: Network,
-        init_wallet: impl FnOnce(bpwallet::LoadError) -> Result<D, E>,
-        init_stock: impl FnOnce(DeserializeError) -> Result<Stock, E>,
-    ) -> Result<Self, RuntimeError>
-    where
-        E: From<DeserializeError>,
-        bpwallet::LoadError: From<E>,
-        RuntimeError: From<E>,
-    {
-        let mut wallet_path = data_dir.clone();
-        wallet_path.push(network.to_string());
-        wallet_path.push(wallet_name);
-        let bprt = bpwallet::Runtime::load_standard_or_init(
-            wallet_path,
-            network,
-            init_wallet, /* TODO: Add layer2 */
-        )?;
-        Self::load_attach_or_init(data_dir, network, bprt.detach(), init_stock)
-    }
-
-    pub fn load_attach_or_init<E>(
-        mut data_dir: PathBuf,
-        network: Network,
-        wallet: Wallet<K, D>,
-        init: impl FnOnce(DeserializeError) -> Result<Stock, E>,
-    ) -> Result<Self, RuntimeError>
-    where
-        E: From<DeserializeError>,
-        RuntimeError: From<E>,
-    {
-        data_dir.push(network.to_string());
-
-        #[cfg(feature = "log")]
-        debug!("Using data directory '{}'", data_dir.display());
-        fs::create_dir_all(&data_dir)?;
-
-        let mut stock_path = data_dir.clone();
         stock_path.push("stock.dat");
 
-        let stock = Stock::load(&stock_path).or_else(init)?;
+        let stock = Stock::load(&stock_path)?;
 
         Ok(Self {
             stock_path,
             stock,
-            wallet,
-            network,
+            bprt,
         })
+    }
+
+    pub fn store(&mut self) {
+        self.stock
+            .store(&self.stock_path)
+            .expect("unable to save stock");
+        self.bprt.try_store().expect("unable to save wallet data");
     }
 }
 
 impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
-    fn store(&mut self) {
-        self.stock
-            .store(&self.stock_path)
-            .expect("unable to save stock");
-        // TODO: self.bprt.store()
-        /*
-        let wallets_fd = File::create(&self.wallets_path)
-            .expect("unable to access wallet file; wallets are not saved");
-        serde_yaml::to_writer(wallets_fd, &self.wallets).expect("unable to save wallets");
-         */
-    }
+    pub fn wallet(&self) -> &Wallet<K, D> { self.bprt.wallet() }
 
-    pub fn attach(&mut self, wallet: Wallet<K, D>) { self.wallet = wallet }
+    pub fn wallet_mut(&mut self) -> &mut Wallet<K, D> { self.bprt.wallet_mut() }
+
+    pub fn attach(&mut self, bprt: bpwallet::Runtime<D, K>) { self.bprt = bprt }
 
     pub fn unload(self) {}
 
-    pub fn address_network(&self) -> AddressNetwork { self.network.into() }
+    pub fn network(&self) -> Network { self.bprt.network() }
 
     pub fn import_contract<R: ResolveHeight>(
         &mut self,
@@ -256,7 +191,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
         resolver: &mut impl ResolveTx,
     ) -> Result<Transfer, RuntimeError> {
         transfer
-            .validate(resolver, self.network.is_testnet())
+            .validate(resolver, self.network().is_testnet())
             .map_err(|invalid| invalid.validation_status().expect("just validated").clone())
             .map_err(RuntimeError::from)
     }
@@ -274,8 +209,4 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
             .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
     }
-}
-
-impl<D: DescriptorRgb<K>, K> Drop for Runtime<D, K> {
-    fn drop(&mut self) { self.store() }
 }

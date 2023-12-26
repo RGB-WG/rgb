@@ -21,9 +21,6 @@
 
 #[macro_use]
 extern crate amplify;
-#[cfg(feature = "log")]
-#[macro_use]
-extern crate log;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde_crate as serde;

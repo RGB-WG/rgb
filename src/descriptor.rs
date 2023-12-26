@@ -137,11 +137,15 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
         ]
     }
 
-    fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
-        let change = change.into();
+    fn derive(
+        &self,
+        keychain: impl Into<Keychain>,
+        index: impl Into<NormalIndex>,
+    ) -> DerivedScript {
+        let keychain = keychain.into();
         let index = index.into();
-        let internal_key = self.internal_key.derive(change, index);
-        if change.into_inner() == RgbKeychain::Tapret as u8 {
+        let internal_key = self.internal_key.derive(keychain, index);
+        if keychain.into_inner() == RgbKeychain::Tapret as u8 {
             if let Some(tweak) = self.tweaks.get(&index) {
                 let script_commitment = TapScript::commit(tweak);
                 let tap_tree = TapTree::with_single_leaf(script_commitment);
