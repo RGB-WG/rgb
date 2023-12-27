@@ -235,40 +235,60 @@ impl Runtime {
             .filter_map(|o| o.reduce_to_bp())
             .map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(method).into();
-        let (mut psbt, meta) =
+        let (mut psbt, mut meta) =
             self.wallet_mut()
                 .construct_psbt(outpoints, &beneficiaries, params.tx)?;
 
-        let (beneficiary_vout, beneficiary_script) = match invoice.beneficiary {
+        let beneficiary_script = if let Beneficiary::WitnessVoutBitcoin(addr) = invoice.beneficiary
+        {
+            Some(addr.script_pubkey())
+        } else {
+            None
+        };
+        let output = psbt
+            .outputs_mut()
+            .find(|o| o.script.is_p2tr() && Some(&o.script) != beneficiary_script.as_ref())
+            .ok_or(CompositionError::TapretRequired)?;
+        // TODO: Add descriptor id to the tapret host data
+        output.set_tapret_host().expect("just created");
+
+        let change_script = meta
+            .change_vout
+            .and_then(|vout| psbt.output(vout.to_usize()))
+            .map(|output| output.script.clone());
+        psbt.sort_outputs_by(|output| !output.is_tapret_host())
+            .expect("PSBT must be modifiable at this stage");
+        if let Some(change_script) = change_script {
+            for output in psbt.outputs() {
+                if output.script == change_script {
+                    meta.change_vout = Some(output.vout());
+                    break;
+                }
+            }
+        }
+
+        let beneficiary_vout = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
                     .outputs()
-                    .position(|output| output.script == s)
-                    .map(|vout| Vout::from_u32(vout as u32));
-                (vout, s)
+                    .find(|output| output.script == s)
+                    .map(psbt::Output::vout)
+                    .expect("PSBT without beneficiary address");
+                debug_assert_ne!(Some(vout), meta.change_vout);
+                Some(vout)
             }
-            Beneficiary::BlindedSeal(_) => (None, none!()),
+            Beneficiary::BlindedSeal(_) => None,
         };
         let batch =
             self.compose(invoice, outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
 
         let methods = batch.close_method_set();
-        if methods.has_tapret_first() {
-            let output = psbt
-                .outputs_mut()
-                .find(|o| o.script.is_p2tr() && o.script != beneficiary_script)
-                .ok_or(CompositionError::TapretRequired)?;
-            // TODO: Add descriptor id to the tapret host data
-            output.set_tapret_host().expect("just created");
-        }
         if methods.has_opret_first() {
             let output = psbt.construct_output_expect(ScriptPubkey::op_return(&[]), Sats::ZERO);
             output.set_opret_host().expect("just created");
         }
 
-        psbt.sort_outputs_by(|output| !output.is_tapret_host() && !output.is_opret_host())
-            .expect("psbt must be modifiable at this stage");
         psbt.complete_construction();
         psbt.rgb_embed(batch)?;
         Ok((psbt, meta))

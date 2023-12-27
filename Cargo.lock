@@ -355,7 +355,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#93b663f13564031891d2aee2681c4364c601d865"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#b0665890eec9507ad315da94fd8866855d0cf313"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -385,7 +385,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#93b663f13564031891d2aee2681c4364c601d865"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#b0665890eec9507ad315da94fd8866855d0cf313"
 dependencies = [
  "amplify",
  "bech32",
@@ -413,7 +413,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#93b663f13564031891d2aee2681c4364c601d865"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#b0665890eec9507ad315da94fd8866855d0cf313"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -711,7 +711,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#93b663f13564031891d2aee2681c4364c601d865"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#b0665890eec9507ad315da94fd8866855d0cf313"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1374,7 +1374,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.3"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#93b663f13564031891d2aee2681c4364c601d865"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#b0665890eec9507ad315da94fd8866855d0cf313"
 dependencies = [
  "amplify",
  "base64",
@@ -1723,11 +1723,11 @@ checksum = "f98d2aa92eebf49b69786be48e4477826b256916e84a57ff2a4f21923b48eb4c"
 
 [[package]]
 name = "schannel"
-version = "0.1.22"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c3733bf4cf7ea0880754e19cb5a462007c4a8c1914bff372ccc95b464f1df88"
+checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

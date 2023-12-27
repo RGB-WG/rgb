@@ -23,6 +23,7 @@
 
 use std::convert::Infallible;
 use std::io;
+use std::io::ErrorKind;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
@@ -36,7 +37,7 @@ use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashEr
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveTx};
 use rgbstd::ContractId;
-use strict_types::encoding::{DeserializeError, Ident, SerializeError};
+use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
 
@@ -160,7 +161,15 @@ where
     ) -> Result<Self, RuntimeError> {
         stock_path.push("stock.dat");
 
-        let stock = Stock::load(&stock_path)?;
+        let stock = Stock::load(&stock_path).or_else(|err| {
+            if matches!(err, DeserializeError::Decode(DecodeError::Io(ref err)) if err.kind() == ErrorKind::NotFound) {
+                eprint!("stock file is absent, creating a new one ... ");
+                let stock = Stock::default();
+                return Ok(stock)
+            }
+            eprintln!("stock file is damaged");
+            Err(err)
+        })?;
 
         Ok(Self {
             stock_path,

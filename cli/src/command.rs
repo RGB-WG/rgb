@@ -225,7 +225,8 @@ pub enum Command {
         /// Invoice data
         invoice: RgbInvoice,
 
-        /// Fee
+        /// Fee for bitcoin transaction, in satoshis
+        #[clap(short, long, default_value = "400")]
         fee: Sats,
 
         /// File for generated transfer consignment
