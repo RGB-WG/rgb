@@ -22,6 +22,7 @@
 #![allow(clippy::result_large_err)]
 
 use std::convert::Infallible;
+use std::default::Default;
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
@@ -60,7 +61,7 @@ pub enum RuntimeError {
     Stash(StashError<Infallible>),
 
     #[from]
-    #[from(InventoryDataError<Infallible>)]
+    #[from(InventoryDataError < Infallible >)]
     Inventory(InventoryError<Infallible>),
 
     #[from]
@@ -150,9 +151,9 @@ impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilte
 
 #[cfg(feature = "serde")]
 impl<D: DescriptorRgb<K>, K> Runtime<D, K>
-where
-    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
+    where
+            for<'de> D: serde::Serialize + serde::Deserialize<'de>,
+            for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load_attach(
         mut stock_path: PathBuf,
@@ -160,7 +161,10 @@ where
     ) -> Result<Self, RuntimeError> {
         stock_path.push("stock.dat");
 
-        let stock = Stock::load(&stock_path)?;
+        let stock = Stock::load(&stock_path).or_else(|err| match err {
+            DeserializeError::DataNotEntirelyConsumed => Ok(Stock::default()),
+            _ => Err(err),
+        })?;
 
         Ok(Self {
             stock_path,
@@ -193,8 +197,8 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
         contract: Contract,
         resolver: &mut R,
     ) -> Result<validation::Status, RuntimeError>
-    where
-        R::Error: 'static,
+        where
+            R::Error: 'static,
     {
         self.stock
             .import_contract(contract, resolver)
@@ -218,8 +222,8 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
         resolver: &mut R,
         force: bool,
     ) -> Result<validation::Status, RuntimeError>
-    where
-        R::Error: 'static,
+        where
+            R::Error: 'static,
     {
         self.stock
             .accept_transfer(transfer, resolver, force)
