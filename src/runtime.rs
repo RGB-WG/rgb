@@ -22,6 +22,7 @@
 #![allow(clippy::result_large_err)]
 
 use std::convert::Infallible;
+use std::default::Default;
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
@@ -160,7 +161,10 @@ where
     ) -> Result<Self, RuntimeError> {
         stock_path.push("stock.dat");
 
-        let stock = Stock::load(&stock_path)?;
+        let stock = Stock::load(&stock_path).or_else(|err| match err {
+            DeserializeError::DataNotEntirelyConsumed => Ok(Stock::default()),
+            _ => Err(err),
+        })?;
 
         Ok(Self {
             stock_path,
