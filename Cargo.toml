@@ -104,5 +104,6 @@ bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
 bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
