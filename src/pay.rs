@@ -23,19 +23,21 @@ use std::convert::Infallible;
 
 use amplify::confinement::Confined;
 use bp::dbc::tapret::TapretProof;
-use bp::seals::txout::CloseMethod;
+use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
-use rgbstd::containers::{Bindle, BuilderSeal, TerminalSeal, Transfer, VoutSeal};
-use rgbstd::interface::{ContractError, FilterIncludeAll};
+use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
+use rgbstd::interface::ContractError;
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
-use rgbstd::XSeal;
+use rgbstd::{WitnessId, XSeal};
 
-use crate::{DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned};
+use crate::{
+    ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
+};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -199,9 +201,11 @@ impl Runtime {
 
         let outputs = match invoice.owned_state {
             InvoiceState::Amount(amount) => {
-                let mut state = contract
-                    .fungible(assignment_name, &FilterIncludeAll)?
-                    .into_inner();
+                let filter = ContractOutpointsFilter {
+                    contract_id,
+                    filter: self,
+                };
+                let mut state = contract.fungible(assignment_name, &filter)?.into_inner();
                 state.sort_by_key(|a| a.value);
                 let mut sum = 0u64;
                 state
@@ -231,41 +235,60 @@ impl Runtime {
             .filter_map(|o| o.reduce_to_bp())
             .map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(method).into();
-        let (mut psbt, meta) =
-            self.wallet()
+        let (mut psbt, mut meta) =
+            self.wallet_mut()
                 .construct_psbt(outpoints, &beneficiaries, params.tx)?;
-        // TODO: Increase change index
 
-        let (beneficiary_vout, beneficiary_script) = match invoice.beneficiary {
+        let beneficiary_script = if let Beneficiary::WitnessVoutBitcoin(addr) = invoice.beneficiary
+        {
+            Some(addr.script_pubkey())
+        } else {
+            None
+        };
+        let output = psbt
+            .outputs_mut()
+            .find(|o| o.script.is_p2tr() && Some(&o.script) != beneficiary_script.as_ref())
+            .ok_or(CompositionError::TapretRequired)?;
+        // TODO: Add descriptor id to the tapret host data
+        output.set_tapret_host().expect("just created");
+
+        let change_script = meta
+            .change_vout
+            .and_then(|vout| psbt.output(vout.to_usize()))
+            .map(|output| output.script.clone());
+        psbt.sort_outputs_by(|output| !output.is_tapret_host())
+            .expect("PSBT must be modifiable at this stage");
+        if let Some(change_script) = change_script {
+            for output in psbt.outputs() {
+                if output.script == change_script {
+                    meta.change_vout = Some(output.vout());
+                    break;
+                }
+            }
+        }
+
+        let beneficiary_vout = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
                     .outputs()
-                    .position(|output| output.script == s)
-                    .map(|vout| Vout::from_u32(vout as u32));
-                (vout, s)
+                    .find(|output| output.script == s)
+                    .map(psbt::Output::vout)
+                    .expect("PSBT without beneficiary address");
+                debug_assert_ne!(Some(vout), meta.change_vout);
+                Some(vout)
             }
-            Beneficiary::BlindedSeal(_) => (None, none!()),
+            Beneficiary::BlindedSeal(_) => None,
         };
         let batch =
             self.compose(invoice, outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
 
         let methods = batch.close_method_set();
-        if methods.has_tapret_first() {
-            let output = psbt
-                .outputs_mut()
-                .find(|o| o.script.is_p2tr() && o.script != beneficiary_script)
-                .ok_or(CompositionError::TapretRequired)?;
-            // TODO: Add descriptor id to the tapret host data
-            output.set_tapret_host().expect("just created");
-        }
         if methods.has_opret_first() {
             let output = psbt.construct_output_expect(ScriptPubkey::op_return(&[]), Sats::ZERO);
             output.set_opret_host().expect("just created");
         }
 
-        psbt.sort_outputs_by(|output| !output.is_tapret_host() && !output.is_opret_host())
-            .expect("psbt must be modifiable at this stage");
         psbt.complete_construction();
         psbt.rgb_embed(batch)?;
         Ok((psbt, meta))
@@ -286,10 +309,11 @@ impl Runtime {
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
             self.wallet_mut()
-                .add_tapret_tweak(terminal.index, tapret_commitment)?;
+                .add_tapret_tweak(terminal, tapret_commitment)?;
         }
 
-        let (beneficiary, terminal_seal) = match invoice.beneficiary {
+        let witness_txid = psbt.txid();
+        let beneficiary = match invoice.beneficiary {
             Beneficiary::WitnessVoutBitcoin(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
@@ -297,25 +321,23 @@ impl Runtime {
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let witness_txid = psbt.txid();
                 let method = self.wallet().seal_close_method();
-                let seal = XSeal::Bitcoin(Outpoint::new(witness_txid, vout).into());
-                (
-                    BuilderSeal::Revealed(seal),
-                    TerminalSeal::BitcoinWitnessVout(VoutSeal::new(method, vout)),
-                )
+                let seal =
+                    XSeal::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
+                BuilderSeal::Revealed(seal)
             }
-            Beneficiary::BlindedSeal(seal) => {
-                (BuilderSeal::Concealed(seal), TerminalSeal::ConcealedUtxo(seal))
-            }
+            Beneficiary::BlindedSeal(seal) => BuilderSeal::Concealed(seal),
         };
 
         self.stock_mut().consume(fascia)?;
         let mut transfer = self.stock().transfer(contract_id, [beneficiary])?;
         let mut terminals = transfer.terminals.to_inner();
-        for terminal in terminals.values_mut() {
-            if terminal.seals.contains(&terminal_seal) {
-                // TODO: Store unsigned tx
+        for (bundle_id, terminal) in terminals.iter_mut() {
+            let Some(ab) = transfer.anchored_bundle(*bundle_id) else {
+                continue;
+            };
+            if ab.anchor.witness_id() == WitnessId::Bitcoin(witness_txid) {
+                // TODO: Use unsigned tx
                 terminal.tx = Some(psbt.to_unsigned_tx().into())
             }
         }

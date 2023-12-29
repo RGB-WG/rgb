@@ -21,12 +21,12 @@
 
 #[macro_use]
 extern crate amplify;
-#[cfg(feature = "log")]
-#[macro_use]
-extern crate log;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde_crate as serde;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde_with;
 
 mod runtime;
 mod descriptor;
@@ -38,4 +38,4 @@ pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssign
 pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
 #[cfg(feature = "esplora")]
 pub use resolver::{AnchorResolverError, Resolver, ResolverError};
-pub use runtime::{Runtime, RuntimeError};
+pub use runtime::{ContractOutpointsFilter, Runtime, RuntimeError};

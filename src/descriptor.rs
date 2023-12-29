@@ -37,14 +37,14 @@ use descriptors::{Descriptor, SpkClass, StdDescr, TrKey};
 use indexmap::IndexMap;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
-#[display("terminal derivation /10/{0} already has a taptweak assigned")]
-pub struct TapTweakAlreadyAssigned(pub NormalIndex);
+#[display("terminal derivation {0} already has a taptweak assigned")]
+pub struct TapTweakAlreadyAssigned(pub Terminal);
 
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
     fn seal_close_method(&self) -> CloseMethod;
     fn add_tapret_tweak(
         &mut self,
-        index: NormalIndex,
+        terminal: Terminal,
         tweak: TapretCommitment,
     ) -> Result<(), TapTweakAlreadyAssigned>;
 }
@@ -106,13 +106,16 @@ impl From<RgbKeychain> for Keychain {
     fn from(keychain: RgbKeychain) -> Self { Keychain::from(keychain as u8) }
 }
 
+#[serde_as]
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "serde_crate", rename_all = "camelCase")]
 pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
     pub internal_key: K,
     // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
-    pub tweaks: HashMap<NormalIndex, TapretCommitment>,
+    // TODO: Change serde implementation for both Terminal and TapretCommitment
+    #[serde_as(as = "HashMap<serde_with::DisplayFromStr, serde_with::DisplayFromStr>")]
+    pub tweaks: HashMap<Terminal, TapretCommitment>,
 }
 
 impl<K: DeriveXOnly> TapretKey<K> {
@@ -137,12 +140,17 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
         ]
     }
 
-    fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
-        let change = change.into();
+    fn derive(
+        &self,
+        keychain: impl Into<Keychain>,
+        index: impl Into<NormalIndex>,
+    ) -> DerivedScript {
+        let keychain = keychain.into();
         let index = index.into();
-        let internal_key = self.internal_key.derive(change, index);
-        if change.into_inner() == RgbKeychain::Tapret as u8 {
-            if let Some(tweak) = self.tweaks.get(&index) {
+        let terminal = Terminal::new(keychain, index);
+        let internal_key = self.internal_key.derive(keychain, index);
+        if keychain.into_inner() == RgbKeychain::Tapret as u8 {
+            if let Some(tweak) = self.tweaks.get(&terminal) {
                 let script_commitment = TapScript::commit(tweak);
                 let tap_tree = TapTree::with_single_leaf(script_commitment);
                 return DerivedScript::TaprootScript(internal_key.into(), tap_tree);
@@ -204,13 +212,13 @@ impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
 
     fn add_tapret_tweak(
         &mut self,
-        index: NormalIndex,
+        terminal: Terminal,
         tweak: TapretCommitment,
     ) -> Result<(), TapTweakAlreadyAssigned> {
-        if self.tweaks.contains_key(&index) {
-            return Err(TapTweakAlreadyAssigned(index));
+        if self.tweaks.contains_key(&terminal) {
+            return Err(TapTweakAlreadyAssigned(terminal));
         }
-        self.tweaks.insert(index, tweak);
+        self.tweaks.insert(terminal, tweak);
         Ok(())
     }
 }
@@ -308,11 +316,11 @@ where Self: Derive<DerivedScript>
 
     fn add_tapret_tweak(
         &mut self,
-        index: NormalIndex,
+        terminal: Terminal,
         tweak: TapretCommitment,
     ) -> Result<(), TapTweakAlreadyAssigned> {
         match self {
-            RgbDescr::TapretKey(d) => d.add_tapret_tweak(index, tweak),
+            RgbDescr::TapretKey(d) => d.add_tapret_tweak(terminal, tweak),
         }
     }
 }
