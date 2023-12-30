@@ -27,8 +27,8 @@ mod rgb;
 use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
 pub use psbt::*;
-use rgbstd::containers::{Batch, Fascia, XchainOutpoint};
-use rgbstd::{AnchorSet, XAnchor};
+use rgbstd::containers::{Batch, Fascia};
+use rgbstd::{AnchorSet, XAnchor, XChain};
 
 pub use self::rgb::{
     ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -77,10 +77,7 @@ impl RgbPsbt for Psbt {
             let mut inputs = info.inputs.into_inner();
             for input in self.inputs_mut() {
                 let outpoint = input.prevout().outpoint();
-                if let Some(pos) = inputs
-                    .iter()
-                    .position(|i| i == &XchainOutpoint::Bitcoin(outpoint))
-                {
+                if let Some(pos) = inputs.iter().position(|i| i == &XChain::Bitcoin(outpoint)) {
                     inputs.remove(pos);
                     input
                         .set_rgb_consumer(contract_id, info.id)

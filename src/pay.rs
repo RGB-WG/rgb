@@ -25,15 +25,16 @@ use amplify::confinement::Confined;
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
+use bpstd::Address;
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
-use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
+use rgbstd::containers::{Bindle, Transfer};
 use rgbstd::interface::ContractError;
 use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
-use rgbstd::{WitnessId, XSeal};
+use rgbstd::{WitnessId, XChain};
 
 use crate::{
     ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
@@ -224,27 +225,30 @@ impl Runtime {
             }
             _ => return Err(CompositionError::Unsupported),
         };
-        let beneficiaries = match invoice.beneficiary {
+        let beneficiaries = match invoice.beneficiary.into_inner() {
             Beneficiary::BlindedSeal(_) => vec![],
-            Beneficiary::WitnessVoutBitcoin(addr) => {
-                vec![BpBeneficiary::new(addr, params.min_amount)]
+            Beneficiary::WitnessVout(payload) => {
+                vec![BpBeneficiary::new(
+                    Address::new(payload, invoice.address_network()),
+                    params.min_amount,
+                )]
             }
         };
         let outpoints = outputs
             .iter()
-            .filter_map(|o| o.reduce_to_bp())
+            .map(|o| o.as_reduced_unsafe())
             .map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(method).into();
         let (mut psbt, mut meta) =
             self.wallet_mut()
                 .construct_psbt(outpoints, &beneficiaries, params.tx)?;
 
-        let beneficiary_script = if let Beneficiary::WitnessVoutBitcoin(addr) = invoice.beneficiary
-        {
-            Some(addr.script_pubkey())
-        } else {
-            None
-        };
+        let beneficiary_script =
+            if let Beneficiary::WitnessVout(addr) = invoice.beneficiary.into_inner() {
+                Some(addr.script_pubkey())
+            } else {
+                None
+            };
         let output = psbt
             .outputs_mut()
             .find(|o| o.script.is_p2tr() && Some(&o.script) != beneficiary_script.as_ref())
@@ -267,8 +271,8 @@ impl Runtime {
             }
         }
 
-        let beneficiary_vout = match invoice.beneficiary {
-            Beneficiary::WitnessVoutBitcoin(addr) => {
+        let beneficiary_vout = match invoice.beneficiary.into_inner() {
+            Beneficiary::WitnessVout(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
                     .outputs()
@@ -313,8 +317,8 @@ impl Runtime {
         }
 
         let witness_txid = psbt.txid();
-        let beneficiary = match invoice.beneficiary {
-            Beneficiary::WitnessVoutBitcoin(addr) => {
+        let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
+            Beneficiary::WitnessVout(addr) => {
                 let s = addr.script_pubkey();
                 let vout = psbt
                     .outputs()
@@ -323,22 +327,27 @@ impl Runtime {
                 let vout = Vout::from_u32(vout as u32);
                 let method = self.wallet().seal_close_method();
                 let seal =
-                    XSeal::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
-                BuilderSeal::Revealed(seal)
+                    XChain::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
+                (vec![], vec![seal])
             }
-            Beneficiary::BlindedSeal(seal) => BuilderSeal::Concealed(seal),
+            Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
         };
 
         self.stock_mut().consume(fascia)?;
-        let mut transfer = self.stock().transfer(contract_id, [beneficiary])?;
+        let mut transfer = self
+            .stock()
+            .transfer(contract_id, beneficiary2, beneficiary1)?;
         let mut terminals = transfer.terminals.to_inner();
         for (bundle_id, terminal) in terminals.iter_mut() {
             let Some(ab) = transfer.anchored_bundle(*bundle_id) else {
                 continue;
             };
-            if ab.anchor.witness_id() == WitnessId::Bitcoin(witness_txid) {
+            if ab.anchor.witness_id_unchecked() == WitnessId::Bitcoin(witness_txid) {
                 // TODO: Use unsigned tx
-                terminal.tx = Some(psbt.to_unsigned_tx().into())
+                match terminal {
+                    XChain::Bitcoin(term) => term.tx = Some(psbt.to_unsigned_tx().into()),
+                    XChain::Liquid(_) => unreachable!(),
+                }
             }
         }
         transfer.terminals = Confined::from_collection_unsafe(terminals);

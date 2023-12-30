@@ -25,19 +25,19 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::U16;
-use bp_util::{Config, Exec};
-use bpstd::{Sats, Txid};
+use bp_util::{BpCommand, Config, Exec};
+use bpstd::Sats;
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
-use rgbstd::containers::{Bindle, Transfer, UniversalBindle};
+use rgbstd::containers::{Bindle, BuilderSeal, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
-use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice, RgbTransport};
+use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
-use rgbstd::XSeal;
-use seals::txout::{CloseMethod, ExplicitSeal};
+use rgbstd::{OutputSeal, XChain};
+use seals::txout::CloseMethod;
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
@@ -286,7 +286,7 @@ impl Exec for RgbArgs {
     const CONF_FILE_NAME: &'static str = "rgb.toml";
 
     fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
-        match &self.command {
+        if let Some(mut runtime) = match &self.command {
             Command::General(cmd) => {
                 self.inner.translate(cmd).exec(config, "rgb")?;
                 None
@@ -327,7 +327,7 @@ impl Exec for RgbArgs {
 
             Command::Utxos => {
                 self.inner
-                    .translate(&bp_util::BpCommand::Balance {
+                    .translate(&BpCommand::Balance {
                         addr: true,
                         utxo: true,
                     })
@@ -335,7 +335,7 @@ impl Exec for RgbArgs {
                 None
             }
 
-            Command::History { contract_id } => {
+            Command::History { contract_id: _ } => {
                 todo!();
             }
 
@@ -579,9 +579,8 @@ impl Exec for RgbArgs {
                             .expect("assignment doesn't provide seal information")
                             .as_str()
                             .expect("seal must be a string");
-                        let seal =
-                            ExplicitSeal::<Txid>::from_str(seal).expect("invalid seal definition");
-                        let seal = XSeal::Bitcoin(GenesisSeal::from(seal));
+                        let seal = OutputSeal::from_str(seal).expect("invalid seal definition");
+                        let seal = GenesisSeal::new_random(seal.method, seal.txid, seal.vout);
 
                         // Workaround for borrow checker:
                         let field_name =
@@ -594,6 +593,7 @@ impl Exec for RgbArgs {
                                     .expect("owned state must be a fungible amount")
                                     .as_u64()
                                     .expect("fungible state must be an integer");
+                                let seal = BuilderSeal::Revealed(XChain::Bitcoin(seal));
                                 builder = builder
                                     .add_fungible_state(field_name, seal, amount)
                                     .expect("invalid global state data");
@@ -640,6 +640,7 @@ impl Exec for RgbArgs {
                         RgbKeychain::contains_rgb(utxo.terminal.keychain)
                     })
                     .next();
+                let network = runtime.wallet().network();
                 let beneficiary = match (address_based, outpoint) {
                     (true, _) | (false, None) => {
                         let addr = runtime
@@ -648,30 +649,23 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessVoutBitcoin(addr)
+                        Beneficiary::WitnessVout(addr.payload)
                     }
                     (_, Some(outpoint)) => {
-                        let seal = GraphSeal::new(
+                        let seal = XChain::Bitcoin(GraphSeal::new_random(
                             runtime.wallet().seal_close_method(),
                             outpoint.txid,
                             outpoint.vout,
-                        );
-                        runtime.store_seal_secret(XSeal::Bitcoin(seal))?;
-                        Beneficiary::BlindedSeal(seal.to_concealed_seal())
+                        ));
+                        runtime.store_seal_secret(seal)?;
+                        Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
                     }
                 };
-                let invoice = RgbInvoice {
-                    transports: vec![RgbTransport::UnspecifiedMeans],
-                    contract: Some(*contract_id),
-                    iface: Some(iface),
-                    operation: None,
-                    assignment: None,
-                    beneficiary,
-                    owned_state: InvoiceState::Amount(*value),
-                    network: None,
-                    expiry: None,
-                    unknown_query: none!(),
-                };
+                let invoice = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
+                    .set_contract(*contract_id)
+                    .set_interface(iface)
+                    .set_amount_raw(*value)
+                    .finish();
                 println!("{invoice}");
                 Some(runtime)
             }
@@ -905,8 +899,9 @@ impl Exec for RgbArgs {
                 eprintln!("Transfer accepted into the stash");
                 Some(runtime)
             }
+        } {
+            runtime.store()
         }
-        .map(|mut runtime| runtime.store());
 
         println!();
 
