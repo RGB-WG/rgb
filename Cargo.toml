@@ -13,7 +13,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-beta.2"
+version = "0.11.0-beta.3"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -38,7 +38,7 @@ bp-esplora = "0.11.0-beta.2"
 descriptors = "0.11.0-beta.3"
 psbt = { version = "0.11.0-beta.3", features = ["client-side-validation"] }
 rgb-std = { version = "0.11.0-beta.3", features = ["fs"] }
-rgb-psbt = { version = "0.11.0-beta.2", path = "psbt" }
+rgb-psbt = { version = "0.11.0-beta.3", path = "psbt" }
 indexmap = "2.0.2"
 chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -75,7 +75,7 @@ bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
-rgb-persist-fs = { version = "0.11.0-alpha", path = "fs" }
+rgb-persist-fs = { version = "0.11.0", path = "fs" }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
