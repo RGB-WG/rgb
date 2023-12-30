@@ -31,12 +31,12 @@ use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
 use rgbfs::StockFs;
-use rgbstd::containers::{Contract, LoadError, Transfer, XchainOutpoint};
+use rgbstd::containers::{Contract, LoadError, Transfer};
 use rgbstd::interface::{BuilderError, OutpointFilter};
 use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
 use rgbstd::resolvers::ResolveHeight;
-use rgbstd::validation::{self, ResolveTx};
-use rgbstd::ContractId;
+use rgbstd::validation::{self, ResolveWitness};
+use rgbstd::{ContractId, XChain, XOutpoint};
 use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
@@ -126,11 +126,11 @@ impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
 }
 
 impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
-    fn include_output(&self, output: impl Into<XchainOutpoint>) -> bool {
+    fn include_output(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         self.wallet()
             .coins()
-            .any(|utxo| XchainOutpoint::Bitcoin(utxo.outpoint) == output)
+            .any(|utxo| XChain::Bitcoin(utxo.outpoint) == output)
     }
 }
 
@@ -140,12 +140,12 @@ pub struct ContractOutpointsFilter<'runtime, D: DescriptorRgb<K>, K> {
 }
 
 impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilter<'runtime, D, K> {
-    fn include_output(&self, output: impl Into<XchainOutpoint>) -> bool {
+    fn include_output(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         if !self.filter.include_output(output) {
             return false;
         }
-        matches!(self.filter.stock.state_for_outputs(self.contract_id, [output]), Ok(list) if !list.is_empty())
+        matches!(self.filter.stock.state_for_outpoints(self.contract_id, [output]), Ok(list) if !list.is_empty())
     }
 }
 
@@ -213,7 +213,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
     pub fn validate_transfer(
         &mut self,
         transfer: Transfer,
-        resolver: &mut impl ResolveTx,
+        resolver: &mut impl ResolveWitness,
     ) -> Result<Transfer, RuntimeError> {
         transfer
             .validate(resolver, self.network().is_testnet())

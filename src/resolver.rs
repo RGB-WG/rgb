@@ -25,8 +25,8 @@ use bpstd::{Tx, Txid};
 pub use esplora::Error as ResolverError;
 use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
-use rgbstd::validation::{ResolveTx, TxResolverError};
-use rgbstd::{Layer1, WitnessAnchor, WitnessId, WitnessOrd, WitnessPos, XAnchor};
+use rgbstd::validation::{ResolveWitness, WitnessResolverError};
+use rgbstd::{WitnessAnchor, WitnessId, WitnessOrd, WitnessPos, XAnchor, XChain, XPubWitness};
 
 pub struct Resolver {
     esplora_client: esplora::BlockingClient,
@@ -60,7 +60,7 @@ impl Resolver {
             consignment
                 .terminals
                 .values()
-                .filter_map(|t| t.tx.as_ref())
+                .filter_map(|t| t.as_reduced_unsafe().tx.as_ref())
                 .map(|tx| (tx.txid(), tx.clone())),
         );
     }
@@ -101,17 +101,23 @@ impl ResolveHeight for Resolver {
     }
 }
 
-impl ResolveTx for Resolver {
-    fn resolve_bp_tx(&self, layer1: Layer1, txid: Txid) -> Result<Tx, TxResolverError> {
-        assert_eq!(layer1, Layer1::Bitcoin, "Liquid is not yet supported");
+impl ResolveWitness for Resolver {
+    fn resolve_pub_witness(
+        &self,
+        witness_id: WitnessId,
+    ) -> Result<XPubWitness, WitnessResolverError> {
+        let WitnessId::Bitcoin(txid) = witness_id else {
+            panic!("Liquid is not yet supported");
+        };
 
         if let Some(tx) = self.terminal_txes.get(&txid) {
-            return Ok(tx.clone());
+            return Ok(XPubWitness::Bitcoin(tx.clone()));
         }
 
         self.esplora_client
             .tx(&txid)
-            .map_err(|err| TxResolverError::Other(txid, err.to_string()))?
-            .ok_or(TxResolverError::Unknown(txid))
+            .map_err(|err| WitnessResolverError::Other(witness_id, err.to_string()))?
+            .ok_or(WitnessResolverError::Unknown(witness_id))
+            .map(XChain::Bitcoin)
     }
 }
