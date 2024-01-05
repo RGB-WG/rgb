@@ -33,7 +33,7 @@ use bpstd::{
     TapTree, Terminal, XOnlyPk, XpubDerivable, XpubSpec,
 };
 use commit_verify::CommitVerify;
-use descriptors::{Descriptor, SpkClass, StdDescr, TrKey};
+use descriptors::{Descriptor, SpkClass, StdDescr, TrKey, Wpkh};
 use indexmap::IndexMap;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
@@ -229,11 +229,14 @@ impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
     crate = "serde_crate",
     rename_all = "camelCase",
     bound(
-        serialize = "S::XOnly: serde::Serialize",
-        deserialize = "S::XOnly: serde::Deserialize<'de>"
+        serialize = "S::Compr: serde::Serialize, S::XOnly: serde::Serialize",
+        deserialize = "S::Compr: serde::Deserialize<'de>, S::XOnly: serde::Deserialize<'de>"
     )
 )]
+#[non_exhaustive]
 pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
+    #[from]
+    Wpkh(Wpkh<S::Compr>),
     #[from]
     TapretKey(TapretKey<S::XOnly>),
 }
@@ -241,18 +244,21 @@ pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
 impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
     fn default_keychain(&self) -> Keychain {
         match self {
+            RgbDescr::Wpkh(d) => d.default_keychain(),
             RgbDescr::TapretKey(d) => d.default_keychain(),
         }
     }
 
     fn keychains(&self) -> BTreeSet<Keychain> {
         match self {
+            RgbDescr::Wpkh(d) => d.keychains(),
             RgbDescr::TapretKey(d) => d.keychains(),
         }
     }
 
     fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
         match self {
+            RgbDescr::Wpkh(d) => d.derive(change, index),
             RgbDescr::TapretKey(d) => d.derive(change, index),
         }
     }
@@ -267,12 +273,14 @@ where Self: Derive<DerivedScript>
 
     fn class(&self) -> SpkClass {
         match self {
+            RgbDescr::Wpkh(d) => d.class(),
             RgbDescr::TapretKey(d) => d.class(),
         }
     }
 
     fn keys(&self) -> Self::KeyIter<'_> {
         match self {
+            RgbDescr::Wpkh(d) => d.keys().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.keys().collect::<Vec<_>>(),
         }
         .into_iter()
@@ -280,12 +288,14 @@ where Self: Derive<DerivedScript>
 
     fn vars(&self) -> Self::VarIter<'_> {
         match self {
+            RgbDescr::Wpkh(d) => d.vars(),
             RgbDescr::TapretKey(d) => d.vars(),
         }
     }
 
     fn xpubs(&self) -> Self::XpubIter<'_> {
         match self {
+            RgbDescr::Wpkh(d) => d.xpubs().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.xpubs().collect::<Vec<_>>(),
         }
         .into_iter()
@@ -293,12 +303,14 @@ where Self: Derive<DerivedScript>
 
     fn compr_keyset(&self, terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
         match self {
+            RgbDescr::Wpkh(d) => d.compr_keyset(terminal),
             RgbDescr::TapretKey(d) => d.compr_keyset(terminal),
         }
     }
 
     fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
         match self {
+            RgbDescr::Wpkh(d) => d.xonly_keyset(terminal),
             RgbDescr::TapretKey(d) => d.xonly_keyset(terminal),
         }
     }
@@ -310,6 +322,7 @@ where Self: Derive<DerivedScript>
 {
     fn seal_close_method(&self) -> CloseMethod {
         match self {
+            RgbDescr::Wpkh(_) => CloseMethod::OpretFirst,
             RgbDescr::TapretKey(d) => d.seal_close_method(),
         }
     }
@@ -320,6 +333,7 @@ where Self: Derive<DerivedScript>
         tweak: TapretCommitment,
     ) -> Result<(), TapTweakAlreadyAssigned> {
         match self {
+            RgbDescr::Wpkh(_) => panic!("adding tapret tweak to non-taproot descriptor"),
             RgbDescr::TapretKey(d) => d.add_tapret_tweak(terminal, tweak),
         }
     }
@@ -328,7 +342,7 @@ where Self: Derive<DerivedScript>
 impl From<StdDescr> for RgbDescr {
     fn from(descr: StdDescr) -> Self {
         match descr {
-            StdDescr::Wpkh(_) => todo!(),
+            StdDescr::Wpkh(wpkh) => RgbDescr::Wpkh(wpkh),
             StdDescr::TrKey(tr) => RgbDescr::TapretKey(tr.into()),
             _ => todo!(),
         }
