@@ -233,6 +233,7 @@ impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
         deserialize = "S::Compr: serde::Deserialize<'de>, S::XOnly: serde::Deserialize<'de>"
     )
 )]
+#[non_exhaustive]
 pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
     #[from]
     Wpkh(Wpkh<S::Compr>),
