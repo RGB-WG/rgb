@@ -22,28 +22,34 @@
 #![allow(clippy::needless_update)] // Caused by the From derivation macro
 
 use bp_util::{Config, DescriptorOpts};
-use bpstd::XpubDerivable;
+use bpstd::{Wpkh, XpubDerivable};
 use rgb_rt::{Resolver, ResolverError, RgbDescr, Runtime, RuntimeError, TapretKey};
 
 use crate::Command;
 
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
+#[group()]
 pub struct DescrRgbOpts {
     /// Use tapret(KEY) descriptor as wallet.
     #[arg(long, global = true)]
     pub tapret_key_only: Option<XpubDerivable>,
+
+    /// Use wpkh(KEY) descriptor as wallet.
+    #[arg(long, global = true)]
+    pub wpkh: Option<XpubDerivable>,
 }
 
 impl DescriptorOpts for DescrRgbOpts {
     type Descr = RgbDescr;
 
-    fn is_some(&self) -> bool { self.tapret_key_only.is_some() }
+    fn is_some(&self) -> bool { self.tapret_key_only.is_some() || self.wpkh.is_some() }
 
     fn descriptor(&self) -> Option<Self::Descr> {
         self.tapret_key_only
             .clone()
             .map(TapretKey::from)
             .map(TapretKey::into)
+            .or(self.wpkh.clone().map(Wpkh::from).map(Wpkh::into))
     }
 }
 
