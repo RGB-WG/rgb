@@ -91,3 +91,8 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 
 [package.metadata.docs.rs]
 features = [ "all" ]
+
+[patch.crates-io]
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }

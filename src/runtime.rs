@@ -126,7 +126,7 @@ impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
 }
 
 impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
-    fn include_output(&self, output: impl Into<XOutpoint>) -> bool {
+    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         self.wallet()
             .coins()
@@ -140,9 +140,9 @@ pub struct ContractOutpointsFilter<'runtime, D: DescriptorRgb<K>, K> {
 }
 
 impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilter<'runtime, D, K> {
-    fn include_output(&self, output: impl Into<XOutpoint>) -> bool {
+    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
-        if !self.filter.include_output(output) {
+        if !self.filter.include_outpoint(output) {
             return false;
         }
         matches!(self.filter.stock.state_for_outpoints(self.contract_id, [output]), Ok(list) if !list.is_empty())

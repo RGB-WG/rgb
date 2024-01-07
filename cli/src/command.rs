@@ -439,7 +439,7 @@ impl Exec for RgbArgs {
                         for allocation in allocations {
                             println!(
                                 "    amount={}, utxo={}, witness={} # owned by the wallet",
-                                allocation.value, allocation.owner, allocation.witness
+                                allocation.state, allocation.seal, allocation.witness
                             );
                         }
                     }
@@ -450,7 +450,7 @@ impl Exec for RgbArgs {
                             for allocation in allocations {
                                 println!(
                                     "    amount={}, utxo={}, witness={} # owner unknown",
-                                    allocation.value, allocation.owner, allocation.witness
+                                    allocation.state, allocation.seal, allocation.witness
                                 );
                             }
                         }

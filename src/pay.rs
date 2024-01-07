@@ -30,7 +30,7 @@ use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxPara
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
 use rgbstd::containers::{Bindle, Transfer};
 use rgbstd::interface::ContractError;
-use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
+use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
@@ -206,9 +206,11 @@ impl Runtime {
                     contract_id,
                     filter: self,
                 };
-                let mut state = contract.fungible(assignment_name, &filter)?.into_inner();
-                state.sort_by_key(|a| a.value);
-                let mut sum = 0u64;
+                let mut state = contract
+                    .fungible(assignment_name, &filter)?
+                    .collect::<Vec<_>>();
+                state.sort_by_key(|a| a.state);
+                let mut sum = Amount::ZERO;
                 state
                     .iter()
                     .rev()
@@ -216,11 +218,11 @@ impl Runtime {
                         if sum >= amount {
                             false
                         } else {
-                            sum += a.value;
+                            sum += a.state;
                             true
                         }
                     })
-                    .map(|a| a.owner)
+                    .map(|a| a.seal)
                     .collect::<Vec<_>>()
             }
             _ => return Err(CompositionError::Unsupported),
