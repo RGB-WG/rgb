@@ -31,12 +31,12 @@ use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer, UniversalBindle};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
+use rgbstd::interface::{AmountChange, ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
-use rgbstd::{OutputSeal, XChain};
+use rgbstd::{OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -128,11 +128,15 @@ pub enum Command {
         iface: String,
     },
 
-    /// Print operation history
-    #[display("history")]
-    History {
+    /// Print operation history for a default fungible token under a given
+    /// interface
+    #[display("history-fungible")]
+    HistoryFungible {
         /// Contract identifier
-        contract_id: Option<ContractId>,
+        contract_id: ContractId,
+
+        /// Interface to interpret the state data
+        iface: String,
     },
 
     /// Display all known UTXOs belonging to this wallet
@@ -335,8 +339,32 @@ impl Exec for RgbArgs {
                 None
             }
 
-            Command::History { contract_id: _ } => {
-                todo!();
+            Command::HistoryFungible { contract_id, iface } => {
+                let runtime = self.rgb_runtime(&config)?;
+                let iface: TypeName = tn!(iface.clone());
+                let history = runtime.fungible_history(*contract_id, iface)?;
+                println!("Amount\tCounterparty\tWitness Id");
+                for (id, op) in history {
+                    let (cparty, more) = match op.state_change {
+                        AmountChange::Dec(_) => {
+                            (op.beneficiaries.first(), op.beneficiaries.len().saturating_sub(1))
+                        }
+                        AmountChange::Zero => continue,
+                        AmountChange::Inc(_) => {
+                            (op.payers.first(), op.payers.len().saturating_sub(1))
+                        }
+                    };
+                    let more = if more > 0 {
+                        format!(" (+{more})")
+                    } else {
+                        s!("")
+                    };
+                    let cparty = cparty
+                        .map(XOutputSeal::to_string)
+                        .unwrap_or_else(|| s!("none"));
+                    println!("{}\t{}{}\t{}", op.state_change, cparty, more, id);
+                }
+                None
             }
 
             Command::Import { armored, file } => {
