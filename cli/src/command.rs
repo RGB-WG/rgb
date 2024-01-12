@@ -665,7 +665,7 @@ impl Exec for RgbArgs {
                 let outpoint = runtime
                     .wallet()
                     .coinselect(Sats::ZERO, |utxo| {
-                        RgbKeychain::contains_rgb(utxo.terminal.keychain)
+                        !RgbKeychain::contains_rgb(utxo.terminal.keychain)
                     })
                     .next();
                 let network = runtime.wallet().network();
