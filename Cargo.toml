@@ -84,9 +84,9 @@ serde_with = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
-default = ["esplora"]
-all = ["esplora",  "serde", "log"]
-esplora = ["bp-esplora", "bp-wallet/esplora"]
+default = ["esplora_blocking"]
+all = ["esplora_blocking",  "serde", "log"]
+esplora_blocking = ["bp-esplora", "bp-wallet/esplora"]
 serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]

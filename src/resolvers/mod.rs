@@ -1,4 +1,4 @@
-// RGB wallet library for smart contracts on Bitcoin & Lightning network
+// RGB smart contracts for Bitcoin & Lightning
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -19,21 +19,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_use]
-extern crate amplify;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde_crate as serde;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde_with;
-
-mod runtime;
-mod descriptor;
-mod pay;
-mod resolvers;
-
-pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
-pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
-pub use resolvers::*;
-pub use runtime::{ContractOutpointsFilter, Runtime, RuntimeError};
+#[cfg(feature = "esplora_blocking")]
+pub mod esplora_blocking;
