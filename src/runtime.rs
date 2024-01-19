@@ -21,6 +21,7 @@
 
 #![allow(clippy::result_large_err)]
 
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io;
 use std::io::ErrorKind;
@@ -32,12 +33,16 @@ use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
 use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer};
-use rgbstd::interface::{BuilderError, OutpointFilter};
-use rgbstd::persistence::{Inventory, InventoryDataError, InventoryError, StashError, Stock};
+use rgbstd::interface::{
+    AmountChange, BuilderError, ContractError, IfaceOp, OutpointFilter, WitnessFilter,
+};
+use rgbstd::persistence::{
+    Inventory, InventoryDataError, InventoryError, Stash, StashError, Stock,
+};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveWitness};
-use rgbstd::{ContractId, XChain, XOutpoint};
-use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError};
+use rgbstd::{AssignmentWitness, ContractId, WitnessId, XChain, XOutpoint};
+use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError, TypeName};
 
 use crate::{DescriptorRgb, RgbDescr};
 
@@ -66,6 +71,12 @@ pub enum RuntimeError {
 
     #[from]
     Builder(BuilderError),
+
+    #[from]
+    History(HistoryError),
+
+    #[from]
+    Contract(ContractError),
 
     #[from]
     PsbtDecode(psbt::DecodeError),
@@ -111,6 +122,7 @@ impl From<Infallible> for RuntimeError {
 pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
     stock_path: PathBuf,
     #[getter(as_mut)]
+    // TODO: Parametrize by the stock
     stock: Stock,
     bprt: bpwallet::Runtime<D, K /* TODO: Add layer 2 */>,
 }
@@ -126,11 +138,21 @@ impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
 }
 
 impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
-    fn include_output(&self, output: impl Into<XOutpoint>) -> bool {
+    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         self.wallet()
             .coins()
             .any(|utxo| XChain::Bitcoin(utxo.outpoint) == output)
+    }
+}
+
+impl<D: DescriptorRgb<K>, K> WitnessFilter for Runtime<D, K> {
+    fn include_witness(&self, witness: impl Into<AssignmentWitness>) -> bool {
+        let witness = witness.into();
+        self.wallet()
+            .transactions()
+            .keys()
+            .any(|txid| AssignmentWitness::Present(WitnessId::Bitcoin(*txid)) == witness)
     }
 }
 
@@ -140,9 +162,9 @@ pub struct ContractOutpointsFilter<'runtime, D: DescriptorRgb<K>, K> {
 }
 
 impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilter<'runtime, D, K> {
-    fn include_output(&self, output: impl Into<XOutpoint>) -> bool {
+    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
-        if !self.filter.include_output(output) {
+        if !self.filter.include_outpoint(output) {
             return false;
         }
         matches!(self.filter.stock.state_for_outpoints(self.contract_id, [output]), Ok(list) if !list.is_empty())
@@ -234,4 +256,41 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
             .accept_transfer(transfer, resolver, force)
             .map_err(RuntimeError::from)
     }
+
+    // TODO: Integrate into BP Wallet `TxRow` as L2 and provide transactional info
+    pub fn fungible_history(
+        &self,
+        contract_id: ContractId,
+        iface_name: impl Into<TypeName>,
+    ) -> Result<HashMap<WitnessId, IfaceOp<AmountChange>>, RuntimeError> {
+        let iface_name = iface_name.into();
+        let iface = self.stock.iface_by_name(&iface_name)?;
+        let default_op = iface
+            .default_operation
+            .as_ref()
+            .ok_or(HistoryError::NoDefaultOp)?;
+        let state_name = iface
+            .transitions
+            .get(default_op)
+            .ok_or(HistoryError::DefaultOpNotTransition)?
+            .default_assignment
+            .as_ref()
+            .ok_or(HistoryError::NoDefaultAssignment)?
+            .clone();
+        let contract = self.stock.contract_iface_named(contract_id, iface_name)?;
+        contract
+            .fungible_ops::<AmountChange>(state_name, self, self)
+            .map_err(RuntimeError::from)
+    }
+}
+
+#[derive(Debug, Display, Error, From)]
+#[display(doc_comments)]
+pub enum HistoryError {
+    /// interface doesn't define default operation
+    NoDefaultOp,
+    /// default operation defined by the interface is not a state transition
+    DefaultOpNotTransition,
+    /// interface doesn't define default fungible state
+    NoDefaultAssignment,
 }
