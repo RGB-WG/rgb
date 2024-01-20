@@ -26,7 +26,7 @@ use std::str::FromStr;
 
 use amplify::confinement::U16;
 use bp_util::{BpCommand, Config, Exec};
-use bpstd::Sats;
+use bpstd::{Keychain, Sats};
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer, UniversalBindle};
@@ -664,16 +664,14 @@ impl Exec for RgbArgs {
 
                 let outpoint = runtime
                     .wallet()
-                    .coinselect(Sats::ZERO, |utxo| {
-                        RgbKeychain::contains_rgb(utxo.terminal.keychain)
-                    })
+                    .coinselect(Sats::ZERO, |utxo| utxo.terminal.keychain.is_rgb())
                     .next();
                 let network = runtime.wallet().network();
                 let beneficiary = match (address_based, outpoint) {
                     (true, _) | (false, None) => {
                         let addr = runtime
                             .wallet()
-                            .addresses(RgbKeychain::Rgb)
+                            .addresses(Keychain::RGB)
                             .next()
                             .expect("no addresses left")
                             .addr;

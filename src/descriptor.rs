@@ -20,17 +20,14 @@
 // limitations under the License.
 
 use std::collections::{BTreeSet, HashMap};
-use std::str::FromStr;
 use std::{iter, vec};
 
-use amplify::Wrapper;
 use bp::dbc::tapret::TapretCommitment;
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bpstd::{
-    CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase,
-    IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, TapScript,
-    TapTree, Terminal, XOnlyPk, XpubDerivable, XpubSpec,
+    CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, KeyOrigin, Keychain,
+    NormalIndex, TapDerivation, TapScript, TapTree, Terminal, XOnlyPk, XpubDerivable, XpubSpec,
 };
 use commit_verify::CommitVerify;
 use descriptors::{Descriptor, SpkClass, StdDescr, TrKey, Wpkh};
@@ -49,61 +46,33 @@ pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
     ) -> Result<(), TapTweakAlreadyAssigned>;
 }
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "serde_crate", rename_all = "camelCase")]
-#[repr(u8)]
-pub enum RgbKeychain {
-    #[display("0", alt = "0")]
-    External = 0,
-
-    #[display("1", alt = "1")]
-    Internal = 1,
-
-    #[display("9", alt = "9")]
-    Rgb = 9,
-
-    #[display("10", alt = "10")]
-    Tapret = 10,
+mod private {
+    pub trait Sealed {}
+    impl Sealed for super::Keychain {}
 }
 
-impl RgbKeychain {
-    pub const RGB_ALL: [RgbKeychain; 2] = [RgbKeychain::Rgb, RgbKeychain::Tapret];
+pub trait RgbKeychain: private::Sealed + Sized {
+    const RGB: Self;
+    const TAPRET: Self;
+    const RGB_ALL: [Self; 2] = [Self::RGB, Self::TAPRET];
 
-    pub fn contains_rgb(keychain: impl Into<Keychain>) -> bool {
-        let k = keychain.into().into_inner();
-        k == Self::Rgb as u8 || k == Self::Tapret as u8
-    }
-    pub fn is_seal(self) -> bool { self == Self::Rgb || self == Self::Tapret }
+    fn is_rgb(&self) -> bool;
 
-    pub const fn for_method(method: Method) -> Self {
+    fn for_method(method: Method) -> Keychain;
+}
+
+impl RgbKeychain for Keychain {
+    const RGB: Keychain = Keychain::with(9);
+    const TAPRET: Keychain = Keychain::with(10);
+
+    fn is_rgb(&self) -> bool { *self == Self::RGB || *self == Self::TAPRET }
+
+    fn for_method(method: Method) -> Keychain {
         match method {
-            Method::OpretFirst => Self::Rgb,
-            Method::TapretFirst => Self::Tapret,
+            Method::OpretFirst => Self::RGB,
+            Method::TapretFirst => Self::TAPRET,
         }
     }
-}
-
-impl FromStr for RgbKeychain {
-    type Err = IndexParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match NormalIndex::from_str(s)? {
-            NormalIndex::ZERO => Ok(RgbKeychain::External),
-            NormalIndex::ONE => Ok(RgbKeychain::Internal),
-            val => Err(IndexError {
-                what: "non-standard keychain",
-                invalid: val.index(),
-                start: 0,
-                end: 1,
-            }
-            .into()),
-        }
-    }
-}
-
-impl From<RgbKeychain> for Keychain {
-    fn from(keychain: RgbKeychain) -> Self { Keychain::from(keychain as u8) }
 }
 
 #[serde_as]
@@ -129,15 +98,10 @@ impl<K: DeriveXOnly> TapretKey<K> {
 
 impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
     #[inline]
-    fn default_keychain(&self) -> Keychain { RgbKeychain::Rgb.into() }
+    fn default_keychain(&self) -> Keychain { Keychain::RGB }
 
     fn keychains(&self) -> BTreeSet<Keychain> {
-        bset![
-            RgbKeychain::External.into(),
-            RgbKeychain::Internal.into(),
-            RgbKeychain::Rgb.into(),
-            RgbKeychain::Tapret.into(),
-        ]
+        bset![Keychain::OUTER, Keychain::INNER, Keychain::RGB, Keychain::TAPRET,]
     }
 
     fn derive(
@@ -149,7 +113,7 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
         let index = index.into();
         let terminal = Terminal::new(keychain, index);
         let internal_key = self.internal_key.derive(keychain, index);
-        if keychain.into_inner() == RgbKeychain::Tapret as u8 {
+        if keychain == Keychain::TAPRET {
             if let Some(tweak) = self.tweaks.get(&terminal) {
                 let script_commitment = TapScript::commit(tweak);
                 let tap_tree = TapTree::with_single_leaf(script_commitment);

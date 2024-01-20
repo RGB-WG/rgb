@@ -25,7 +25,7 @@ use amplify::confinement::Confined;
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
-use bpstd::Address;
+use bpstd::{Address, Keychain};
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
 use rgbstd::containers::{Bindle, Transfer};
@@ -240,7 +240,7 @@ impl Runtime {
             .iter()
             .map(|o| o.as_reduced_unsafe())
             .map(|o| Outpoint::new(o.txid, o.vout));
-        params.tx.change_keychain = RgbKeychain::for_method(method).into();
+        params.tx.change_keychain = Keychain::for_method(method);
         let (mut psbt, mut meta) =
             self.wallet_mut()
                 .construct_psbt(outpoints, &beneficiaries, params.tx)?;
