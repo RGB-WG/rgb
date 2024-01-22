@@ -7,7 +7,6 @@ members = [
 ]
 default-members = [
     "psbt",
-    "cli",
     "fs",
     "."
 ]
@@ -32,9 +31,9 @@ strict_types = "1.6.3"
 bp-core = "0.11.0-beta.3"
 bp-seals = "0.11.0-beta.3"
 bp-std = "0.11.0-beta.3"
-bp-wallet = "0.11.0-beta.4"
+bp-wallet = { version = "0.11.0-beta.4", default-features = false, features = ["fs", "serde"] }
 bp-util = "0.11.0-beta.4"
-bp-esplora = "0.11.0-beta.2"
+bp-esplora = { version = "0.11.0-beta.2", default-features = false }
 descriptors = "0.11.0-beta.3"
 psbt = { version = "0.11.0-beta.3", features = ["client-side-validation"] }
 rgb-std = { version = "0.11.0-beta.3", features = ["fs"] }
@@ -70,7 +69,7 @@ commit_verify = { workspace = true }
 strict_types = { workspace = true }
 bp-core = { workspace = true }
 bp-std = { workspace = true }
-bp-wallet = { workspace = true, features = ["fs"] }
+bp-wallet = { workspace = true, optional = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
 rgb-std = { workspace = true }
@@ -94,5 +93,5 @@ features = [ "all" ]
 
 [patch.crates-io]
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
+rgb-invoice = { git = "https://github.com/crisdut/rgb-std", branch = "review/rgb11" }
+rgb-std = { git = "https://github.com/crisdut/rgb-std", branch = "review/rgb11" }

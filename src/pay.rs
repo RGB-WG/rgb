@@ -30,11 +30,11 @@ use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxPara
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
 use rgbstd::containers::{Bindle, Transfer};
 use rgbstd::interface::ContractError;
-use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
+use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, NonFungible, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
-use rgbstd::{WitnessId, XChain};
+use rgbstd::{DataState, WitnessId, XChain};
 
 use crate::{
     ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
@@ -200,7 +200,7 @@ impl Runtime {
             .cloned()
             .ok_or(CompositionError::NoAssignment)?;
 
-        let outputs = match invoice.owned_state {
+        let outputs = match invoice.owned_state.clone() {
             InvoiceState::Amount(amount) => {
                 let filter = ContractOutpointsFilter {
                     contract_id,
@@ -224,6 +224,20 @@ impl Runtime {
                     })
                     .map(|a| a.seal)
                     .collect::<Vec<_>>()
+            }
+            InvoiceState::Data(NonFungible::RGB21(allocation)) => {
+                let filter = ContractOutpointsFilter {
+                    contract_id,
+                    filter: self,
+                };
+                let state = contract.data(assignment_name, &filter)?.collect::<Vec<_>>();
+
+                let data_state = DataState::from(allocation);
+                state
+                    .into_iter()
+                    .filter(|x| x.state == data_state)
+                    .map(|x| x.seal)
+                    .collect()
             }
             _ => return Err(CompositionError::Unsupported),
         };

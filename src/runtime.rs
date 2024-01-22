@@ -209,6 +209,14 @@ where
 }
 
 impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
+    pub fn init(stock: Stock, wallet: Wallet<K, D>, stock_path: Option<PathBuf>) -> Self {
+        Self {
+            stock_path: stock_path.map_or(PathBuf::default(), PathBuf::from),
+            bprt: bpwallet::Runtime::attach(wallet),
+            stock,
+        }
+    }
+
     pub fn wallet(&self) -> &Wallet<K, D> { self.bprt.wallet() }
 
     pub fn wallet_mut(&mut self) -> &mut Wallet<K, D> { self.bprt.wallet_mut() }
