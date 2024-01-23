@@ -21,3 +21,5 @@
 
 #[cfg(feature = "esplora_blocking")]
 pub mod esplora_blocking;
+#[cfg(feature = "electrum")]
+pub mod electrum;
