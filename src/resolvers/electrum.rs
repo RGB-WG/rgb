@@ -100,44 +100,56 @@ impl ResolveHeight for Resolver {
         }
 
         let last_block_height_min = get_block_height(&self.electrum_client)?;
-        let tx_details = self.electrum_client.raw_call(
-            "blockchain.transaction.get",
-            vec![Param::String(txid.to_string()), Param::Bool(true)],
-        )?;
-        let witness_ord = if let Some(confirmations) = tx_details.get("confirmations") {
-            let confirmations = confirmations
-                .as_u64()
-                .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?;
-            let last_block_height_max = get_block_height(&self.electrum_client)?;
-            let skew = confirmations - 1;
-            let mut tx_height: u32 = 0;
-            for height in (last_block_height_min - skew)..=(last_block_height_max - skew) {
-                if let Ok(h) = self.electrum_client.transaction_get_merkle(
-                    &BitcoinTxid::from_byte_array(txid.to_byte_array()),
-                    height
-                        .try_into()
-                        .map_err(|_| AnchorResolverError::ImpossibleConversion)?,
-                ) {
-                    tx_height = h
-                        .block_height
-                        .try_into()
-                        .map_err(|_| AnchorResolverError::ImpossibleConversion)?;
-                    break;
+        let witness_ord = match self
+            .electrum_client
+            .raw_call("blockchain.transaction.get", vec![
+                Param::String(txid.to_string()),
+                Param::Bool(true),
+            ]) {
+            Ok(tx_details) => {
+                if let Some(confirmations) = tx_details.get("confirmations") {
+                    let confirmations = confirmations
+                        .as_u64()
+                        .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?;
+                    let last_block_height_max = get_block_height(&self.electrum_client)?;
+                    let skew = confirmations - 1;
+                    let mut tx_height: u32 = 0;
+                    for height in (last_block_height_min - skew)..=(last_block_height_max - skew) {
+                        if let Ok(h) = self.electrum_client.transaction_get_merkle(
+                            &BitcoinTxid::from_byte_array(txid.to_byte_array()),
+                            height
+                                .try_into()
+                                .map_err(|_| AnchorResolverError::ImpossibleConversion)?,
+                        ) {
+                            tx_height = h
+                                .block_height
+                                .try_into()
+                                .map_err(|_| AnchorResolverError::ImpossibleConversion)?;
+                            break;
+                        } else {
+                            continue;
+                        }
+                    }
+                    let block_time = tx_details
+                        .get("blocktime")
+                        .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?
+                        .as_i64()
+                        .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?;
+                    WitnessOrd::OnChain(
+                        WitnessPos::new(tx_height, block_time)
+                            .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?,
+                    )
                 } else {
-                    continue;
+                    WitnessOrd::OffChain
                 }
             }
-            let block_time = tx_details
-                .get("blocktime")
-                .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?
-                .as_i64()
-                .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?;
-            WitnessOrd::OnChain(
-                WitnessPos::new(tx_height, block_time)
-                    .ok_or(electrum_client::Error::InvalidResponse(tx_details.clone()))?,
-            )
-        } else {
-            WitnessOrd::OffChain
+            Err(e)
+                if e.to_string()
+                    .contains("No such mempool or blockchain transaction") =>
+            {
+                WitnessOrd::OffChain
+            }
+            Err(e) => return Err(e.into()),
         };
 
         Ok(WitnessAnchor {
