@@ -67,6 +67,8 @@ pub trait RgbPsbt {
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError>;
     #[allow(clippy::result_large_err)]
     fn rgb_commit(&mut self) -> Result<Fascia, CommitError>;
+    #[allow(clippy::result_large_err)]
+    fn rgb_commit_deterministic(&mut self, static_entropy: u64) -> Result<Fascia, CommitError>;
     fn rgb_extract(&self) -> Result<Fascia, ExtractError>;
 }
 
@@ -104,6 +106,26 @@ impl RgbPsbt for Psbt {
         }
         if methods.has_opret_first() {
             opret_anchor = Some(self.dbc_commit::<OpretProof>()?);
+        }
+        let anchor = AnchorSet::from_split(tapret_anchor, opret_anchor)
+            .expect("at least one of DBC are present due to CloseMethodSet type guarantees");
+        Ok(Fascia {
+            anchor: XAnchor::Bitcoin(anchor),
+            bundles,
+        })
+    }
+
+    fn rgb_commit_deterministic(&mut self, static_entropy: u64) -> Result<Fascia, CommitError> {
+        // Convert RGB data to MPCs? Or should we do it at the moment we add them... No,
+        // since we may require more DBC methods with each additional state transition
+        let (bundles, methods) = self.rgb_bundles_to_mpc()?;
+        // DBC commitment for the required methods
+        let (mut tapret_anchor, mut opret_anchor) = (None, None);
+        if methods.has_tapret_first() {
+            tapret_anchor = Some(self.dbc_commit_deterministic::<TapretProof>(static_entropy)?);
+        }
+        if methods.has_opret_first() {
+            opret_anchor = Some(self.dbc_commit_deterministic::<OpretProof>(static_entropy)?);
         }
         let anchor = AnchorSet::from_split(tapret_anchor, opret_anchor)
             .expect("at least one of DBC are present due to CloseMethodSet type guarantees");
