@@ -670,7 +670,12 @@ impl Exec for RgbArgs {
                     .next();
                 let network = runtime.wallet().network();
                 let beneficiary = match (address_based, outpoint) {
-                    (true, _) | (false, None) => {
+                    (false, None) => {
+                        return Err(RuntimeError::Custom(s!(
+                            "blinded invoice requested but no suitable outpoint is available"
+                        )));
+                    }
+                    (true, _) => {
                         let addr = runtime
                             .wallet()
                             .addresses(RgbKeychain::Rgb)
