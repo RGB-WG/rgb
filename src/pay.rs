@@ -251,12 +251,10 @@ impl Runtime {
             } else {
                 None
             };
-        let output = psbt
-            .outputs_mut()
+        psbt.outputs_mut()
             .find(|o| o.script.is_p2tr() && Some(&o.script) != beneficiary_script.as_ref())
-            .ok_or(CompositionError::TapretRequired)?;
+            .map(|o| o.set_tapret_host().expect("just created"));
         // TODO: Add descriptor id to the tapret host data
-        output.set_tapret_host().expect("just created");
 
         let change_script = meta
             .change_vout
