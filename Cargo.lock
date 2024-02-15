@@ -482,7 +482,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/cryptoquick/bp-wallet?branch=HB/remove-esplora-from-default-features#be01f35ca6fc714749a5018825646cac3927b6d0"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#9d1cf14c1a3c6810827f1de9b887103f3f178ac8"
 dependencies = [
  "amplify",
  "bp-esplora",

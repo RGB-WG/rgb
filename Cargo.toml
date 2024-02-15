@@ -101,4 +101,4 @@ features = [ "all" ]
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
-bp-wallet = { git = "https://github.com/cryptoquick/bp-wallet", branch = "HB/remove-esplora-from-default-features" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
