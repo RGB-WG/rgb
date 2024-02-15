@@ -35,5 +35,7 @@ mod resolvers;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
 pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
+#[cfg(feature = "electrum")]
+#[cfg(feature = "esplora_blocking")]
 pub use resolvers::*;
 pub use runtime::{ContractOutpointsFilter, Runtime, RuntimeError};
