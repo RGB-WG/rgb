@@ -7,38 +7,39 @@ members = [
 ]
 default-members = [
     "psbt",
-    "cli",
     "fs",
     "."
 ]
 
 [workspace.package]
-version = "0.11.0-beta.3"
+version = "0.11.0-beta.4"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
 homepage = "https://lnp-bp.org"
-repository = "https://github.com/RGB-WG/rgb-wallet"
+repository = "https://github.com/RGB-WG/rgb"
 rust-version = "1.67" # Due to strict encoding library
 edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.5.0"
+amplify = "4.6.0"
 baid58 = "0.4.4"
-commit_verify = "0.11.0-beta.3"
-strict_encoding = "2.6.2"
-strict_types = "1.6.3"
-bp-core = "0.11.0-beta.3"
-bp-seals = "0.11.0-beta.3"
-bp-std = "0.11.0-beta.3"
+bitcoin = "0.31.1"
+commit_verify = "0.11.0-beta.4"
+strict_encoding = "2.7.0-beta.1"
+strict_types = "2.7.0-beta.1"
+bp-core = "0.11.0-beta.4"
+bp-seals = "0.11.0-beta.4"
+bp-std = "0.11.0-beta.4"
 bp-wallet = "0.11.0-beta.4"
 bp-util = "0.11.0-beta.4"
 bp-esplora = "0.11.0-beta.2"
-descriptors = "0.11.0-beta.3"
-psbt = { version = "0.11.0-beta.3", features = ["client-side-validation"] }
-rgb-std = { version = "0.11.0-beta.3", features = ["fs"] }
-rgb-psbt = { version = "0.11.0-beta.3", path = "psbt" }
+descriptors = "0.11.0-beta.4"
+electrum-client = "0.19.0"
+psbt = { version = "0.11.0-beta.4", features = ["client-side-validation"] }
+rgb-std = { version = "0.11.0-beta.4", features = ["fs"] }
+rgb-psbt = { version = "0.11.0-beta.4", path = "psbt" }
 indexmap = "2.0.2"
 chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -62,10 +63,12 @@ license.workspace = true
 
 [lib]
 name = "rgb_rt"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amplify = { workspace = true }
 baid58 = { workspace = true }
+bitcoin = { workspace = true, optional = true }
 commit_verify = { workspace = true }
 strict_types = { workspace = true }
 bp-core = { workspace = true }
@@ -73,6 +76,7 @@ bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
+electrum-client = { workspace = true, optional = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
 rgb-persist-fs = { version = "0.11.0", path = "fs" }
@@ -84,15 +88,18 @@ serde_with = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
-default = ["esplora"]
-all = ["esplora",  "serde", "log"]
-esplora = ["bp-esplora", "bp-wallet/esplora"]
+default = ["esplora_blocking"]
+all = ["esplora_blocking", "electrum", "serde", "log"]
+esplora_blocking = ["bp-esplora", "bp-wallet/esplora"]
+electrum = ["electrum-client", "bitcoin"]
 serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = [ "all" ]
 
 [patch.crates-io]
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
+bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }

@@ -29,7 +29,7 @@ use psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use rgbstd::accessors::{MergeReveal, MergeRevealError};
 use rgbstd::containers::CloseMethodSet;
 use rgbstd::interface::VelocityHint;
-use rgbstd::{ContractId, OpId, Operation, Transition, TransitionBundle, Vin};
+use rgbstd::{ContractId, InputMap, OpId, Operation, Transition, TransitionBundle, Vin};
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
 
 // TODO: Instead of storing whole RGB contract in PSBT create a shortened
@@ -186,8 +186,7 @@ pub trait RgbExt {
                 }
             }
             let bundle = TransitionBundle {
-                input_map: Confined::try_from(input_map.into_inner())
-                    .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
+                input_map: InputMap::from(Confined::from_collection_unsafe(input_map.into_inner())),
                 known_transitions: Confined::try_from(known_transitions.into_inner())
                     .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
             };

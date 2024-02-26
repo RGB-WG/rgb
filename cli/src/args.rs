@@ -23,7 +23,8 @@
 
 use bp_util::{Config, DescriptorOpts};
 use bpstd::{Wpkh, XpubDerivable};
-use rgb_rt::{Resolver, ResolverError, RgbDescr, Runtime, RuntimeError, TapretKey};
+use rgb_rt::esplora_blocking::{Resolver, ResolverError};
+use rgb_rt::{RgbDescr, Runtime, RuntimeError, TapretKey};
 
 use crate::Command;
 

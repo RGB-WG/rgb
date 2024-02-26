@@ -344,14 +344,11 @@ impl Runtime {
             };
             if ab.anchor.witness_id_unchecked() == WitnessId::Bitcoin(witness_txid) {
                 // TODO: Use unsigned tx
-                match terminal {
-                    XChain::Bitcoin(term) => term.tx = Some(psbt.to_unsigned_tx().into()),
-                    XChain::Liquid(_) => unreachable!(),
-                }
+                terminal.witness_tx = Some(XChain::Bitcoin(psbt.to_unsigned_tx().into()));
             }
         }
         transfer.terminals = Confined::from_collection_unsafe(terminals);
 
-        Ok(transfer)
+        Ok(self.stock().bindle(transfer))
     }
 }
