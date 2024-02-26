@@ -187,6 +187,7 @@ where
 
         let stock = Stock::load(&stock_path).or_else(|err| {
             if matches!(err, DeserializeError::Decode(DecodeError::Io(ref err)) if err.kind() == ErrorKind::NotFound) {
+                #[cfg(feature = "log")]
                 eprint!("stock file is absent, creating a new one ... ");
                 let stock = Stock::default();
                 return Ok(stock)
