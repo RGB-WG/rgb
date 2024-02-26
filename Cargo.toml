@@ -7,7 +7,6 @@ members = [
 ]
 default-members = [
     "psbt",
-    "cli",
     "fs",
     "."
 ]
@@ -18,7 +17,7 @@ keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
 homepage = "https://lnp-bp.org"
-repository = "https://github.com/RGB-WG/rgb-wallet"
+repository = "https://github.com/RGB-WG/rgb"
 rust-version = "1.67" # Due to strict encoding library
 edition = "2021"
 license = "Apache-2.0"
@@ -64,6 +63,7 @@ license.workspace = true
 
 [lib]
 name = "rgb_rt"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amplify = { workspace = true }
