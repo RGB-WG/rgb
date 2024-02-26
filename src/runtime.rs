@@ -35,6 +35,7 @@ use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer};
 use rgbstd::interface::{
     AmountChange, BuilderError, ContractError, IfaceOp, OutpointFilter, WitnessFilter,
+    WrongImplementation,
 };
 use rgbstd::persistence::{
     Inventory, InventoryDataError, InventoryError, Stash, StashError, Stock,
@@ -70,6 +71,7 @@ pub enum RuntimeError {
     Inventory(InventoryError<Infallible>),
 
     #[from]
+    #[from(WrongImplementation)]
     Builder(BuilderError),
 
     #[from]

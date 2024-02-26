@@ -60,7 +60,7 @@ impl Resolver {
             consignment
                 .terminals
                 .values()
-                .filter_map(|t| t.as_reduced_unsafe().tx.as_ref())
+                .filter_map(|t| t.witness_tx.as_ref().map(XPubWitness::as_reduced_unsafe))
                 .map(|tx| (tx.txid(), tx.clone())),
         );
     }
