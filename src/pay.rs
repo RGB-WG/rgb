@@ -349,6 +349,6 @@ impl Runtime {
         }
         transfer.terminals = Confined::from_collection_unsafe(terminals);
 
-        Ok(transfer)
+        Ok(self.stock().bindle(transfer))
     }
 }
