@@ -123,9 +123,9 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.6.12"
+version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b09b5178381e0874812a9b157f7fe84982617e48f71f4e3235482775e5b540"
+checksum = "d96bd03f33fe50a863e394ee9718a706f988b9079b20c3784fb726e7678b62fb"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -397,9 +397,9 @@ dependencies = [
 
 [[package]]
 name = "bp-esplora"
-version = "0.11.0-beta.2"
+version = "0.11.0-beta.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d642e2e6d699edd884e0359668750df1590d209f2ff956d3c5fbf58b5eba730"
+checksum = "c918bed49faf5d1e1867f0837de676d7172cb37b7fcebe5b6eb768ee7b98e30c"
 dependencies = [
  "amplify",
  "bp-std",
@@ -459,7 +459,7 @@ dependencies = [
 [[package]]
 name = "bp-util"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#fabaa6c04c8055490fc4af921012d8d09998f3bf"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=master#54c39fb8d794b7e3a02348433b5cdce2f107528e"
 dependencies = [
  "amplify",
  "base64",
@@ -481,7 +481,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#fabaa6c04c8055490fc4af921012d8d09998f3bf"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=master#54c39fb8d794b7e3a02348433b5cdce2f107528e"
 dependencies = [
  "amplify",
  "bp-esplora",
@@ -1581,7 +1581,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=master#0716f0e768df8768a6729fa62aa1cbbb56bd4003"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=master#6fc1a557dce94add483dbca59ce2b7ccec007464"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1602,7 +1602,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#0a9c92ef073ac3c3c61390cebe94aa0da341e86d"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=master#6801aa52abadc978cbdb3a0351aec5f91a076bb2"
 dependencies = [
  "amplify",
  "baid58",
@@ -1673,7 +1673,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#0a9c92ef073ac3c3c61390cebe94aa0da341e86d"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=master#6801aa52abadc978cbdb3a0351aec5f91a076bb2"
 dependencies = [
  "amplify",
  "baid58",
@@ -2214,9 +2214,9 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.10.0"
+version = "3.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a365e8cd18e44762ef95d87f284f4b5cd04107fec2ff3052bd6a3e6069669e67"
+checksum = "85b77fafb263dd9d05cbeac119526425676db3784113aa9295c88498cbf8bff1"
 dependencies = [
  "cfg-if",
  "fastrand",
