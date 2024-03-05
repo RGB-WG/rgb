@@ -521,7 +521,7 @@ impl Exec for RgbArgs {
                         "no known interface implementation for {iface_name}"
                     ))
                 })?;
-                let types = &schema.type_system;
+                let types = &schema.types;
 
                 let mut builder = ContractBuilder::with(
                     iface.clone(),

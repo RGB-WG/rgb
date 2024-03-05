@@ -95,10 +95,11 @@ electrum = ["electrum-client", "bitcoin"]
 serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
-features = [ "all" ]
+features = ["all"]
 
 [patch.crates-io]
 bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "master" }

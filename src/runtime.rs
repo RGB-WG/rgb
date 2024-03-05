@@ -144,7 +144,7 @@ impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
         let output = output.into();
         self.wallet()
             .coins()
-            .any(|utxo| XChain::Bitcoin(utxo.outpoint) == output)
+            .any(|utxo| XChain::Bitcoin(utxo.outpoint) == *output)
     }
 }
 

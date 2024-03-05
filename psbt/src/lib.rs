@@ -78,7 +78,7 @@ impl RgbPsbt for Psbt {
             let mut inputs = info.inputs.into_inner();
             for input in self.inputs_mut() {
                 let outpoint = input.prevout().outpoint();
-                if let Some(pos) = inputs.iter().position(|i| i == &XChain::Bitcoin(outpoint)) {
+                if let Some(pos) = inputs.iter().position(|i| **i == XChain::Bitcoin(outpoint)) {
                     inputs.remove(pos);
                     input
                         .set_rgb_consumer(contract_id, info.id)
