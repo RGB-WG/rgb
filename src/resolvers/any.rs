@@ -19,6 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
 use rgbstd::{WitnessAnchor, WitnessId, XAnchor, XPubWitness};
@@ -45,6 +46,18 @@ pub enum AnyResolver {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Display, Error, From)]
 #[display(doc_comments)]
+pub enum AnyResolverError {
+    #[cfg(feature = "electrum")]
+    #[display(inner)]
+    Electrum(::electrum::Error),
+    #[cfg(feature = "esplora_blocking")]
+    #[display(inner)]
+    Esplora(esplora::Error),
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Display, Error, From)]
+#[display(doc_comments)]
 pub enum AnyAnchorResolverError {
     #[cfg(feature = "electrum")]
     #[from]
@@ -54,6 +67,17 @@ pub enum AnyAnchorResolverError {
     #[from]
     #[display(inner)]
     Esplora(esplora_blocking::AnchorResolverError),
+}
+
+impl AnyResolver {
+    pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
+        match self {
+            #[cfg(feature = "electrum")]
+            AnyResolver::Electrum(inner) => inner.add_terminals(consignment),
+            #[cfg(feature = "esplora_blocking")]
+            AnyResolver::Esplora(inner) => inner.add_terminals(consignment),
+        }
+    }
 }
 
 impl ResolveHeight for AnyResolver {

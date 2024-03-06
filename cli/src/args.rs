@@ -23,8 +23,10 @@
 
 use bp_util::{Config, DescriptorOpts};
 use bpstd::{Wpkh, XpubDerivable};
-use rgb_rt::esplora_blocking::{Resolver, ResolverError};
-use rgb_rt::{RgbDescr, Runtime, RuntimeError, TapretKey};
+use rgb_rt::{
+    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, Runtime, RuntimeError,
+    TapretKey,
+};
 
 use crate::Command;
 
@@ -80,7 +82,17 @@ impl RgbArgs {
     }
 
     #[allow(clippy::result_large_err)]
-    pub fn resolver(&self) -> Result<Resolver, ResolverError> {
-        Resolver::new(&self.resolver.esplora)
+    pub fn resolver(&self) -> Result<AnyResolver, AnyResolverError> {
+        if self.resolver.electrum != bp_util::DEFAULT_ELECTRUM {
+            match electrum::Resolver::new(&self.resolver.electrum) {
+                Ok(c) => Ok(AnyResolver::Electrum(Box::new(c))),
+                Err(e) => Err(AnyResolverError::Electrum(e)),
+            }
+        } else {
+            match esplora_blocking::Resolver::new(&self.resolver.esplora) {
+                Ok(c) => Ok(AnyResolver::Esplora(Box::new(c))),
+                Err(e) => Err(AnyResolverError::Esplora(e)),
+            }
+        }
     }
 }

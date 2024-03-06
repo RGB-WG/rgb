@@ -27,4 +27,4 @@ pub mod esplora_blocking;
 pub mod electrum;
 
 #[cfg(any(feature = "electrum", feature = "esplora_blocking"))]
-pub use any::AnyResolver;
+pub use any::{AnyResolver, AnyResolverError};

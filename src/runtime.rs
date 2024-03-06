@@ -105,9 +105,11 @@ pub enum RuntimeError {
     #[from(bpwallet::LoadError)]
     Bp(bpwallet::RuntimeError),
 
-    #[cfg(feature = "esplora_blocking")]
+    /// resolver error: {0}
+    #[cfg(any(feature = "electrum", feature = "esplora_blocking"))]
     #[from]
-    Esplora(esplora::Error),
+    #[display(doc_comments)]
+    ResolverError(crate::AnyResolverError),
 
     #[from]
     Yaml(serde_yaml::Error),
