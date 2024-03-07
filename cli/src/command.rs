@@ -823,8 +823,8 @@ impl Exec for RgbArgs {
                 }
                 for id in runtime.witness_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/anchors/{id}.debug"),
-                        format!("{:#?}", runtime.anchor(id)?),
+                        format!("{root_dir}/stash/anchors/{id}.yaml"),
+                        serde_yaml::to_string(runtime.anchor(id)?)?,
                     )?;
                 }
                 for id in runtime.extension_ids()? {
@@ -845,24 +845,24 @@ impl Exec for RgbArgs {
 
                 // Index
                 fs::write(
-                    format!("{root_dir}/index/op-to-bundle.debug"),
-                    format!("{:#?}", runtime.debug_bundle_op_index()),
+                    format!("{root_dir}/index/op-to-bundle.yaml"),
+                    serde_yaml::to_string(runtime.debug_bundle_op_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/bundle-to-anchor.debug"),
-                    format!("{:#?}", runtime.debug_anchor_bundle_index()),
+                    format!("{root_dir}/index/bundle-to-anchor.yaml"),
+                    serde_yaml::to_string(runtime.debug_anchor_bundle_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/contracts.debug"),
-                    format!("{:#?}", runtime.debug_contract_index()),
+                    format!("{root_dir}/index/contracts.yaml"),
+                    serde_yaml::to_string(runtime.debug_contract_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/terminals.debug"),
-                    format!("{:#?}", runtime.debug_terminal_index()),
+                    format!("{root_dir}/index/terminals.yaml"),
+                    serde_yaml::to_string(runtime.debug_terminal_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/seal-secret.debug"),
-                    format!("{:#?}", runtime.debug_seal_secrets()),
+                    format!("{root_dir}/seal-secret.yaml"),
+                    serde_yaml::to_string(runtime.debug_seal_secrets())?,
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
                 None

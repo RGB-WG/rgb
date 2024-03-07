@@ -1601,7 +1601,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=master#64e511ae20756b6062ad371ecf37624d433f959d"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=serde#dffaf9c06c098264d22f70fe5a5fd662c7604c2f"
 dependencies = [
  "amplify",
  "baid58",
@@ -1672,7 +1672,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=master#64e511ae20756b6062ad371ecf37624d433f959d"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=serde#dffaf9c06c098264d22f70fe5a5fd662c7604c2f"
 dependencies = [
  "amplify",
  "baid58",
