@@ -24,20 +24,25 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::U16;
+use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16};
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
-use rgbstd::containers::{Bindle, BuilderSeal, Transfer, UniversalBindle};
+use rgbstd::containers::{
+    Bindle, BuilderSeal, ContainerVer, ContentId, ContentSigs, Terminal, Transfer, UniversalBindle,
+};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{AmountChange, ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
+use rgbstd::interface::{
+    AmountChange, ContractBuilder, ContractSuppl, FilterExclude, IfaceId, SchemaIfaces,
+};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
-use rgbstd::{OutputSeal, XChain, XOutputSeal};
+use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
+use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
@@ -231,6 +236,13 @@ pub enum Command {
     Inspect {
         /// RGB file to inspect
         file: PathBuf,
+
+        /// Path to save the dumped data. If not given, prints PSBT to STDOUT.
+        path: Option<PathBuf>,
+
+        /// Export using directory format for the compound bundles
+        #[clap(long, requires("path"))]
+        dir: bool,
     },
 
     /// Debug-dump all stash and inventory data
@@ -761,10 +773,64 @@ impl Exec for RgbArgs {
                 }
                 Some(runtime)
             }
-            Command::Inspect { file } => {
+            Command::Inspect { file, dir, path } => {
+                #[derive(Clone, Debug)]
+                #[derive(Serialize, Deserialize)]
+                #[serde(crate = "serde_crate", rename_all = "camelCase")]
+                pub struct ConsignmentInspection {
+                    version: ContainerVer,
+                    transfer: bool,
+                    asset_tags: TinyOrdMap<AssignmentType, AssetTag>,
+                    terminals: SmallOrdMap<BundleId, Terminal>,
+                    supplements: TinyOrdSet<ContractSuppl>,
+                    signatures: TinyOrdMap<ContentId, ContentSigs>,
+                }
+
                 let bindle = UniversalBindle::load_file(file)?;
-                let s = serde_yaml::to_string(&bindle).expect("unable to present as YAML");
-                println!("{s}");
+                let contract = match bindle {
+                    UniversalBindle::Contract(contract) if *dir => Some(contract.into_split()),
+                    UniversalBindle::Transfer(transfer) if *dir => {
+                        let (transfer, sigs) = transfer.into_split();
+                        Some((transfer.into_contract(), sigs))
+                    }
+                    bindle => {
+                        let s = serde_yaml::to_string(&bindle).expect("unable to present as YAML");
+                        match path {
+                            None => println!("{s}"),
+                            Some(path) => fs::write(path, s)?,
+                        }
+                        None
+                    }
+                };
+                if let Some((contract, sigs)) = contract {
+                    let mut map = map![
+                        s!("genesis") => serde_yaml::to_string(&contract.genesis)?,
+                        s!("schema") => serde_yaml::to_string(&contract.schema)?,
+                        s!("bundles") => serde_yaml::to_string(&contract.bundles)?,
+                        s!("extensions") => serde_yaml::to_string(&contract.extensions)?,
+                        s!("sigs") => serde_yaml::to_string(&sigs)?
+                    ];
+                    for (_, pair) in contract.ifaces {
+                        map.insert(
+                            format!("iface-{}", pair.iface.name),
+                            serde_yaml::to_string(&pair)?,
+                        );
+                    }
+                    let contract = ConsignmentInspection {
+                        version: contract.version,
+                        transfer: contract.transfer,
+                        asset_tags: contract.asset_tags,
+                        terminals: contract.terminals,
+                        supplements: contract.supplements,
+                        signatures: contract.signatures,
+                    };
+                    map.insert(s!("consignment-meta"), serde_yaml::to_string(&contract)?);
+                    let path = path.as_ref().expect("required by clap");
+                    fs::create_dir_all(path)?;
+                    for (file, value) in map {
+                        fs::write(format!("{}/{file}.yaml", path.display()), value)?;
+                    }
+                }
                 None
             }
             Command::Dump { root_dir } => {
