@@ -24,7 +24,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16};
+use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16, U32 as MAX32};
 use baid58::ToBaid58;
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
@@ -45,7 +45,7 @@ use rgbstd::vm::RgbIsa;
 use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
-use strict_types::encoding::{FieldName, TypeName};
+use strict_types::encoding::{FieldName, StrictSerialize, TypeName};
 use strict_types::StrictVal;
 
 use crate::RgbArgs;
@@ -245,6 +245,18 @@ pub enum Command {
         /// Export using directory format for the compound bundles
         #[clap(long, requires("path"))]
         dir: bool,
+    },
+
+    /// Reconstructs consignment from a YAML file
+    #[display("reconstruct")]
+    #[clap(hide = true)]
+    Reconstruct {
+        /// RGB file with the consignment YAML data
+        src: PathBuf,
+
+        /// Path for the resulting consignment file. If not given, prints the
+        /// consignment to STDOUT.
+        dst: Option<PathBuf>,
     },
 
     /// Debug-dump all stash and inventory data
@@ -559,7 +571,7 @@ impl Exec for RgbArgs {
                             .expect("global type doesn't match type definition");
 
                         let serialized = types
-                            .strict_serialize_type::<U16>(&typed_val)
+                            .strict_serialize_type::<MAX16>(&typed_val)
                             .expect("internal error");
                         // Workaround for borrow checker:
                         let field_name =
@@ -850,6 +862,17 @@ impl Exec for RgbArgs {
                     fs::create_dir_all(path)?;
                     for (file, value) in map {
                         fs::write(format!("{}/{file}", path.display()), value)?;
+                    }
+                }
+                None
+            }
+            Command::Reconstruct { src, dst } => {
+                let file = File::open(src)?;
+                let transfer: Bindle<Transfer> = serde_yaml::from_reader(&file)?;
+                match dst {
+                    None => println!("{transfer}"),
+                    Some(dst) => {
+                        transfer.strict_serialize_to_file::<MAX32>(dst)?;
                     }
                 }
                 None
