@@ -43,20 +43,6 @@ use strict_types::StrictVal;
 
 use crate::RgbArgs;
 
-// TODO: For now, serde implementation doesn't work for consignments due to
-//       some of the keys which can't be serialized to strings. Once this fixed,
-//       allow this inspect formats option
-#[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Hash, Debug, Display, Default)]
-#[display(lowercase)]
-pub enum InspectFormat {
-    #[default]
-    Yaml,
-    Toml,
-    Json,
-    Debug,
-    Contractum,
-}
-
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
 #[allow(clippy::large_enum_variant)]
@@ -243,10 +229,6 @@ pub enum Command {
     /// Inspects any RGB data file
     #[display("inspect")]
     Inspect {
-        /// Format used for data inspection
-        #[clap(short, long, default_value = "yaml")]
-        format: InspectFormat,
-
         /// RGB file to inspect
         file: PathBuf,
     },
@@ -779,24 +761,9 @@ impl Exec for RgbArgs {
                 }
                 Some(runtime)
             }
-            Command::Inspect { file, format } => {
+            Command::Inspect { file } => {
                 let bindle = UniversalBindle::load_file(file)?;
-                // TODO: For now, serde implementation doesn't work for consignments due to
-                //       some of the keys which can't be serialized to strings. Once this fixed,
-                //       allow this inspect formats option
-                let s = match format {
-                    InspectFormat::Yaml => {
-                        serde_yaml::to_string(&bindle).expect("unable to present as YAML")
-                    }
-                    InspectFormat::Toml => {
-                        toml::to_string(&bindle).expect("unable to present as TOML")
-                    }
-                    InspectFormat::Json => {
-                        serde_json::to_string(&bindle).expect("unable to present as JSON")
-                    }
-                    InspectFormat::Debug => format!("{bindle:#?}"),
-                    InspectFormat::Contractum => todo!("contractum representation"),
-                };
+                let s = serde_yaml::to_string(&bindle).expect("unable to present as YAML");
                 println!("{s}");
                 None
             }
