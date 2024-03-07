@@ -25,6 +25,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16};
+use baid58::ToBaid58;
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
 use psbt::{Psbt, PsbtVer};
@@ -40,6 +41,7 @@ use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
+use rgbstd::vm::RgbIsa;
 use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
@@ -804,17 +806,36 @@ impl Exec for RgbArgs {
                 };
                 if let Some((contract, sigs)) = contract {
                     let mut map = map![
-                        s!("genesis") => serde_yaml::to_string(&contract.genesis)?,
-                        s!("schema") => serde_yaml::to_string(&contract.schema)?,
-                        s!("bundles") => serde_yaml::to_string(&contract.bundles)?,
-                        s!("extensions") => serde_yaml::to_string(&contract.extensions)?,
-                        s!("sigs") => serde_yaml::to_string(&sigs)?
+                        s!("genesis.yaml") => serde_yaml::to_string(&contract.genesis)?,
+                        s!("schema.yaml") => serde_yaml::to_string(&contract.schema)?,
+                        s!("bundles.yaml") => serde_yaml::to_string(&contract.bundles)?,
+                        s!("extensions.yaml") => serde_yaml::to_string(&contract.extensions)?,
+                        s!("sigs.yaml") => serde_yaml::to_string(&sigs)?,
+                        s!("schema-types.sty") => contract.schema.types.to_string(),
                     ];
+                    for (id, lib) in &contract.schema.script.as_alu_script().libs {
+                        let mut buf = Vec::new();
+                        lib.print_disassemble::<RgbIsa>(&mut buf)?;
+                        map.insert(format!("{}.aluasm", id.to_baid58().mnemonic()), unsafe {
+                            String::from_utf8_unchecked(buf)
+                        });
+                    }
                     for (_, pair) in contract.ifaces {
                         map.insert(
-                            format!("iface-{}", pair.iface.name),
+                            format!("iface-{}.yaml", pair.iface.name),
                             serde_yaml::to_string(&pair)?,
                         );
+                        map.insert(
+                            format!("iface-{}.sty", pair.iface.name),
+                            pair.iface.types.to_string(),
+                        );
+                        for (id, lib) in &pair.iimpl.script.as_alu_script().libs {
+                            let mut buf = Vec::new();
+                            lib.print_disassemble::<RgbIsa>(&mut buf)?;
+                            map.insert(format!("{}.aluasm", id.to_baid58().mnemonic()), unsafe {
+                                String::from_utf8_unchecked(buf)
+                            });
+                        }
                     }
                     let contract = ConsignmentInspection {
                         version: contract.version,
@@ -824,11 +845,11 @@ impl Exec for RgbArgs {
                         supplements: contract.supplements,
                         signatures: contract.signatures,
                     };
-                    map.insert(s!("consignment-meta"), serde_yaml::to_string(&contract)?);
+                    map.insert(s!("consignment-meta.yaml"), serde_yaml::to_string(&contract)?);
                     let path = path.as_ref().expect("required by clap");
                     fs::create_dir_all(path)?;
                     for (file, value) in map {
-                        fs::write(format!("{}/{file}.yaml", path.display()), value)?;
+                        fs::write(format!("{}/{file}", path.display()), value)?;
                     }
                 }
                 None
