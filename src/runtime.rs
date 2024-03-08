@@ -24,6 +24,7 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io;
+#[cfg(feature = "serde")]
 use std::io::ErrorKind;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
@@ -31,6 +32,7 @@ use std::path::PathBuf;
 use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
+#[cfg(feature = "serde")]
 use rgbfs::StockFs;
 use rgbstd::containers::{Contract, LoadError, Transfer};
 use rgbstd::interface::{
@@ -43,7 +45,9 @@ use rgbstd::persistence::{
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveWitness};
 use rgbstd::{AssignmentWitness, ContractId, WitnessId, XChain, XOutpoint};
-use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError, TypeName};
+use strict_types::encoding::{DeserializeError, Ident, SerializeError, TypeName};
+#[cfg(feature = "serde")]
+use strict_types::encoding::DecodeError;
 
 use crate::{DescriptorRgb, RgbDescr};
 
@@ -109,6 +113,7 @@ pub enum RuntimeError {
     #[from]
     Esplora(esplora::Error),
 
+    #[cfg(feature = "serde")]
     #[from]
     Yaml(serde_yaml::Error),
 
