@@ -24,38 +24,31 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::U16;
+use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16, U32 as MAX32};
+use baid58::ToBaid58;
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
-use rgbstd::containers::{Bindle, BuilderSeal, Transfer, UniversalBindle};
+use rgbstd::containers::{
+    Bindle, BuilderSeal, ContainerVer, ContentId, ContentSigs, Terminal, Transfer, UniversalBindle,
+};
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{AmountChange, ContractBuilder, FilterExclude, IfaceId, SchemaIfaces};
+use rgbstd::interface::{
+    AmountChange, ContractBuilder, ContractSuppl, FilterExclude, IfaceId, SchemaIfaces,
+};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
-use rgbstd::{OutputSeal, XChain, XOutputSeal};
+use rgbstd::vm::RgbIsa;
+use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
-use strict_types::encoding::{FieldName, TypeName};
+use serde_crate::{Deserialize, Serialize};
+use strict_types::encoding::{FieldName, StrictSerialize, TypeName};
 use strict_types::StrictVal;
 
 use crate::RgbArgs;
-
-// TODO: For now, serde implementation doesn't work for consignments due to
-//       some of the keys which can't be serialized to strings. Once this fixed,
-//       allow this inspect formats option
-#[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Hash, Debug, Display, Default)]
-#[display(lowercase)]
-pub enum InspectFormat {
-    #[default]
-    Yaml,
-    Toml,
-    Json,
-    Debug,
-    Contractum,
-}
 
 #[derive(Subcommand, Clone, PartialEq, Eq, Debug, Display)]
 #[display(lowercase)]
@@ -243,12 +236,27 @@ pub enum Command {
     /// Inspects any RGB data file
     #[display("inspect")]
     Inspect {
-        /// Format used for data inspection
-        #[clap(short, long, default_value = "yaml")]
-        format: InspectFormat,
-
         /// RGB file to inspect
         file: PathBuf,
+
+        /// Path to save the dumped data. If not given, prints PSBT to STDOUT.
+        path: Option<PathBuf>,
+
+        /// Export using directory format for the compound bundles
+        #[clap(long, requires("path"))]
+        dir: bool,
+    },
+
+    /// Reconstructs consignment from a YAML file
+    #[display("reconstruct")]
+    #[clap(hide = true)]
+    Reconstruct {
+        /// RGB file with the consignment YAML data
+        src: PathBuf,
+
+        /// Path for the resulting consignment file. If not given, prints the
+        /// consignment to STDOUT.
+        dst: Option<PathBuf>,
     },
 
     /// Debug-dump all stash and inventory data
@@ -563,7 +571,7 @@ impl Exec for RgbArgs {
                             .expect("global type doesn't match type definition");
 
                         let serialized = types
-                            .strict_serialize_type::<U16>(&typed_val)
+                            .strict_serialize_type::<MAX16>(&typed_val)
                             .expect("internal error");
                         // Workaround for borrow checker:
                         let field_name =
@@ -779,25 +787,94 @@ impl Exec for RgbArgs {
                 }
                 Some(runtime)
             }
-            Command::Inspect { file, format } => {
+            Command::Inspect { file, dir, path } => {
+                #[derive(Clone, Debug)]
+                #[derive(Serialize, Deserialize)]
+                #[serde(crate = "serde_crate", rename_all = "camelCase")]
+                pub struct ConsignmentInspection {
+                    version: ContainerVer,
+                    transfer: bool,
+                    asset_tags: TinyOrdMap<AssignmentType, AssetTag>,
+                    terminals: SmallOrdMap<BundleId, Terminal>,
+                    supplements: TinyOrdSet<ContractSuppl>,
+                    signatures: TinyOrdMap<ContentId, ContentSigs>,
+                }
+
                 let bindle = UniversalBindle::load_file(file)?;
-                // TODO: For now, serde implementation doesn't work for consignments due to
-                //       some of the keys which can't be serialized to strings. Once this fixed,
-                //       allow this inspect formats option
-                let s = match format {
-                    InspectFormat::Yaml => {
-                        serde_yaml::to_string(&bindle).expect("unable to present as YAML")
+                let contract = match bindle {
+                    UniversalBindle::Contract(contract) if *dir => Some(contract.into_split()),
+                    UniversalBindle::Transfer(transfer) if *dir => {
+                        let (transfer, sigs) = transfer.into_split();
+                        Some((transfer.into_contract(), sigs))
                     }
-                    InspectFormat::Toml => {
-                        toml::to_string(&bindle).expect("unable to present as TOML")
+                    bindle => {
+                        let s = serde_yaml::to_string(&bindle).expect("unable to present as YAML");
+                        match path {
+                            None => println!("{s}"),
+                            Some(path) => fs::write(path, s)?,
+                        }
+                        None
                     }
-                    InspectFormat::Json => {
-                        serde_json::to_string(&bindle).expect("unable to present as JSON")
-                    }
-                    InspectFormat::Debug => format!("{bindle:#?}"),
-                    InspectFormat::Contractum => todo!("contractum representation"),
                 };
-                println!("{s}");
+                if let Some((contract, sigs)) = contract {
+                    let mut map = map![
+                        s!("genesis.yaml") => serde_yaml::to_string(&contract.genesis)?,
+                        s!("schema.yaml") => serde_yaml::to_string(&contract.schema)?,
+                        s!("bundles.yaml") => serde_yaml::to_string(&contract.bundles)?,
+                        s!("extensions.yaml") => serde_yaml::to_string(&contract.extensions)?,
+                        s!("sigs.yaml") => serde_yaml::to_string(&sigs)?,
+                        s!("schema-types.sty") => contract.schema.types.to_string(),
+                    ];
+                    for (id, lib) in &contract.schema.script.as_alu_script().libs {
+                        let mut buf = Vec::new();
+                        lib.print_disassemble::<RgbIsa>(&mut buf)?;
+                        map.insert(format!("{}.aluasm", id.to_baid58().mnemonic()), unsafe {
+                            String::from_utf8_unchecked(buf)
+                        });
+                    }
+                    for (_, pair) in contract.ifaces {
+                        map.insert(
+                            format!("iface-{}.yaml", pair.iface.name),
+                            serde_yaml::to_string(&pair)?,
+                        );
+                        map.insert(
+                            format!("iface-{}.sty", pair.iface.name),
+                            pair.iface.types.to_string(),
+                        );
+                        for (id, lib) in &pair.iimpl.script.as_alu_script().libs {
+                            let mut buf = Vec::new();
+                            lib.print_disassemble::<RgbIsa>(&mut buf)?;
+                            map.insert(format!("{}.aluasm", id.to_baid58().mnemonic()), unsafe {
+                                String::from_utf8_unchecked(buf)
+                            });
+                        }
+                    }
+                    let contract = ConsignmentInspection {
+                        version: contract.version,
+                        transfer: contract.transfer,
+                        asset_tags: contract.asset_tags,
+                        terminals: contract.terminals,
+                        supplements: contract.supplements,
+                        signatures: contract.signatures,
+                    };
+                    map.insert(s!("consignment-meta.yaml"), serde_yaml::to_string(&contract)?);
+                    let path = path.as_ref().expect("required by clap");
+                    fs::create_dir_all(path)?;
+                    for (file, value) in map {
+                        fs::write(format!("{}/{file}", path.display()), value)?;
+                    }
+                }
+                None
+            }
+            Command::Reconstruct { src, dst } => {
+                let file = File::open(src)?;
+                let transfer: Bindle<Transfer> = serde_yaml::from_reader(&file)?;
+                match dst {
+                    None => println!("{transfer}"),
+                    Some(dst) => {
+                        transfer.strict_serialize_to_file::<MAX32>(dst)?;
+                    }
+                }
                 None
             }
             Command::Dump { root_dir } => {
@@ -856,8 +933,8 @@ impl Exec for RgbArgs {
                 }
                 for id in runtime.witness_ids()? {
                     fs::write(
-                        format!("{root_dir}/stash/anchors/{id}.debug"),
-                        format!("{:#?}", runtime.anchor(id)?),
+                        format!("{root_dir}/stash/anchors/{id}.yaml"),
+                        serde_yaml::to_string(runtime.anchor(id)?)?,
                     )?;
                 }
                 for id in runtime.extension_ids()? {
@@ -878,24 +955,24 @@ impl Exec for RgbArgs {
 
                 // Index
                 fs::write(
-                    format!("{root_dir}/index/op-to-bundle.debug"),
-                    format!("{:#?}", runtime.debug_bundle_op_index()),
+                    format!("{root_dir}/index/op-to-bundle.yaml"),
+                    serde_yaml::to_string(runtime.debug_bundle_op_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/bundle-to-anchor.debug"),
-                    format!("{:#?}", runtime.debug_anchor_bundle_index()),
+                    format!("{root_dir}/index/bundle-to-anchor.yaml"),
+                    serde_yaml::to_string(runtime.debug_anchor_bundle_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/contracts.debug"),
-                    format!("{:#?}", runtime.debug_contract_index()),
+                    format!("{root_dir}/index/contracts.yaml"),
+                    serde_yaml::to_string(runtime.debug_contract_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/terminals.debug"),
-                    format!("{:#?}", runtime.debug_terminal_index()),
+                    format!("{root_dir}/index/terminals.yaml"),
+                    serde_yaml::to_string(runtime.debug_terminal_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/seal-secret.debug"),
-                    format!("{:#?}", runtime.debug_seal_secrets()),
+                    format!("{root_dir}/seal-secret.yaml"),
+                    serde_yaml::to_string(runtime.debug_seal_secrets())?,
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
                 None
