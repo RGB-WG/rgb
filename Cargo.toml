@@ -28,7 +28,7 @@ baid58 = "0.4.4"
 bitcoin = "0.31.1"
 commit_verify = "0.11.0-beta.4"
 strict_encoding = "2.7.0-beta.1"
-strict_types = "2.7.0-beta.1"
+strict_types = "2.7.0-beta.2"
 bp-core = "0.11.0-beta.4"
 bp-seals = "0.11.0-beta.4"
 bp-std = "0.11.0-beta.4"
@@ -98,14 +98,12 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 features = ["all"]
 
 [patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "armor" }
-aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "armor" }
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "armor" }
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "armor" }
-bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "armor" }
-bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "armor" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "armor" }
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "master" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
 bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "armor" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "armor" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
