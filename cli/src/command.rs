@@ -24,14 +24,15 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16, U32 as MAX32};
+use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid58::ToBaid58;
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{
-    Bindle, BuilderSeal, ContainerVer, ContentId, ContentSigs, Terminal, Transfer, UniversalBindle,
+    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Terminal, Transfer,
+    UniversalFile,
 };
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{
@@ -45,7 +46,7 @@ use rgbstd::vm::RgbIsa;
 use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
-use strict_types::encoding::{FieldName, StrictSerialize, TypeName};
+use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
 
 use crate::RgbArgs;
@@ -251,6 +252,9 @@ pub enum Command {
     #[display("reconstruct")]
     #[clap(hide = true)]
     Reconstruct {
+        #[clap(long)]
+        contract: bool,
+
         /// RGB file with the consignment YAML data
         src: PathBuf,
 
@@ -380,34 +384,33 @@ impl Exec for RgbArgs {
                 if *armored {
                     todo!()
                 } else {
-                    let bindle = UniversalBindle::load_file(file)?;
-                    match bindle {
-                        UniversalBindle::Iface(iface) => {
-                            let id = iface.id();
+                    let content = UniversalFile::load_file(file)?;
+                    match content {
+                        UniversalFile::Iface(iface) => {
+                            let id = iface.iface_id();
                             let name = iface.name.clone();
                             runtime.import_iface(iface)?;
                             eprintln!("Interface {id} with name {name} imported to the stash");
                         }
-                        UniversalBindle::Schema(schema) => {
-                            let id = schema.id();
+                        UniversalFile::Schema(schema) => {
+                            let id = schema.schema_id();
                             runtime.import_schema(schema)?;
                             eprintln!("Schema {id} imported to the stash");
                         }
-                        UniversalBindle::Impl(iimpl) => {
+                        UniversalFile::Impl(iimpl) => {
                             let iface_id = iimpl.iface_id;
                             let schema_id = iimpl.schema_id;
-                            let id = iimpl.id();
+                            let id = iimpl.impl_id();
                             runtime.import_iface_impl(iimpl)?;
                             eprintln!(
                                 "Implementation {id} of interface {iface_id} for schema \
                                  {schema_id} imported to the stash"
                             );
                         }
-                        UniversalBindle::Contract(bindle) => {
+                        UniversalFile::Contract(contract) => {
                             let mut resolver = self.resolver()?;
-                            let id = bindle.id();
-                            let contract = bindle
-                                .unbindle()
+                            let id = contract.consignment_id();
+                            let contract = contract
                                 .validate(&mut resolver, self.general.network.is_testnet())
                                 .map_err(|c| {
                                     c.validation_status().expect("just validated").to_string()
@@ -415,10 +418,13 @@ impl Exec for RgbArgs {
                             runtime.import_contract(contract, &mut resolver)?;
                             eprintln!("Contract {id} imported to the stash");
                         }
-                        UniversalBindle::Transfer(_) => {
+                        UniversalFile::Transfer(_) => {
                             return Err(s!("use `validate` and `accept` commands to work with \
                                            transfer consignments")
                             .into());
+                        }
+                        UniversalFile::Suppl(_suppl) => {
+                            todo!()
                         }
                     };
                 }
@@ -435,7 +441,7 @@ impl Exec for RgbArgs {
                     .map_err(|err| err.to_string())?;
                 if let Some(file) = file {
                     // TODO: handle armored flag
-                    bindle.save(file)?;
+                    bindle.save_file(file)?;
                     eprintln!("Contract {contract} exported to '{}'", file.display());
                 } else {
                     println!("{bindle}");
@@ -444,8 +450,8 @@ impl Exec for RgbArgs {
             }
 
             Command::Armor { file } => {
-                let bindle = UniversalBindle::load_file(file)?;
-                println!("{bindle}");
+                let content = UniversalFile::load_file(file)?;
+                println!("{content}");
                 None
             }
 
@@ -752,7 +758,7 @@ impl Exec for RgbArgs {
                     .map_err(|err| err.to_string())?;
                 let mut psbt_file = File::create(psbt_name)?;
                 psbt.encode(psbt.version, &mut psbt_file)?;
-                transfer.save(out_file)?;
+                transfer.save_file(out_file)?;
                 Some(runtime)
             }
             Command::Transfer {
@@ -772,7 +778,7 @@ impl Exec for RgbArgs {
                     .pay(invoice, *method, params)
                     .map_err(|err| err.to_string())?;
 
-                transfer.save(out_file)?;
+                transfer.save_file(out_file)?;
 
                 let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
                 match psbt_file {
@@ -800,15 +806,12 @@ impl Exec for RgbArgs {
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
 
-                let bindle = UniversalBindle::load_file(file)?;
-                let contract = match bindle {
-                    UniversalBindle::Contract(contract) if *dir => Some(contract.into_split()),
-                    UniversalBindle::Transfer(transfer) if *dir => {
-                        let (transfer, sigs) = transfer.into_split();
-                        Some((transfer.into_contract(), sigs))
-                    }
-                    bindle => {
-                        let s = serde_yaml::to_string(&bindle).expect("unable to present as YAML");
+                let content = UniversalFile::load_file(file)?;
+                let contract = match content {
+                    UniversalFile::Contract(contract) if *dir => Some(contract),
+                    UniversalFile::Transfer(transfer) if *dir => Some(transfer.into_contract()),
+                    content => {
+                        let s = serde_yaml::to_string(&content).expect("unable to present as YAML");
                         match path {
                             None => println!("{s}"),
                             Some(path) => fs::write(path, s)?,
@@ -816,13 +819,12 @@ impl Exec for RgbArgs {
                         None
                     }
                 };
-                if let Some((contract, sigs)) = contract {
+                if let Some(contract) = contract {
                     let mut map = map![
                         s!("genesis.yaml") => serde_yaml::to_string(&contract.genesis)?,
                         s!("schema.yaml") => serde_yaml::to_string(&contract.schema)?,
                         s!("bundles.yaml") => serde_yaml::to_string(&contract.bundles)?,
                         s!("extensions.yaml") => serde_yaml::to_string(&contract.extensions)?,
-                        s!("sigs.yaml") => serde_yaml::to_string(&sigs)?,
                         s!("schema-types.sty") => contract.schema.types.to_string(),
                     ];
                     for (id, lib) in &contract.schema.script.as_alu_script().libs {
@@ -866,13 +868,32 @@ impl Exec for RgbArgs {
                 }
                 None
             }
-            Command::Reconstruct { src, dst } => {
+            Command::Reconstruct {
+                contract: false,
+                src,
+                dst,
+            } => {
                 let file = File::open(src)?;
-                let transfer: Bindle<Transfer> = serde_yaml::from_reader(&file)?;
+                let transfer: Transfer = serde_yaml::from_reader(&file)?;
                 match dst {
                     None => println!("{transfer}"),
                     Some(dst) => {
-                        transfer.strict_serialize_to_file::<MAX32>(dst)?;
+                        transfer.save_file(dst)?;
+                    }
+                }
+                None
+            }
+            Command::Reconstruct {
+                contract: true,
+                src,
+                dst,
+            } => {
+                let file = File::open(src)?;
+                let contract: Contract = serde_yaml::from_reader(&file)?;
+                match dst {
+                    None => println!("{contract}"),
+                    Some(dst) => {
+                        contract.save_file(dst)?;
                     }
                 }
                 None
@@ -979,8 +1000,7 @@ impl Exec for RgbArgs {
             }
             Command::Validate { file } => {
                 let mut resolver = self.resolver()?;
-                let bindle = Bindle::<Transfer>::load_file(file)?;
-                let consignment = bindle.unbindle();
+                let consignment = Transfer::load_file(file)?;
                 resolver.add_terminals(&consignment);
                 let status =
                     match consignment.validate(&mut resolver, self.general.network.is_testnet()) {
@@ -998,8 +1018,7 @@ impl Exec for RgbArgs {
             Command::Accept { force, file } => {
                 let mut runtime = self.rgb_runtime(&config)?;
                 let mut resolver = self.resolver()?;
-                let bindle = Bindle::<Transfer>::load_file(file)?;
-                let consignment = bindle.unbindle();
+                let consignment = Transfer::load_file(file)?;
                 resolver.add_terminals(&consignment);
                 let transfer = consignment
                     .validate(&mut resolver, self.general.network.is_testnet())

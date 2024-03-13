@@ -28,7 +28,7 @@ use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::Address;
 use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
 use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
-use rgbstd::containers::{Bindle, Transfer};
+use rgbstd::containers::Transfer;
 use rgbstd::interface::ContractError;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
@@ -162,7 +162,7 @@ impl Runtime {
         invoice: &RgbInvoice,
         method: CloseMethod,
         params: TransferParams,
-    ) -> Result<(Psbt, PsbtMeta, Bindle<Transfer>), PayError> {
+    ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
         let (mut psbt, meta) = self.construct_psbt(invoice, method, params)?;
         // ... here we pass PSBT around signers, if necessary
         let transfer = self.transfer(invoice, &mut psbt)?;
@@ -303,7 +303,7 @@ impl Runtime {
         &mut self,
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
-    ) -> Result<Bindle<Transfer>, CompletionError> {
+    ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
         let fascia = psbt.rgb_commit()?;
@@ -349,6 +349,6 @@ impl Runtime {
         }
         transfer.terminals = Confined::from_collection_unsafe(terminals);
 
-        Ok(self.stock().bindle(transfer))
+        Ok(transfer)
     }
 }
