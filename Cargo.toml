@@ -25,18 +25,17 @@ license = "Apache-2.0"
 [workspace.dependencies]
 amplify = "4.6.0"
 baid58 = "0.4.4"
-bitcoin = "0.31.1"
 commit_verify = "0.11.0-beta.4"
 strict_encoding = "2.7.0-beta.1"
 strict_types = "2.7.0-beta.2"
 bp-core = "0.11.0-beta.4"
+bp-electrum = "0.11.0-beta.5"
 bp-seals = "0.11.0-beta.4"
 bp-std = "0.11.0-beta.4"
 bp-wallet = "0.11.0-beta.4"
 bp-util = "0.11.0-beta.4"
 bp-esplora = "0.11.0-beta.4"
 descriptors = "0.11.0-beta.4"
-electrum-client = "0.19.0"
 psbt = { version = "0.11.0-beta.4", features = ["client-side-validation"] }
 rgb-std = { version = "0.11.0-beta.4", features = ["fs"] }
 rgb-psbt = { version = "0.11.0-beta.4", path = "psbt" }
@@ -68,7 +67,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 amplify = { workspace = true }
 baid58 = { workspace = true }
-bitcoin = { workspace = true, optional = true }
+bp-electrum = { workspace = true, optional = true }
 commit_verify = { workspace = true }
 strict_types = { workspace = true }
 bp-core = { workspace = true }
@@ -76,7 +75,6 @@ bp-std = { workspace = true }
 bp-wallet = { workspace = true, features = ["fs"] }
 bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
-electrum-client = { workspace = true, optional = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
 rgb-persist-fs = { version = "0.11.0", path = "fs" }
@@ -91,18 +89,13 @@ log = { workspace = true, optional = true }
 default = ["esplora_blocking"]
 all = ["esplora_blocking", "electrum", "serde", "log"]
 esplora_blocking = ["bp-esplora", "bp-wallet/esplora"]
-electrum = ["electrum-client", "bitcoin"]
+electrum = ["bp-electrum"]
 serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = ["all"]
 
 [patch.crates-io]
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "master" }
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
 bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
