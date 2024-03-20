@@ -467,10 +467,11 @@ dependencies = [
 [[package]]
 name = "bp-util"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=master#8552e161d4b0f1115df4b5cd14e69257e7efead7"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=master#690d8f6bfe76f0f6cd8dbb0039368b1b9fcf45e7"
 dependencies = [
  "amplify",
  "base64",
+ "bp-electrum",
  "bp-esplora",
  "bp-std",
  "bp-wallet",
@@ -489,15 +490,17 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=master#8552e161d4b0f1115df4b5cd14e69257e7efead7"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=master#690d8f6bfe76f0f6cd8dbb0039368b1b9fcf45e7"
 dependencies = [
  "amplify",
+ "bp-electrum",
  "bp-esplora",
  "bp-std",
  "cfg_eval",
  "descriptors",
  "psbt",
  "serde",
+ "serde_json",
  "serde_with",
  "serde_yaml",
  "toml",
