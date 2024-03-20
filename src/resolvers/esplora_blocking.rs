@@ -26,7 +26,9 @@ pub use esplora::Error as ResolverError;
 use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::{WitnessAnchor, WitnessId, WitnessOrd, WitnessPos, XAnchor, XChain, XPubWitness};
+use rgbstd::{
+    Layer1, WitnessAnchor, WitnessId, WitnessOrd, WitnessPos, XAnchor, XChain, XPubWitness,
+};
 
 pub struct Resolver {
     esplora_client: esplora::BlockingClient,
@@ -43,6 +45,9 @@ pub enum AnchorResolverError {
 
     /// invalid anchor {0}
     InvalidAnchor(String),
+
+    /// unsupported layer 1 {0}
+    UnsupportedLayer1(Layer1),
 }
 
 impl Resolver {
@@ -71,7 +76,7 @@ impl ResolveHeight for Resolver {
 
     fn resolve_anchor(&mut self, anchor: &XAnchor) -> Result<WitnessAnchor, Self::Error> {
         let XAnchor::Bitcoin(anchor) = anchor else {
-            panic!("Liquid is not yet supported")
+            return Err(AnchorResolverError::UnsupportedLayer1(anchor.layer1()));
         };
         let txid = anchor
             .txid()
@@ -107,7 +112,10 @@ impl ResolveWitness for Resolver {
         witness_id: WitnessId,
     ) -> Result<XPubWitness, WitnessResolverError> {
         let WitnessId::Bitcoin(txid) = witness_id else {
-            panic!("Liquid is not yet supported");
+            return Err(WitnessResolverError::Other(
+                witness_id,
+                AnchorResolverError::UnsupportedLayer1(witness_id.layer1()).to_string(),
+            ));
         };
 
         if let Some(tx) = self.terminal_txes.get(&txid) {
