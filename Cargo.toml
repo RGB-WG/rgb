@@ -31,8 +31,8 @@ strict_types = "2.7.0-beta.2"
 bp-core = "0.11.0-beta.5"
 bp-seals = "0.11.0-beta.5"
 bp-std = "0.11.0-beta.5"
-bp-wallet = "0.11.0-beta.4"
-bp-util = "0.11.0-beta.4"
+bp-wallet = "0.11.0-beta.5"
+bp-util = "0.11.0-beta.5"
 bp-electrum = "0.11.0-beta.5"
 bp-esplora = "0.11.0-beta.5"
 descriptors = "0.11.0-beta.5"
@@ -96,7 +96,4 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 features = ["all"]
 
 [patch.crates-io]
-bp-util = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "dups" }

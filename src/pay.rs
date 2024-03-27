@@ -19,6 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::convert::Infallible;
 
 use amplify::confinement::Confined;
@@ -200,30 +201,37 @@ impl Runtime {
             .cloned()
             .ok_or(CompositionError::NoAssignment)?;
 
-        let outputs = match invoice.owned_state {
+        let prev_outputs = match invoice.owned_state {
             InvoiceState::Amount(amount) => {
                 let filter = ContractOutpointsFilter {
                     contract_id,
                     filter: self,
                 };
-                let mut state = contract
+                let state: BTreeMap<_, Vec<Amount>> = contract
                     .fungible(assignment_name, &filter)?
-                    .collect::<Vec<_>>();
-                state.sort_by_key(|a| a.state);
+                    .fold(bmap![], |mut set, a| {
+                        set.entry(a.seal).or_default().push(a.state);
+                        set
+                    });
+                let mut state: Vec<_> = state
+                    .into_iter()
+                    .map(|(seal, vals)| (vals.iter().copied().sum::<Amount>(), seal, vals))
+                    .collect();
+                state.sort_by_key(|(sum, _, _)| *sum);
                 let mut sum = Amount::ZERO;
                 state
                     .iter()
                     .rev()
-                    .take_while(|a| {
+                    .take_while(|(val, _, _)| {
                         if sum >= amount {
                             false
                         } else {
-                            sum += a.state;
+                            sum += *val;
                             true
                         }
                     })
-                    .map(|a| a.seal)
-                    .collect::<Vec<_>>()
+                    .map(|(_, seal, _)| *seal)
+                    .collect::<BTreeSet<_>>()
             }
             _ => return Err(CompositionError::Unsupported),
         };
@@ -236,14 +244,15 @@ impl Runtime {
                 )]
             }
         };
-        let outpoints = outputs
+        let prev_outpoints = prev_outputs
             .iter()
+            // TODO: Support liquid
             .map(|o| o.as_reduced_unsafe())
             .map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(method).into();
         let (mut psbt, mut meta) =
             self.wallet_mut()
-                .construct_psbt(outpoints, &beneficiaries, params.tx)?;
+                .construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
         let beneficiary_script =
             if let Beneficiary::WitnessVout(addr) = invoice.beneficiary.into_inner() {
@@ -284,8 +293,8 @@ impl Runtime {
             }
             Beneficiary::BlindedSeal(_) => None,
         };
-        let batch =
-            self.compose(invoice, outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
+        let batch = self
+            .compose(invoice, prev_outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
 
         let methods = batch.close_method_set();
         if methods.has_opret_first() {
