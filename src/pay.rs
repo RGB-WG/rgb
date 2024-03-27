@@ -192,11 +192,10 @@ impl Runtime {
             .assignment
             .as_ref()
             .or_else(|| {
-                iface.transitions.get(operation).and_then(|t| {
-                    t.default_assignment
-                        .as_ref()
-                        .and_then(|f| t.assignments.get(f).and_then(|arg| (&arg.name).into()))
-                })
+                iface
+                    .transitions
+                    .get(operation)
+                    .and_then(|t| t.default_assignment.as_ref())
             })
             .cloned()
             .ok_or(CompositionError::NoAssignment)?;

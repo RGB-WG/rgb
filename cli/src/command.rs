@@ -552,14 +552,6 @@ impl Exec for RgbArgs {
                         let name = name
                             .as_str()
                             .expect("invalid YAML: global name must be a string");
-                        let name = iface
-                            .genesis
-                            .global
-                            .iter()
-                            .find(|(n, _)| n.as_str() == name)
-                            .and_then(|(_, spec)| spec.name.as_ref())
-                            .map(FieldName::as_str)
-                            .unwrap_or(name);
                         let state_type = iface_impl
                             .global_state
                             .iter()
@@ -596,14 +588,6 @@ impl Exec for RgbArgs {
                         let name = name
                             .as_str()
                             .expect("invalid YAML: assignments name must be a string");
-                        let name = iface
-                            .genesis
-                            .assignments
-                            .iter()
-                            .find(|(n, _)| n.as_str() == name)
-                            .and_then(|(_, spec)| spec.name.as_ref())
-                            .map(FieldName::as_str)
-                            .unwrap_or(name);
                         let state_type = iface_impl
                             .assignments
                             .iter()

@@ -1594,7 +1594,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=dups#f793a738ee1d1ce10f1a0fae4e1cd3d8189f074e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=iface#6bb5e9f21b5ee2991600fde18d691de4f61ea615"
 dependencies = [
  "amplify",
  "baid58",
@@ -1664,7 +1664,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=dups#f793a738ee1d1ce10f1a0fae4e1cd3d8189f074e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=iface#6bb5e9f21b5ee2991600fde18d691de4f61ea615"
 dependencies = [
  "amplify",
  "ascii-armor",
