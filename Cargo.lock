@@ -1647,6 +1647,7 @@ dependencies = [
  "bp-esplora",
  "bp-std",
  "bp-wallet",
+ "cfg_eval",
  "chrono",
  "commit_verify",
  "descriptors",

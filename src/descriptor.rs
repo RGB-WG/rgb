@@ -50,8 +50,8 @@ pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "serde_crate", rename_all = "camelCase")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "serde_crate", rename_all = "camelCase"))]
 #[repr(u8)]
 pub enum RgbKeychain {
     #[display("0", alt = "0")]
@@ -106,15 +106,15 @@ impl From<RgbKeychain> for Keychain {
     fn from(keychain: RgbKeychain) -> Self { Keychain::from(keychain as u8) }
 }
 
-#[serde_as]
+#[cfg_attr(feature = "serde", cfg_eval::cfg_eval, serde_as)]
 #[derive(Clone, Eq, PartialEq, Debug)]
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "serde_crate", rename_all = "camelCase")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "serde_crate", rename_all = "camelCase"))]
 pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
     pub internal_key: K,
     // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
     // TODO: Change serde implementation for both Terminal and TapretCommitment
-    #[serde_as(as = "HashMap<serde_with::DisplayFromStr, serde_with::DisplayFromStr>")]
+    #[cfg_attr(feature = "serde", serde_as(as = "HashMap<serde_with::DisplayFromStr, serde_with::DisplayFromStr>"))]
     pub tweaks: HashMap<Terminal, TapretCommitment>,
 }
 
@@ -224,15 +224,15 @@ impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, From)]
-#[derive(Serialize, Deserialize)]
-#[serde(
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(
     crate = "serde_crate",
     rename_all = "camelCase",
     bound(
         serialize = "S::Compr: serde::Serialize, S::XOnly: serde::Serialize",
         deserialize = "S::Compr: serde::Deserialize<'de>, S::XOnly: serde::Deserialize<'de>"
     )
-)]
+))]
 #[non_exhaustive]
 pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
     #[from]
