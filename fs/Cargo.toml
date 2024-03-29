@@ -1,6 +1,6 @@
 [package]
 name = "rgb-persist-fs"
-version = "0.11.0"
+version = "0.11.1"
 description = "RGB persistence drivers for file storage"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
@@ -24,4 +24,4 @@ rgb-std = { workspace = true }
 default = []
 
 [package.metadata.docs.rs]
-features = [ "all" ]
+features = ["all"]

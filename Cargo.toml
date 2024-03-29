@@ -12,7 +12,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-beta.4"
+version = "0.11.0-beta.5"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -37,8 +37,8 @@ bp-electrum = "0.11.0-beta.5"
 bp-esplora = "0.11.0-beta.5"
 descriptors = "0.11.0-beta.5"
 psbt = { version = "0.11.0-beta.5", features = ["client-side-validation"] }
-rgb-std = { version = "0.11.0-beta.4", features = ["fs"] }
-rgb-psbt = { version = "0.11.0-beta.4", path = "psbt" }
+rgb-std = { version = "0.11.0-beta.5", features = ["fs"] }
+rgb-psbt = { version = "0.11.0-beta.5", path = "psbt" }
 indexmap = "2.0.2"
 chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -77,7 +77,7 @@ bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
-rgb-persist-fs = { version = "0.11.0", path = "fs" }
+rgb-persist-fs = { version = "0.11.1", path = "fs" }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
@@ -94,6 +94,3 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "iface" }
