@@ -315,13 +315,15 @@ impl Runtime {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
         let fascia = psbt.rgb_commit()?;
-        if let Some(output) = psbt.dbc_output::<TapretProof>() {
-            let terminal = output
-                .terminal_derivation()
-                .ok_or(CompletionError::InconclusiveDerivation)?;
-            let tapret_commitment = output.tapret_commitment()?;
-            self.wallet_mut()
-                .add_tapret_tweak(terminal, tapret_commitment)?;
+        if let (Some(_), _) = fascia.anchor.as_reduced_unsafe().as_split() {
+            if let Some(output) = psbt.dbc_output::<TapretProof>() {
+                let terminal = output
+                    .terminal_derivation()
+                    .ok_or(CompletionError::InconclusiveDerivation)?;
+                let tapret_commitment = output.tapret_commitment()?;
+                self.wallet_mut()
+                    .add_tapret_tweak(terminal, tapret_commitment)?;
+            }
         }
 
         let witness_txid = psbt.txid();
