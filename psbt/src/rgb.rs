@@ -19,15 +19,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use amplify::confinement::{Confined, MediumOrdMap, SmallOrdMap, U24};
+use amplify::confinement::{Confined, SmallOrdMap, U24};
 use amplify::{confinement, FromSliceError};
 use bp::dbc::Method;
+use bp::seals::txout::CloseMethod;
 use commit_verify::mpc;
 use psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use rgbstd::accessors::{MergeReveal, MergeRevealError};
-use rgbstd::containers::CloseMethodSet;
+use rgbstd::containers::BundleDichotomy;
 use rgbstd::interface::VelocityHint;
 use rgbstd::{ContractId, InputMap, OpId, Operation, Transition, TransitionBundle, Vin};
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
@@ -157,50 +158,58 @@ pub trait RgbExt {
 
     fn rgb_transition(&self, opid: OpId) -> Result<Option<Transition>, RgbPsbtError>;
 
-    fn rgb_close_methods(&self, opid: OpId) -> Result<Option<CloseMethodSet>, RgbPsbtError>;
+    fn rgb_close_method(&self, opid: OpId) -> Result<Option<CloseMethod>, RgbPsbtError>;
 
     fn push_rgb_transition(
         &mut self,
         transition: Transition,
-        methods: CloseMethodSet,
+        method: CloseMethod,
     ) -> Result<bool, RgbPsbtError>;
 
-    fn rgb_bundles(
-        &self,
-    ) -> Result<BTreeMap<ContractId, (TransitionBundle, CloseMethodSet)>, RgbPsbtError> {
+    fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, BundleDichotomy>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map = SmallOrdMap::<Vin, OpId>::new();
-            let mut known_transitions = SmallOrdMap::<OpId, Transition>::new();
-            let mut method_set = None::<CloseMethodSet>;
+            let mut input_map = HashMap::<CloseMethod, SmallOrdMap<Vin, OpId>>::new();
+            let mut known_transitions =
+                HashMap::<CloseMethod, SmallOrdMap<OpId, Transition>>::new();
             for (opid, vin) in self.rgb_contract_consumers(contract_id)? {
-                let (transition, methods) = (
+                let (transition, method) = (
                     self.rgb_transition(opid)?,
-                    self.rgb_close_methods(opid)?
+                    self.rgb_close_method(opid)?
                         .ok_or(RgbPsbtError::NoCloseMethod(opid))?,
                 );
-                method_set |= methods;
-                input_map.insert(vin, opid)?;
+                input_map.entry(method).or_default().insert(vin, opid)?;
                 if let Some(transition) = transition {
-                    known_transitions.insert(opid, transition)?;
+                    known_transitions
+                        .entry(method)
+                        .or_default()
+                        .insert(opid, transition)?;
                 }
             }
-            let bundle = TransitionBundle {
-                input_map: InputMap::from(Confined::from_collection_unsafe(input_map.into_inner())),
-                known_transitions: Confined::try_from(known_transitions.into_inner())
-                    .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
-            };
-            map.insert(contract_id, (bundle, method_set.expect("type guarantees")));
+            let mut bundles = vec![];
+            for (method, input_map) in input_map {
+                let known_transitions = known_transitions.remove(&method).unwrap_or_default();
+                bundles.push(TransitionBundle {
+                    close_method: method,
+                    input_map: InputMap::from(Confined::from_collection_unsafe(
+                        input_map.into_inner(),
+                    )),
+                    known_transitions: Confined::try_from(known_transitions.into_inner())
+                        .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
+                });
+            }
+            let mut bundles = bundles.into_iter();
+            let first = bundles
+                .next()
+                .ok_or(RgbPsbtError::NoTransitions(contract_id))?;
+            map.insert(contract_id, BundleDichotomy::with(first, bundles.next()));
         }
         Ok(map)
     }
 
     fn rgb_bundles_to_mpc(
         &mut self,
-    ) -> Result<
-        (Confined<BTreeMap<ContractId, TransitionBundle>, 1, U24>, CloseMethodSet),
-        RgbPsbtError,
-    >;
+    ) -> Result<Confined<BTreeMap<ContractId, BundleDichotomy>, 1, U24>, RgbPsbtError>;
 }
 
 impl RgbExt for Psbt {
@@ -248,12 +257,12 @@ impl RgbExt for Psbt {
         Ok(Some(transition))
     }
 
-    fn rgb_close_methods(&self, opid: OpId) -> Result<Option<CloseMethodSet>, RgbPsbtError> {
+    fn rgb_close_method(&self, opid: OpId) -> Result<Option<CloseMethod>, RgbPsbtError> {
         let Some(m) = self.proprietary(&PropKey::rgb_closing_methods(opid)) else {
             return Ok(None);
         };
         if m.len() == 1 {
-            if let Ok(method) = CloseMethodSet::try_from(m[0]) {
+            if let Ok(method) = CloseMethod::try_from(m[0]) {
                 return Ok(Some(method));
             }
         }
@@ -263,10 +272,15 @@ impl RgbExt for Psbt {
     fn push_rgb_transition(
         &mut self,
         mut transition: Transition,
-        mut methods: CloseMethodSet,
+        method: CloseMethod,
     ) -> Result<bool, RgbPsbtError> {
         let opid = transition.id();
-        let prev_methods = self.rgb_close_methods(opid)?;
+
+        let prev_method = self.rgb_close_method(opid)?;
+        if Some(method) != prev_method {
+            return Err(RgbPsbtError::InvalidCloseMethod(opid));
+        }
+
         let prev_transition = self.rgb_transition(opid)?;
         if let Some(ref prev_transition) = prev_transition {
             transition = transition
@@ -278,37 +292,34 @@ impl RgbExt for Psbt {
         let serialized_transition = transition
             .to_strict_serialized::<U24>()
             .map_err(|_| RgbPsbtError::TransitionTooBig(opid))?;
+
         // Since we update transition it's ok to ignore the fact that it previously
         // existed
         let _ = self
             .push_proprietary(PropKey::rgb_transition(opid), serialized_transition.into_inner());
-        methods |= prev_methods;
-        let _ = self.push_proprietary(PropKey::rgb_closing_methods(opid), vec![methods as u8]);
+        let _ = self.push_proprietary(PropKey::rgb_closing_methods(opid), vec![method as u8]);
         Ok(prev_transition.is_none())
     }
 
     fn rgb_bundles_to_mpc(
         &mut self,
-    ) -> Result<
-        (Confined<BTreeMap<ContractId, TransitionBundle>, 1, U24>, CloseMethodSet),
-        RgbPsbtError,
-    > {
+    ) -> Result<Confined<BTreeMap<ContractId, BundleDichotomy>, 1, U24>, RgbPsbtError> {
         let bundles = self.rgb_bundles()?;
 
-        let mut map = MediumOrdMap::new();
-        let mut close_methods = None::<CloseMethodSet>;
-        for (contract_id, (bundle, methods)) in bundles {
-            let protocol_id = mpc::ProtocolId::from(contract_id);
+        for (contract_id, bundle) in bundles
+            .iter()
+            .flat_map(|(id, b)| b.iter().map(move |b| (id, b)))
+        {
+            let protocol_id = mpc::ProtocolId::from(*contract_id);
             let message = mpc::Message::from(bundle.bundle_id());
-            if methods.has_tapret_first() {
+            if bundle.close_method == CloseMethod::TapretFirst {
                 // We need to do it each time due to Rust borrow checker
                 let tapret_host = self
                     .outputs_mut()
                     .find(|output| output.is_tapret_host())
                     .ok_or(RgbPsbtError::NoHostOutput(Method::TapretFirst))?;
                 tapret_host.set_mpc_message(protocol_id, message)?;
-            }
-            if methods.has_opret_first() {
+            } else if bundle.close_method == CloseMethod::OpretFirst {
                 // We need to do it each time due to Rust borrow checker
                 let opret_host = self
                     .outputs_mut()
@@ -316,18 +327,11 @@ impl RgbExt for Psbt {
                     .ok_or(RgbPsbtError::NoHostOutput(Method::OpretFirst))?;
                 opret_host.set_mpc_message(protocol_id, message)?;
             }
-            map.insert(contract_id, bundle)
-                .map_err(|_| RgbPsbtError::TooManyContracts)?;
-            close_methods |= methods;
         }
 
-        let Some(close_methods) = close_methods else {
-            return Err(RgbPsbtError::NoContracts);
-        };
+        let map = Confined::try_from(bundles).map_err(|_| RgbPsbtError::NoContracts)?;
 
-        let map = Confined::try_from(map.into_inner()).map_err(|_| RgbPsbtError::NoContracts)?;
-
-        Ok((map, close_methods))
+        Ok(map)
     }
 }
 
