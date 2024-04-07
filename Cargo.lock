@@ -323,8 +323,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "966395ea17fa99b33a9093355924b0f79312b410e2c8a85ca8ebb8333098fb9a"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#c014bad013c99e4eb828eabc37c1c5ccc30acf75"
 dependencies = [
  "amplify",
  "chrono",
@@ -338,8 +337,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27581dae64d76a00fe4015eb7d710d262192ca6f18c1e798f75c4f5477f52d3c"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#c014bad013c99e4eb828eabc37c1c5ccc30acf75"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -357,8 +355,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4d21f5af26b145f7f73c7a338dc7bfe44d2b0f943c3ec6e3447d11d1fc3d6e0"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#c014bad013c99e4eb828eabc37c1c5ccc30acf75"
 dependencies = [
  "amplify",
  "base85",
@@ -372,8 +369,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "259436bf0c49fa1fd0648cdde09d2d9bdc183dd4d2dfb3934902ef27faa9f14d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#79cee6874bf037a276b08d2ad0aa0206417bb52b"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -422,8 +418,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48ee0387fa924bd002b51713c42daf3cb7c3b669509523607445a99c90491788"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#79cee6874bf037a276b08d2ad0aa0206417bb52b"
 dependencies = [
  "amplify",
  "bech32",
@@ -435,8 +430,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "131f371c9d605d5ed07cb0f5b07f3f261f6b3f6a146b6e890ecdb37802c51f6a"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.11#c014bad013c99e4eb828eabc37c1c5ccc30acf75"
 dependencies = [
  "amplify",
  "baid58",
@@ -452,8 +446,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84413a3ce10b304ce52c7a1604fccf78634f3a27df47b239be381b76ceb1bdea"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#79cee6874bf037a276b08d2ad0aa0206417bb52b"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -491,8 +484,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4552e90fad2ed01b091b499b891e7a5d9e03f3c74e718e0e4801b01056fc247"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#f217eb141dbb51df6f15cde351aef76c6366f53c"
 dependencies = [
  "amplify",
  "bp-electrum",
@@ -754,8 +746,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08e46bb50018748f38bad98647589f2bef433faa5d8ed233c1e472c51275bd0d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#79cee6874bf037a276b08d2ad0aa0206417bb52b"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1424,8 +1415,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a572f23bb63e0826d4540a6b925f152c64a47e0871d63dc06553aa7fcd045e5a"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#79cee6874bf037a276b08d2ad0aa0206417bb52b"
 dependencies = [
  "amplify",
  "base64",
@@ -1571,8 +1561,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "377bc5d01d9b22fef51da1ab83cfc743bf29827ce11fc4a2616894282a95c6a8"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.11#12a2e2b3d2af160301fb04d0423051c4ad0888a0"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1594,8 +1583,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb83cdef397b7e8d84bd46f3f61620d89436e139cbab1cb929fd1c29aae24376"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#c9712b858a5ec461756d6c2d17c8f5a09fbd3921"
 dependencies = [
  "amplify",
  "baid58",
@@ -1665,8 +1653,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a52e61cff03f205c5f4782bbe714d3a9a065086ec6c896ca39f3618aea5434d2"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#c9712b858a5ec461756d6c2d17c8f5a09fbd3921"
 dependencies = [
  "amplify",
  "ascii-armor",
@@ -2111,8 +2098,7 @@ dependencies = [
 [[package]]
 name = "strict_types"
 version = "2.7.0-beta.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78c32716de4b99b0e8fb0c114e99b6929613e8d7302999c6b8c77251783923ad"
+source = "git+https://github.com/strict-types/strict-types?branch=master#2350162c6a6fda6a7f74373e0a08d8e3a70c37b4"
 dependencies = [
  "amplify",
  "ascii-armor",

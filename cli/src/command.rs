@@ -890,6 +890,7 @@ impl Exec for RgbArgs {
                 fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/geneses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/witnesses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/anchors"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
                 fs::create_dir_all(format!("{root_dir}/state"))?;
@@ -935,11 +936,15 @@ impl Exec for RgbArgs {
                         format!("{root_dir}/stash/bundles/{id}.yaml"),
                         serde_yaml::to_string(runtime.bundle(id)?)?,
                     )?;
+                    fs::write(
+                        format!("{root_dir}/stash/witnesses/{id}.yaml"),
+                        serde_yaml::to_string(&runtime.bundled_witness(id)?.pub_witness)?,
+                    )?;
                 }
                 for id in runtime.witness_ids()? {
                     fs::write(
                         format!("{root_dir}/stash/anchors/{id}.yaml"),
-                        serde_yaml::to_string(runtime.anchor(id)?)?,
+                        serde_yaml::to_string(&runtime.anchor(id)?)?,
                     )?;
                 }
                 for id in runtime.extension_ids()? {
@@ -961,11 +966,15 @@ impl Exec for RgbArgs {
                 // Index
                 fs::write(
                     format!("{root_dir}/index/op-to-bundle.yaml"),
-                    serde_yaml::to_string(runtime.debug_bundle_op_index())?,
+                    serde_yaml::to_string(runtime.debug_op_bundle_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/bundle-to-anchor.yaml"),
-                    serde_yaml::to_string(runtime.debug_anchor_bundle_index())?,
+                    format!("{root_dir}/index/bundle-to-contract.yaml"),
+                    serde_yaml::to_string(runtime.debug_bundle_contract_index())?,
+                )?;
+                fs::write(
+                    format!("{root_dir}/index/bundle-to-witness.yaml"),
+                    serde_yaml::to_string(runtime.debug_bundle_witness_index())?,
                 )?;
                 fs::write(
                     format!("{root_dir}/index/contracts.yaml"),

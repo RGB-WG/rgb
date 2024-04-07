@@ -29,7 +29,7 @@ use bp::dbc::tapret::TapretProof;
 pub use psbt::*;
 pub use rgb::*;
 use rgbstd::containers::{Batch, Fascia};
-use rgbstd::{AnchorSet, XAnchor, XChain};
+use rgbstd::{AnchorSet, XChain, XWitnessId};
 
 pub use self::rgb::{
     ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -106,7 +106,8 @@ impl RgbPsbt for Psbt {
         let anchor = AnchorSet::from_split(tapret_anchor, opret_anchor)
             .expect("at least one of DBC are present due to CloseMethodSet type guarantees");
         Ok(Fascia {
-            anchor: XAnchor::Bitcoin(anchor),
+            witness_id: XWitnessId::Bitcoin(self.txid()),
+            anchor,
             bundles,
         })
     }

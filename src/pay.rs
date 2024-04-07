@@ -22,7 +22,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::Infallible;
 
-use amplify::confinement::Confined;
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
@@ -35,7 +34,7 @@ use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
 };
-use rgbstd::{WitnessId, XChain};
+use rgbstd::XChain;
 
 use crate::{
     ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
@@ -342,20 +341,9 @@ impl Runtime {
         };
 
         self.stock_mut().consume(fascia)?;
-        let mut transfer = self
+        let transfer = self
             .stock()
             .transfer(contract_id, beneficiary2, beneficiary1)?;
-        let mut terminals = transfer.terminals.to_inner();
-        for (bundle_id, terminal) in terminals.iter_mut() {
-            let Some(ab) = transfer.anchored_bundle(*bundle_id) else {
-                continue;
-            };
-            if ab.anchor.witness_id_unchecked() == WitnessId::Bitcoin(witness_txid) {
-                // TODO: Use unsigned tx
-                terminal.witness_tx = Some(XChain::Bitcoin(psbt.to_unsigned_tx().into()));
-            }
-        }
-        transfer.terminals = Confined::from_collection_unsafe(terminals);
 
         Ok(transfer)
     }
