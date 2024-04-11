@@ -43,7 +43,7 @@ use rgbstd::persistence::{Inventory, Stash};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
 use rgbstd::vm::RgbIsa;
-use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
+use rgbstd::{BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
@@ -784,7 +784,6 @@ impl Exec for RgbArgs {
                 pub struct ConsignmentInspection {
                     version: ContainerVer,
                     transfer: bool,
-                    asset_tags: TinyOrdMap<AssignmentType, AssetTag>,
                     terminals: SmallOrdMap<BundleId, Terminal>,
                     supplements: TinyOrdSet<ContractSuppl>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
@@ -838,7 +837,6 @@ impl Exec for RgbArgs {
                     let contract = ConsignmentInspection {
                         version: contract.version,
                         transfer: contract.transfer,
-                        asset_tags: contract.asset_tags,
                         terminals: contract.terminals,
                         supplements: contract.supplements,
                         signatures: contract.signatures,
@@ -925,11 +923,6 @@ impl Exec for RgbArgs {
                             serde_yaml::to_string(suppl)?,
                         )?;
                     }
-                    let tags = runtime.contract_asset_tags(id)?;
-                    fs::write(
-                        format!("{root_dir}/stash/geneses/{id}.tags.yaml"),
-                        serde_yaml::to_string(tags)?,
-                    )?;
                 }
                 for id in runtime.bundle_ids()? {
                     fs::write(
