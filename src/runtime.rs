@@ -42,7 +42,7 @@ use rgbstd::persistence::{
 };
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveWitness};
-use rgbstd::{AssignmentWitness, ContractId, WitnessId, XChain, XOutpoint};
+use rgbstd::{AssignmentWitness, ContractId, XChain, XOutpoint, XWitnessId};
 use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError, TypeName};
 
 use crate::{DescriptorRgb, RgbDescr};
@@ -156,7 +156,7 @@ impl<D: DescriptorRgb<K>, K> WitnessFilter for Runtime<D, K> {
         self.wallet()
             .transactions()
             .keys()
-            .any(|txid| AssignmentWitness::Present(WitnessId::Bitcoin(*txid)) == witness)
+            .any(|txid| AssignmentWitness::Present(XWitnessId::Bitcoin(*txid)) == witness)
     }
 }
 
@@ -267,7 +267,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
         &self,
         contract_id: ContractId,
         iface_name: impl Into<TypeName>,
-    ) -> Result<HashMap<WitnessId, IfaceOp<AmountChange>>, RuntimeError> {
+    ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, RuntimeError> {
         let iface_name = iface_name.into();
         let iface = self.stock.iface_by_name(&iface_name)?;
         let default_op = iface

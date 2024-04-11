@@ -94,3 +94,18 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "master" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "asset_tags" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "asset_tags" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "asset_tags" }
