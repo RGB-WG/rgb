@@ -1561,7 +1561,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=asset_tags#9d193fbfc676fee6496c025f395606eea45704d6"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.11#6aa78851e1d7d474590124f45e4b819b05f24a09"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1583,7 +1583,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=asset_tags#dbf0df4d5c8457b5d298b0a69ecb0e58b04257c1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#468200b74c2adfac054d6d15b08973a4af634d26"
 dependencies = [
  "amplify",
  "baid58",
@@ -1653,7 +1653,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=asset_tags#dbf0df4d5c8457b5d298b0a69ecb0e58b04257c1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.11#468200b74c2adfac054d6d15b08973a4af634d26"
 dependencies = [
  "amplify",
  "ascii-armor",

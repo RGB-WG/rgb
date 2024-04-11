@@ -937,7 +937,7 @@ impl Exec for RgbArgs {
                 for id in runtime.witness_ids()? {
                     fs::write(
                         format!("{root_dir}/stash/anchors/{id}.yaml"),
-                        serde_yaml::to_string(&runtime.anchor(id)?)?,
+                        serde_yaml::to_string(&runtime.anchors(id)?)?,
                     )?;
                 }
                 for id in runtime.extension_ids()? {

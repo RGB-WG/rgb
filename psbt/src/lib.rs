@@ -28,8 +28,8 @@ use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
 pub use psbt::*;
 pub use rgb::*;
-use rgbstd::containers::{Batch, Fascia};
-use rgbstd::{AnchorSet, XChain, XWitnessId};
+use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia};
+use rgbstd::{XChain, XWitnessId};
 
 pub use self::rgb::{
     ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -85,7 +85,7 @@ impl RgbPsbt for Psbt {
             if !inputs.is_empty() {
                 return Err(EmbedError::AbsentInputs);
             }
-            self.push_rgb_transition(info.transition, info.methods)
+            self.push_rgb_transition(info.transition, info.method)
                 .expect("transitions are unique since they are in BTreeMap indexed by opid");
         }
         Ok(())
@@ -94,8 +94,14 @@ impl RgbPsbt for Psbt {
     fn rgb_commit(&mut self) -> Result<Fascia, CommitError> {
         // Convert RGB data to MPCs? Or should we do it at the moment we add them... No,
         // since we may require more DBC methods with each additional state transition
-        let (bundles, methods) = self.rgb_bundles_to_mpc()?;
+        let bundles = self.rgb_bundles_to_mpc()?;
         // DBC commitment for the required methods
+        let methods = bundles
+            .values()
+            .flat_map(|b| b.iter())
+            .map(|b| CloseMethodSet::from(b.close_method))
+            .reduce(|methods, method| methods | method)
+            .ok_or(RgbPsbtError::NoContracts)?;
         let (mut tapret_anchor, mut opret_anchor) = (None, None);
         if methods.has_tapret_first() {
             tapret_anchor = Some(self.dbc_commit::<TapretProof>()?);
@@ -103,8 +109,12 @@ impl RgbPsbt for Psbt {
         if methods.has_opret_first() {
             opret_anchor = Some(self.dbc_commit::<OpretProof>()?);
         }
-        let anchor = AnchorSet::from_split(tapret_anchor, opret_anchor)
-            .expect("at least one of DBC are present due to CloseMethodSet type guarantees");
+        let anchor = match (tapret_anchor, opret_anchor) {
+            (None, None) => return Err(RgbPsbtError::NoContracts.into()),
+            (Some(tapret), None) => AnchorSet::Tapret(tapret),
+            (None, Some(opret)) => AnchorSet::Opret(opret),
+            (Some(tapret), Some(opret)) => AnchorSet::Double { tapret, opret },
+        };
         Ok(Fascia {
             witness_id: XWitnessId::Bitcoin(self.txid()),
             anchor,
