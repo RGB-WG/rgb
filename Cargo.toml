@@ -96,7 +96,7 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 features = ["all"]
 
 [patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "master" }
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "reconstruct" }
 bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
