@@ -20,7 +20,6 @@
 // limitations under the License.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::convert::Infallible;
 
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
@@ -32,7 +31,8 @@ use rgbstd::containers::Transfer;
 use rgbstd::interface::ContractError;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
-    ComposeError, ConsignerError, Inventory, InventoryError, Stash, StashError,
+    ComposeError, ConsignError, ContractIfaceError, FasciaError, StockError, StockErrorAll,
+    StockErrorMem,
 };
 use rgbstd::XChain;
 
@@ -92,19 +92,14 @@ pub enum CompositionError {
 
     #[from]
     #[display(inner)]
-    Inventory(InventoryError<Infallible>),
-
-    #[from]
-    #[display(inner)]
-    Stash(StashError<Infallible>),
-
-    #[from]
-    #[display(inner)]
-    Compose(ComposeError<Infallible, Infallible>),
-
-    #[from]
-    #[display(inner)]
     Embed(EmbedError),
+
+    #[from]
+    #[from(StockError)]
+    #[from(StockErrorMem<ComposeError>)]
+    #[from(StockErrorMem<ContractIfaceError>)]
+    #[display(inner)]
+    Stock(StockErrorAll),
 }
 
 #[derive(Debug, Display, Error, From)]
@@ -129,15 +124,12 @@ pub enum CompletionError {
 
     #[from]
     #[display(inner)]
-    Inventory(InventoryError<Infallible>),
-
-    #[from]
-    #[display(inner)]
-    Consigner(ConsignerError<Infallible, Infallible>),
-
-    #[from]
-    #[display(inner)]
     Commit(CommitError),
+
+    #[from(StockErrorMem<ConsignError>)]
+    #[from(StockErrorMem<FasciaError>)]
+    #[display(inner)]
+    Stock(StockErrorAll),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -179,8 +171,8 @@ impl Runtime {
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
 
         let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
-        let iface = self.stock().iface_by_name(&iface_name)?;
-        let contract = self.contract_iface_named(contract_id, iface_name)?;
+        let iface = self.stock().iface(iface_name.clone())?;
+        let contract = self.contract_iface(contract_id, iface_name)?;
         let operation = invoice
             .operation
             .as_ref()
@@ -340,7 +332,7 @@ impl Runtime {
             Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
         };
 
-        self.stock_mut().consume(fascia)?;
+        self.stock_mut().consume_fascia(fascia)?;
         let transfer = self
             .stock()
             .transfer(contract_id, beneficiary2, beneficiary1)?;
