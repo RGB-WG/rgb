@@ -31,10 +31,11 @@ use std::path::PathBuf;
 use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
-use rgbstd::containers::{Contract, LoadError, Transfer, ValidConsignment};
+use rgbstd::containers::{LoadError, Transfer, ValidConsignment};
 use rgbstd::interface::{
     AmountChange, BuilderError, ContractError, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter,
 };
+use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::{ContractIfaceError, Stock, StockError, StockErrorAll, StockErrorMem};
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{self, ResolveWitness};
@@ -176,11 +177,9 @@ where
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load_attach(
-        mut stock_path: PathBuf,
+        stock_path: PathBuf,
         bprt: bpwallet::Runtime<D, K>,
     ) -> Result<Self, RuntimeError> {
-        stock_path.push("stock.dat");
-
         let stock = Stock::load(&stock_path).or_else(|err| {
             if matches!(err, DeserializeError::Decode(DecodeError::Io(ref err)) if err.kind() == ErrorKind::NotFound) {
                 #[cfg(feature = "log")]
@@ -220,16 +219,13 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
 
     pub fn import_contract<R: ResolveHeight + ResolveWitness>(
         &mut self,
-        contract: Contract,
+        contract: ValidConsignment<false>,
         resolver: &mut R,
     ) -> Result<validation::Status, RuntimeError>
     where
         R::Error: 'static,
     {
-        let valid = contract
-            .validate(resolver, self.network().is_testnet())
-            .map_err(|(status, _)| status)?;
-        let status = self.stock.consume_consignment(valid, resolver)?;
+        let status = self.stock.consume_consignment(contract, resolver)?;
         Ok(status)
     }
 
