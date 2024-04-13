@@ -225,7 +225,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
     where
         R::Error: 'static,
     {
-        let status = self.stock.consume_consignment(contract, resolver)?;
+        let status = self.stock.import_contract(contract, resolver)?;
         Ok(status)
     }
 
@@ -251,7 +251,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
         let valid = transfer
             .validate(resolver, self.network().is_testnet())
             .map_err(|(status, _)| status)?;
-        let status = self.stock.consume_consignment(valid, resolver)?;
+        let status = self.stock.accept_transfer(valid, resolver)?;
         Ok(status)
     }
 
