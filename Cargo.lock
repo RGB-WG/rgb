@@ -1551,7 +1551,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=script-refactor#e0b0181b019ed5c59e4bf4dcf77402358a57fcb1"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=script-refactor#2135079e66fedd460563025d46ffd0efce8b1377"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1573,7 +1573,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=script-refactor#f95c39f5a74717e486bf6f8b82f25e5f4c088c26"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=script-refactor#2e4f284e9f66c52d7bfdba6555b27aa2c6179be8"
 dependencies = [
  "amplify",
  "baid58",
@@ -1633,7 +1633,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=script-refactor#f95c39f5a74717e486bf6f8b82f25e5f4c088c26"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=script-refactor#2e4f284e9f66c52d7bfdba6555b27aa2c6179be8"
 dependencies = [
  "aluvm",
  "amplify",
@@ -2073,7 +2073,7 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 [[package]]
 name = "strict_encoding"
 version = "2.7.0-beta.1"
-source = "git+https://github.com/strict-types/strict-encoding?branch=rstring#561f0070344f4f2c2f5fcb062b4e2e62d3ab12dd"
+source = "git+https://github.com/strict-types/strict-encoding?branch=rstring#89ea1c2f02402cbda8bbe78ae9a629446f84e474"
 dependencies = [
  "amplify",
  "half",
@@ -2084,7 +2084,7 @@ dependencies = [
 [[package]]
 name = "strict_encoding_derive"
 version = "2.7.0-beta.1"
-source = "git+https://github.com/strict-types/strict-encoding?branch=rstring#561f0070344f4f2c2f5fcb062b4e2e62d3ab12dd"
+source = "git+https://github.com/strict-types/strict-encoding?branch=rstring#89ea1c2f02402cbda8bbe78ae9a629446f84e474"
 dependencies = [
  "amplify_syn",
  "heck 0.4.1",
