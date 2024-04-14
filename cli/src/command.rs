@@ -384,7 +384,40 @@ impl Exec for RgbArgs {
                 } else {
                     let content = UniversalFile::load_file(file)?;
                     match content {
-                        UniversalFile::Kit(_) => todo!(),
+                        UniversalFile::Kit(kit) => {
+                            let id = kit.kit_id();
+                            eprintln!("Importing kit {id}");
+                            let mut iface_names = map![];
+                            let mut schema_names = map![];
+                            for iface in &kit.ifaces {
+                                let iface_id = iface.iface_id();
+                                iface_names.insert(iface_id, &iface.name);
+                                eprintln!("- Interface {} {}", iface.name, iface_id);
+                            }
+                            for schema in &kit.schemata {
+                                let schema_id = schema.schema_id();
+                                schema_names.insert(schema_id, &schema.name);
+                                eprintln!("- Schema {} {}", schema.name, schema_id);
+                            }
+                            for iimpl in &kit.iimpls {
+                                let iface = iface_names
+                                    .get(&iimpl.iface_id)
+                                    .map(|name| name.to_string())
+                                    .unwrap_or_else(|| iimpl.iface_id.to_string());
+                                let schema = schema_names
+                                    .get(&iimpl.schema_id)
+                                    .map(|name| name.to_string())
+                                    .unwrap_or_else(|| iimpl.schema_id.to_string());
+                                eprintln!("- Implementation of {iface} for {schema}",);
+                            }
+                            for lib in &kit.scripts {
+                                eprintln!("- AluVM library {}", lib.id());
+                            }
+                            eprintln!("- Strict types: {} definitions", kit.types.len());
+                            let kit = kit.validate().map_err(|(status, _)| status.to_string())?;
+                            runtime.import_kit(kit)?;
+                            eprintln!("Kit is imported");
+                        }
                         UniversalFile::Contract(contract) => {
                             let mut resolver = self.resolver()?;
                             let id = contract.consignment_id();
@@ -392,7 +425,7 @@ impl Exec for RgbArgs {
                                 .validate(&mut resolver, self.general.network.is_testnet())
                                 .map_err(|(status, _)| status.to_string())?;
                             runtime.import_contract(contract, &mut resolver)?;
-                            eprintln!("Contract {id} imported to the stash");
+                            eprintln!("Contract {id} is imported");
                         }
                         UniversalFile::Transfer(_) => {
                             return Err(s!("use `validate` and `accept` commands to work with \
