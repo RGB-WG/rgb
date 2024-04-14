@@ -23,22 +23,21 @@
 
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::io;
 use std::io::ErrorKind;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+use std::{fs, io};
 
 use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
-use rgbstd::containers::{LoadError, Transfer, ValidConsignment};
+use rgbstd::containers::LoadError;
 use rgbstd::interface::{
     AmountChange, BuilderError, ContractError, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter,
 };
 use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::{ContractIfaceError, Stock, StockError, StockErrorAll, StockErrorMem};
-use rgbstd::resolvers::ResolveHeight;
-use rgbstd::validation::{self, ResolveWitness};
+use rgbstd::validation::{self};
 use rgbstd::{AssignmentWitness, ContractId, XChain, XOutpoint, XWitnessId};
 use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError};
 
@@ -176,21 +175,26 @@ where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
-    pub fn load_attach(
-        stock_path: PathBuf,
-        bprt: bpwallet::Runtime<D, K>,
-    ) -> Result<Self, RuntimeError> {
-        let stock = Stock::load(&stock_path).or_else(|err| {
-            if matches!(err, DeserializeError::Decode(DecodeError::Io(ref err)) if err.kind() == ErrorKind::NotFound) {
+    pub fn load_walletless(stock_path: &PathBuf) -> Result<Stock, RuntimeError> {
+        Stock::load(stock_path).map_err(RuntimeError::from).or_else(|err| {
+            if matches!(err, RuntimeError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 #[cfg(feature = "log")]
                 eprint!("stock file is absent, creating a new one ... ");
                 let stock = Stock::default();
+                fs::create_dir_all(stock_path)?;
+                stock.store(stock_path)?;
                 return Ok(stock)
             }
             eprintln!("stock file is damaged");
             Err(err)
-        })?;
+        })
+    }
 
+    pub fn load_attach(
+        stock_path: PathBuf,
+        bprt: bpwallet::Runtime<D, K>,
+    ) -> Result<Self, RuntimeError> {
+        let stock = Self::load_walletless(&stock_path)?;
         Ok(Self {
             stock_path,
             stock,
@@ -204,6 +208,8 @@ where
             .expect("unable to save stock");
         self.bprt.try_store().expect("unable to save wallet data");
     }
+
+    pub fn into_stock(self) -> Stock { self.stock }
 }
 
 impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
@@ -213,47 +219,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
 
     pub fn attach(&mut self, bprt: bpwallet::Runtime<D, K>) { self.bprt = bprt }
 
-    pub fn unload(self) {}
-
     pub fn network(&self) -> Network { self.bprt.network() }
-
-    pub fn import_contract<R: ResolveHeight + ResolveWitness>(
-        &mut self,
-        contract: ValidConsignment<false>,
-        resolver: &mut R,
-    ) -> Result<validation::Status, RuntimeError>
-    where
-        R::Error: 'static,
-    {
-        let status = self.stock.import_contract(contract, resolver)?;
-        Ok(status)
-    }
-
-    pub fn validate_transfer(
-        &mut self,
-        transfer: Transfer,
-        resolver: &mut impl ResolveWitness,
-    ) -> Result<ValidConsignment<true>, RuntimeError> {
-        match transfer.validate(resolver, self.network().is_testnet()) {
-            Ok(valid) => return Ok(valid),
-            Err((status, _)) => return Err(status.into()),
-        }
-    }
-
-    pub fn accept_transfer<R: ResolveHeight + ResolveWitness>(
-        &mut self,
-        transfer: Transfer,
-        resolver: &mut R,
-    ) -> Result<validation::Status, RuntimeError>
-    where
-        R::Error: 'static,
-    {
-        let valid = transfer
-            .validate(resolver, self.network().is_testnet())
-            .map_err(|(status, _)| status)?;
-        let status = self.stock.accept_transfer(valid, resolver)?;
-        Ok(status)
-    }
 
     // TODO: Integrate into BP Wallet `TxRow` as L2 and provide transactional info
     pub fn fungible_history(
