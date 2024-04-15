@@ -277,7 +277,7 @@ impl RgbExt for Psbt {
         let opid = transition.id();
 
         let prev_method = self.rgb_close_method(opid)?;
-        if Some(method) != prev_method {
+        if matches!(prev_method, Some(prev_method) if prev_method != method) {
             return Err(RgbPsbtError::InvalidCloseMethod(opid));
         }
 
