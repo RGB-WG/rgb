@@ -38,7 +38,7 @@ use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{AmountChange, ContractSuppl, FilterExclude, IfaceId};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::fs::StoreFs;
-use rgbstd::persistence::{SchemaIfaces, StashReadProvider};
+use rgbstd::persistence::StashReadProvider;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
 use rgbstd::vm::RgbIsa;
@@ -315,20 +315,15 @@ impl Exec for RgbArgs {
             }
             Command::Schemata => {
                 let stock = self.rgb_stock()?;
-                for schema_iface in stock.schemata()? {
-                    print!("{} ", schema_iface.schema.schema_id());
-                    for iimpl in schema_iface.iimpls.values() {
-                        let iface = stock.iface(iimpl.iface_id)?;
-                        print!("{} ", iface.name);
-                    }
-                    println!();
+                for info in stock.schemata()? {
+                    print!("{info}");
                 }
                 None
             }
             Command::Interfaces => {
                 let stock = self.rgb_stock()?;
-                for (id, name) in stock.ifaces()? {
-                    println!("{} {id}", name);
+                for info in stock.ifaces()? {
+                    print!("{info}");
                 }
                 None
             }
@@ -525,10 +520,7 @@ impl Exec for RgbArgs {
                     .expect("contract must specify interface under which it is constructed")
                     .as_str()
                     .expect("interface name must be a string");
-                let SchemaIfaces {
-                    ref schema,
-                    ref iimpls,
-                } = stock.schema(*schema_id)?;
+                let schema_ifaces = stock.schema(*schema_id)?;
                 let iface_name = tn!(iface_name.to_owned());
                 let iface = stock
                     .iface(iface_name.clone())
@@ -538,7 +530,7 @@ impl Exec for RgbArgs {
                     })?
                     .clone();
                 let iface_id = iface.iface_id();
-                let iface_impl = iimpls.get(&iface_id).ok_or_else(|| {
+                let iface_impl = schema_ifaces.get(iface_id).ok_or_else(|| {
                     RuntimeError::Custom(format!(
                         "no known interface implementation for {iface_name}"
                     ))
@@ -561,7 +553,8 @@ impl Exec for RgbArgs {
                             .find(|info| info.name.as_str() == name)
                             .unwrap_or_else(|| panic!("unknown type name '{name}'"))
                             .id;
-                        let sem_id = schema
+                        let sem_id = schema_ifaces
+                            .schema
                             .global_types
                             .get(&state_type)
                             .expect("invalid schema implementation")
@@ -597,7 +590,8 @@ impl Exec for RgbArgs {
                             .find(|info| info.name.as_str() == name)
                             .expect("unknown type name")
                             .id;
-                        let state_schema = schema
+                        let state_schema = schema_ifaces
+                            .schema
                             .owned_types
                             .get(&state_type)
                             .expect("invalid schema implementation");
@@ -883,19 +877,16 @@ impl Exec for RgbArgs {
                 fs::create_dir_all(format!("{root_dir}/index"))?;
 
                 // Stash
-                for schema_ifaces in stock.schemata()? {
+                for (id, schema_ifaces) in stock.as_stash_provider().debug_schemata() {
                     fs::write(
-                        format!(
-                            "{root_dir}/stash/schemata/{}.yaml",
-                            schema_ifaces.schema.schema_id()
-                        ),
+                        format!("{root_dir}/stash/schemata/{}.yaml", id),
                         serde_yaml::to_string(&schema_ifaces)?,
                     )?;
                 }
-                for (id, name) in stock.ifaces()? {
+                for (id, iface) in stock.as_stash_provider().debug_ifaces() {
                     fs::write(
-                        format!("{root_dir}/stash/ifaces/{id}.{name}.yaml"),
-                        serde_yaml::to_string(stock.iface(id)?)?,
+                        format!("{root_dir}/stash/ifaces/{id}.{}.yaml", iface.name),
+                        serde_yaml::to_string(stock.iface(*id)?)?,
                     )?;
                 }
                 for (id, genesis) in stock.as_stash_provider().debug_geneses() {
