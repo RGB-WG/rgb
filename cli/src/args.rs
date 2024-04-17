@@ -74,18 +74,26 @@ impl Default for RgbArgs {
 
 impl RgbArgs {
     pub fn rgb_stock(&self) -> Result<Stock, RuntimeError> {
-        eprint!("Loading stock ... ");
+        if self.verbose > 2 {
+            eprint!("Loading stock ... ");
+        }
         let runtime = Runtime::<RgbDescr>::load_walletless(&self.general.base_dir())?;
-        eprintln!("success");
+        if self.verbose > 2 {
+            eprintln!("success");
+        }
 
         Ok(runtime)
     }
 
     pub fn rgb_runtime(&self, config: &Config) -> Result<Runtime, RuntimeError> {
         let bprt = self.inner.bp_runtime::<RgbDescr>(config)?;
-        eprint!("Loading stock ... ");
+        if self.verbose > 2 {
+            eprint!("Loading stock ... ");
+        }
         let runtime = Runtime::<RgbDescr>::load_attach(self.general.base_dir(), bprt)?;
-        eprintln!("success");
+        if self.verbose > 2 {
+            eprintln!("success");
+        }
 
         Ok(runtime)
     }

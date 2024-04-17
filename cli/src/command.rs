@@ -879,19 +879,22 @@ impl Exec for RgbArgs {
                 // Stash
                 for (id, schema_ifaces) in stock.as_stash_provider().debug_schemata() {
                     fs::write(
-                        format!("{root_dir}/stash/schemata/{}.yaml", id),
+                        format!(
+                            "{root_dir}/stash/schemata/{}.{id:-}.yaml",
+                            schema_ifaces.schema.name
+                        ),
                         serde_yaml::to_string(&schema_ifaces)?,
                     )?;
                 }
                 for (id, iface) in stock.as_stash_provider().debug_ifaces() {
                     fs::write(
-                        format!("{root_dir}/stash/ifaces/{id}.{}.yaml", iface.name),
+                        format!("{root_dir}/stash/ifaces/{}.{id:-}.yaml", iface.name),
                         serde_yaml::to_string(stock.iface(*id)?)?,
                     )?;
                 }
                 for (id, genesis) in stock.as_stash_provider().debug_geneses() {
                     fs::write(
-                        format!("{root_dir}/stash/geneses/{id}.yaml"),
+                        format!("{root_dir}/stash/geneses/{id:-}.yaml"),
                         serde_yaml::to_string(genesis)?,
                     )?;
                 }
@@ -899,7 +902,7 @@ impl Exec for RgbArgs {
                     for suppl in list {
                         fs::write(
                             format!(
-                                "{root_dir}/stash/geneses/{id}.suppl.{}.yaml",
+                                "{root_dir}/stash/geneses/{id:-}.suppl.{}.yaml",
                                 suppl.suppl_id()
                             ),
                             serde_yaml::to_string(suppl)?,
@@ -908,24 +911,24 @@ impl Exec for RgbArgs {
                 }
                 for (id, bundle) in stock.as_stash_provider().debug_bundles() {
                     fs::write(
-                        format!("{root_dir}/stash/bundles/{id}.yaml"),
+                        format!("{root_dir}/stash/bundles/{id:-}.yaml"),
                         serde_yaml::to_string(bundle)?,
                     )?;
                 }
                 for (id, witness) in stock.as_stash_provider().debug_witnesses() {
                     fs::write(
-                        format!("{root_dir}/stash/witnesses/{id}.yaml"),
+                        format!("{root_dir}/stash/witnesses/{id:-}.yaml"),
                         serde_yaml::to_string(witness)?,
                     )?;
                 }
                 for (id, extension) in stock.as_stash_provider().debug_extensions() {
                     fs::write(
-                        format!("{root_dir}/stash/extensions/{id}.yaml"),
+                        format!("{root_dir}/stash/extensions/{id:-}.yaml"),
                         serde_yaml::to_string(extension)?,
                     )?;
                 }
                 fs::write(
-                    format!("{root_dir}/seal-secret.yaml"),
+                    format!("{root_dir}/stash/seal-secret.yaml"),
                     serde_yaml::to_string(stock.as_stash_provider().debug_secret_seals())?,
                 )?;
                 // TODO: Add sigs debugging
@@ -933,7 +936,7 @@ impl Exec for RgbArgs {
                 // State
                 for (id, history) in stock.as_state_provider().debug_history() {
                     fs::write(
-                        format!("{root_dir}/state/{id}.yaml"),
+                        format!("{root_dir}/state/{id:-}.yaml"),
                         serde_yaml::to_string(history)?,
                     )?;
                 }
