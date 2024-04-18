@@ -35,15 +35,14 @@ use rgbstd::containers::{
     UniversalFile,
 };
 use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
-use rgbstd::interface::{
-    AmountChange, ContractBuilder, ContractSuppl, FilterExclude, IfaceId, SchemaIfaces,
-};
+use rgbstd::interface::{AmountChange, ContractSuppl, FilterExclude, IfaceId};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgbstd::persistence::{Inventory, Stash};
+use rgbstd::persistence::fs::StoreFs;
+use rgbstd::persistence::{SchemaIfaces, StashReadProvider};
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
 use rgbstd::vm::RgbIsa;
-use rgbstd::{AssetTag, AssignmentType, BundleId, OutputSeal, XChain, XOutputSeal};
+use rgbstd::{BundleId, OutputSeal, XChain, XOutputSeal};
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
@@ -302,24 +301,24 @@ impl Exec for RgbArgs {
     const CONF_FILE_NAME: &'static str = "rgb.toml";
 
     fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
-        if let Some(mut runtime) = match &self.command {
+        if let Some(stock) = match &self.command {
             Command::General(cmd) => {
                 self.inner.translate(cmd).exec(config, "rgb")?;
                 None
             }
             Command::Debug(DebugCommand::Taprets) => {
-                let runtime = self.rgb_runtime(&config)?;
-                for (witness_id, tapret) in runtime.taprets()? {
+                let stock = self.rgb_stock()?;
+                for (witness_id, tapret) in stock.as_stash_provider().taprets()? {
                     println!("{witness_id}\t{tapret}");
                 }
                 None
             }
             Command::Schemata => {
-                let runtime = self.rgb_runtime(&config)?;
-                for id in runtime.schema_ids()? {
-                    print!("{id} ");
-                    for iimpl in runtime.schema(id)?.iimpls.values() {
-                        let iface = runtime.iface_by_id(iimpl.iface_id)?;
+                let stock = self.rgb_stock()?;
+                for schema_iface in stock.schemata()? {
+                    print!("{} ", schema_iface.schema.schema_id());
+                    for iimpl in schema_iface.iimpls.values() {
+                        let iface = stock.iface(iimpl.iface_id)?;
                         print!("{} ", iface.name);
                     }
                     println!();
@@ -327,15 +326,15 @@ impl Exec for RgbArgs {
                 None
             }
             Command::Interfaces => {
-                let runtime = self.rgb_runtime(&config)?;
-                for (id, name) in runtime.ifaces()? {
+                let stock = self.rgb_stock()?;
+                for (id, name) in stock.ifaces()? {
                     println!("{} {id}", name);
                 }
                 None
             }
             Command::Contracts => {
-                let runtime = self.rgb_runtime(&config)?;
-                for id in runtime.contract_ids()? {
+                let stock = self.rgb_stock()?;
+                for id in stock.contract_ids()? {
                     println!("{id}");
                 }
                 None
@@ -380,71 +379,77 @@ impl Exec for RgbArgs {
             }
 
             Command::Import { armored, file } => {
-                let mut runtime = self.rgb_runtime(&config)?;
-                if *armored {
-                    todo!()
-                } else {
-                    let content = UniversalFile::load_file(file)?;
-                    match content {
-                        UniversalFile::Iface(iface) => {
-                            let id = iface.iface_id();
-                            let name = iface.name.clone();
-                            runtime.import_iface(iface)?;
-                            eprintln!("Interface {id} with name {name} imported to the stash");
+                let mut stock = self.rgb_stock()?;
+                assert!(!armored, "importing armored files is not yet supported");
+                // TODO: Support armored files
+                let content = UniversalFile::load_file(file)?;
+                match content {
+                    UniversalFile::Kit(kit) => {
+                        let id = kit.kit_id();
+                        eprintln!("Importing kit {id}");
+                        let mut iface_names = map![];
+                        let mut schema_names = map![];
+                        for iface in &kit.ifaces {
+                            let iface_id = iface.iface_id();
+                            iface_names.insert(iface_id, &iface.name);
+                            eprintln!("- Interface {} {}", iface.name, iface_id);
                         }
-                        UniversalFile::Schema(schema) => {
-                            let id = schema.schema_id();
-                            runtime.import_schema(schema)?;
-                            eprintln!("Schema {id} imported to the stash");
+                        for schema in &kit.schemata {
+                            let schema_id = schema.schema_id();
+                            schema_names.insert(schema_id, &schema.name);
+                            eprintln!("- Schema {} {}", schema.name, schema_id);
                         }
-                        UniversalFile::Impl(iimpl) => {
-                            let iface_id = iimpl.iface_id;
-                            let schema_id = iimpl.schema_id;
-                            let id = iimpl.impl_id();
-                            runtime.import_iface_impl(iimpl)?;
-                            eprintln!(
-                                "Implementation {id} of interface {iface_id} for schema \
-                                 {schema_id} imported to the stash"
-                            );
+                        for iimpl in &kit.iimpls {
+                            let iface = iface_names
+                                .get(&iimpl.iface_id)
+                                .map(|name| name.to_string())
+                                .unwrap_or_else(|| iimpl.iface_id.to_string());
+                            let schema = schema_names
+                                .get(&iimpl.schema_id)
+                                .map(|name| name.to_string())
+                                .unwrap_or_else(|| iimpl.schema_id.to_string());
+                            eprintln!("- Implementation of {iface} for {schema}",);
                         }
-                        UniversalFile::Contract(contract) => {
-                            let mut resolver = self.resolver()?;
-                            let id = contract.consignment_id();
-                            let contract = contract
-                                .validate(&mut resolver, self.general.network.is_testnet())
-                                .map_err(|c| {
-                                    c.validation_status().expect("just validated").to_string()
-                                })?;
-                            runtime.import_contract(contract, &mut resolver)?;
-                            eprintln!("Contract {id} imported to the stash");
+                        for lib in &kit.scripts {
+                            eprintln!("- AluVM library {}", lib.id());
                         }
-                        UniversalFile::Transfer(_) => {
-                            return Err(s!("use `validate` and `accept` commands to work with \
-                                           transfer consignments")
-                            .into());
-                        }
-                        UniversalFile::Suppl(_suppl) => {
-                            todo!()
-                        }
-                    };
+                        eprintln!("- Strict types: {} definitions", kit.types.len());
+                        let kit = kit.validate().map_err(|(status, _)| status.to_string())?;
+                        stock.import_kit(kit)?;
+                        eprintln!("Kit is imported");
+                    }
+                    UniversalFile::Contract(contract) => {
+                        let mut resolver = self.resolver()?;
+                        let id = contract.consignment_id();
+                        let contract = contract
+                            .validate(&mut resolver, self.general.network.is_testnet())
+                            .map_err(|(status, _)| status.to_string())?;
+                        stock.import_contract(contract, &mut resolver)?;
+                        eprintln!("Contract {id} is imported");
+                    }
+                    UniversalFile::Transfer(_) => {
+                        return Err(s!("use `validate` and `accept` commands to work with \
+                                       transfer consignments")
+                        .into());
+                    }
                 }
-                Some(runtime)
+                Some(stock)
             }
             Command::Export {
                 armored: _,
                 contract,
                 file,
             } => {
-                let runtime = self.rgb_runtime(&config)?;
-                let bindle = runtime
+                let stock = self.rgb_stock()?;
+                let contract = stock
                     .export_contract(*contract)
                     .map_err(|err| err.to_string())?;
                 if let Some(file) = file {
                     // TODO: handle armored flag
-                    bindle.save_file(file)?;
+                    contract.save_file(file)?;
                     eprintln!("Contract {contract} exported to '{}'", file.display());
                 } else {
-                    println!("{bindle}");
+                    println!("{contract}");
                 }
                 None
             }
@@ -462,8 +467,8 @@ impl Exec for RgbArgs {
             } => {
                 let runtime = self.rgb_runtime(&config)?;
 
-                let iface = runtime.iface_by_name(&tn!(iface.to_owned()))?.clone();
-                let contract = runtime.contract_iface_id(*contract_id, iface.iface_id())?;
+                let iface = runtime.iface(tn!(iface.to_owned()))?.clone();
+                let contract = runtime.contract_iface(*contract_id, iface.iface_id())?;
 
                 println!("Global:");
                 for global in &contract.iface.global_state {
@@ -501,8 +506,11 @@ impl Exec for RgbArgs {
                 }
                 None
             }
-            Command::Issue { schema, contract } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+            Command::Issue {
+                schema: schema_id,
+                contract,
+            } => {
+                let mut stock = self.rgb_stock()?;
 
                 let file = fs::File::open(contract)?;
 
@@ -520,13 +528,13 @@ impl Exec for RgbArgs {
                 let SchemaIfaces {
                     ref schema,
                     ref iimpls,
-                } = runtime.schema(*schema)?;
+                } = stock.schema(*schema_id)?;
                 let iface_name = tn!(iface_name.to_owned());
-                let iface = runtime
-                    .iface_by_name(&iface_name)
+                let iface = stock
+                    .iface(iface_name.clone())
                     .or_else(|_| {
                         let id = IfaceId::from_str(iface_name.as_str())?;
-                        runtime.iface_by_id(id).map_err(RuntimeError::from)
+                        stock.iface(id).map_err(RuntimeError::from)
                     })?
                     .clone();
                 let iface_id = iface.iface_id();
@@ -535,14 +543,9 @@ impl Exec for RgbArgs {
                         "no known interface implementation for {iface_name}"
                     ))
                 })?;
-                let types = &schema.types;
 
-                let mut builder = ContractBuilder::with(
-                    iface.clone(),
-                    schema.clone(),
-                    iface_impl.clone(),
-                    self.general.network.is_testnet(),
-                )?;
+                let mut builder = stock.contract_builder(*schema_id, iface_id)?;
+                let types = builder.type_system().clone();
 
                 if let Some(globals) = code.get("globals") {
                     for (name, val) in globals
@@ -630,26 +633,15 @@ impl Exec for RgbArgs {
                     }
                 }
 
-                let contract = builder.issue_contract().expect("failure issuing contract");
+                let contract = builder.issue_contract()?;
                 let id = contract.contract_id();
                 let mut resolver = self.resolver()?;
-                let validated_contract = contract
-                    .validate(&mut resolver, self.general.network.is_testnet())
-                    .map_err(|consignment| {
-                        RuntimeError::IncompleteContract(
-                            consignment
-                                .into_validation_status()
-                                .expect("just validated"),
-                        )
-                    })?;
-                runtime
-                    .import_contract(validated_contract, &mut resolver)
-                    .expect("failure importing issued contract");
+                stock.import_contract(contract, &mut resolver)?;
                 eprintln!(
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
                      to export the contract."
                 );
-                Some(runtime)
+                Some(stock)
             }
             Command::Invoice {
                 address_based,
@@ -688,7 +680,7 @@ impl Exec for RgbArgs {
                             outpoint.txid,
                             outpoint.vout,
                         ));
-                        runtime.store_seal_secret(seal)?;
+                        runtime.store_secret_seal(seal)?;
                         Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
                     }
                 };
@@ -698,7 +690,7 @@ impl Exec for RgbArgs {
                     .set_amount_raw(*value)
                     .finish();
                 println!("{invoice}");
-                Some(runtime)
+                Some(runtime.into_stock())
             }
             Command::Prepare {
                 v2,
@@ -727,7 +719,7 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
-                Some(runtime)
+                Some(runtime.into_stock())
             }
             Command::Consign {
                 invoice,
@@ -743,7 +735,7 @@ impl Exec for RgbArgs {
                 let mut psbt_file = File::create(psbt_name)?;
                 psbt.encode(psbt.version, &mut psbt_file)?;
                 transfer.save_file(out_file)?;
-                Some(runtime)
+                Some(runtime.into_stock())
             }
             Command::Transfer {
                 v2,
@@ -775,7 +767,7 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
-                Some(runtime)
+                Some(runtime.into_stock())
             }
             Command::Inspect { file, dir, path } => {
                 #[derive(Clone, Debug)]
@@ -784,14 +776,13 @@ impl Exec for RgbArgs {
                 pub struct ConsignmentInspection {
                     version: ContainerVer,
                     transfer: bool,
-                    asset_tags: TinyOrdMap<AssignmentType, AssetTag>,
                     terminals: SmallOrdMap<BundleId, Terminal>,
                     supplements: TinyOrdSet<ContractSuppl>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
 
                 let content = UniversalFile::load_file(file)?;
-                let contract = match content {
+                let consignment = match content {
                     UniversalFile::Contract(contract) if *dir => Some(contract),
                     UniversalFile::Transfer(transfer) if *dir => Some(transfer.into_contract()),
                     content => {
@@ -803,45 +794,37 @@ impl Exec for RgbArgs {
                         None
                     }
                 };
-                if let Some(contract) = contract {
+                if let Some(consignment) = consignment {
                     let mut map = map![
-                        s!("genesis.yaml") => serde_yaml::to_string(&contract.genesis)?,
-                        s!("schema.yaml") => serde_yaml::to_string(&contract.schema)?,
-                        s!("bundles.yaml") => serde_yaml::to_string(&contract.bundles)?,
-                        s!("extensions.yaml") => serde_yaml::to_string(&contract.extensions)?,
-                        s!("schema-types.sty") => contract.schema.types.to_string(),
+                        s!("genesis.yaml") => serde_yaml::to_string(&consignment.genesis)?,
+                        s!("schema.yaml") => serde_yaml::to_string(&consignment.schema)?,
+                        s!("bundles.yaml") => serde_yaml::to_string(&consignment.bundles)?,
+                        s!("extensions.yaml") => serde_yaml::to_string(&consignment.extensions)?,
+                        s!("types.sty") => consignment.types.to_string(),
                     ];
-                    for (id, lib) in &contract.schema.script.as_alu_script().libs {
+                    for lib in consignment.scripts {
                         let mut buf = Vec::new();
                         lib.print_disassemble::<RgbIsa>(&mut buf)?;
-                        map.insert(format!("{}.aluasm", id.to_baid58().mnemonic()), unsafe {
+                        map.insert(format!("{}.aluasm", lib.id().to_baid58().mnemonic()), unsafe {
                             String::from_utf8_unchecked(buf)
                         });
                     }
-                    for (_, pair) in contract.ifaces {
+                    for (iface, iimpl) in consignment.ifaces {
                         map.insert(
-                            format!("iface-{}.yaml", pair.iface.name),
-                            serde_yaml::to_string(&pair)?,
+                            format!("iface-{}.yaml", iface.name),
+                            serde_yaml::to_string(&iface)?,
                         );
                         map.insert(
-                            format!("iface-{}.sty", pair.iface.name),
-                            pair.iface.types.to_string(),
+                            format!("impl-{}.yaml", iface.name),
+                            serde_yaml::to_string(&iimpl)?,
                         );
-                        for (id, lib) in &pair.iimpl.script.as_alu_script().libs {
-                            let mut buf = Vec::new();
-                            lib.print_disassemble::<RgbIsa>(&mut buf)?;
-                            map.insert(format!("{}.aluasm", id.to_baid58().mnemonic()), unsafe {
-                                String::from_utf8_unchecked(buf)
-                            });
-                        }
                     }
                     let contract = ConsignmentInspection {
-                        version: contract.version,
-                        transfer: contract.transfer,
-                        asset_tags: contract.asset_tags,
-                        terminals: contract.terminals,
-                        supplements: contract.supplements,
-                        signatures: contract.signatures,
+                        version: consignment.version,
+                        transfer: consignment.transfer,
+                        terminals: consignment.terminals,
+                        supplements: consignment.supplements,
+                        signatures: consignment.signatures,
                     };
                     map.insert(s!("consignment-meta.yaml"), serde_yaml::to_string(&contract)?);
                     let path = path.as_ref().expect("required by clap");
@@ -883,75 +866,77 @@ impl Exec for RgbArgs {
                 None
             }
             Command::Dump { root_dir } => {
-                let runtime = self.rgb_runtime(&config)?;
+                let stock = self.rgb_stock()?;
 
                 fs::remove_dir_all(root_dir).ok();
                 fs::create_dir_all(format!("{root_dir}/stash/schemata"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/ifaces"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/geneses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
-                fs::create_dir_all(format!("{root_dir}/stash/anchors"))?;
+                fs::create_dir_all(format!("{root_dir}/stash/witnesses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
                 fs::create_dir_all(format!("{root_dir}/state"))?;
                 fs::create_dir_all(format!("{root_dir}/index"))?;
 
                 // Stash
-                for id in runtime.schema_ids()? {
+                for schema_ifaces in stock.schemata()? {
                     fs::write(
-                        format!("{root_dir}/stash/schemata/{id}.yaml"),
-                        serde_yaml::to_string(runtime.schema(id)?)?,
+                        format!(
+                            "{root_dir}/stash/schemata/{}.yaml",
+                            schema_ifaces.schema.schema_id()
+                        ),
+                        serde_yaml::to_string(&schema_ifaces)?,
                     )?;
                 }
-                for (id, name) in runtime.ifaces()? {
+                for (id, name) in stock.ifaces()? {
                     fs::write(
                         format!("{root_dir}/stash/ifaces/{id}.{name}.yaml"),
-                        serde_yaml::to_string(runtime.iface_by_id(id)?)?,
+                        serde_yaml::to_string(stock.iface(id)?)?,
                     )?;
                 }
-                for id in runtime.contract_ids()? {
+                for (id, genesis) in stock.as_stash_provider().debug_geneses() {
                     fs::write(
                         format!("{root_dir}/stash/geneses/{id}.yaml"),
-                        serde_yaml::to_string(runtime.genesis(id)?)?,
+                        serde_yaml::to_string(genesis)?,
                     )?;
-                    for (no, suppl) in runtime
-                        .contract_suppl_all(id)
-                        .into_iter()
-                        .flatten()
-                        .enumerate()
-                    {
+                }
+                for (id, list) in stock.as_stash_provider().debug_suppl() {
+                    for suppl in list {
                         fs::write(
-                            format!("{root_dir}/stash/geneses/{id}.suppl.{no:03}.yaml"),
+                            format!(
+                                "{root_dir}/stash/geneses/{id}.suppl.{}.yaml",
+                                suppl.suppl_id()
+                            ),
                             serde_yaml::to_string(suppl)?,
                         )?;
                     }
-                    let tags = runtime.contract_asset_tags(id)?;
-                    fs::write(
-                        format!("{root_dir}/stash/geneses/{id}.tags.yaml"),
-                        serde_yaml::to_string(tags)?,
-                    )?;
                 }
-                for id in runtime.bundle_ids()? {
+                for (id, bundle) in stock.as_stash_provider().debug_bundles() {
                     fs::write(
                         format!("{root_dir}/stash/bundles/{id}.yaml"),
-                        serde_yaml::to_string(runtime.bundle(id)?)?,
+                        serde_yaml::to_string(bundle)?,
                     )?;
                 }
-                for id in runtime.witness_ids()? {
+                for (id, witness) in stock.as_stash_provider().debug_witnesses() {
                     fs::write(
-                        format!("{root_dir}/stash/anchors/{id}.yaml"),
-                        serde_yaml::to_string(runtime.anchor(id)?)?,
+                        format!("{root_dir}/stash/witnesses/{id}.yaml"),
+                        serde_yaml::to_string(witness)?,
                     )?;
                 }
-                for id in runtime.extension_ids()? {
+                for (id, extension) in stock.as_stash_provider().debug_extensions() {
                     fs::write(
                         format!("{root_dir}/stash/extensions/{id}.yaml"),
-                        serde_yaml::to_string(runtime.extension(id)?)?,
+                        serde_yaml::to_string(extension)?,
                     )?;
                 }
+                fs::write(
+                    format!("{root_dir}/seal-secret.yaml"),
+                    serde_yaml::to_string(stock.as_stash_provider().debug_secret_seals())?,
+                )?;
                 // TODO: Add sigs debugging
 
                 // State
-                for (id, history) in runtime.debug_history() {
+                for (id, history) in stock.as_state_provider().debug_history() {
                     fs::write(
                         format!("{root_dir}/state/{id}.yaml"),
                         serde_yaml::to_string(history)?,
@@ -961,23 +946,23 @@ impl Exec for RgbArgs {
                 // Index
                 fs::write(
                     format!("{root_dir}/index/op-to-bundle.yaml"),
-                    serde_yaml::to_string(runtime.debug_bundle_op_index())?,
+                    serde_yaml::to_string(stock.as_index_provider().debug_op_bundle_index())?,
                 )?;
                 fs::write(
-                    format!("{root_dir}/index/bundle-to-anchor.yaml"),
-                    serde_yaml::to_string(runtime.debug_anchor_bundle_index())?,
+                    format!("{root_dir}/index/bundle-to-contract.yaml"),
+                    serde_yaml::to_string(stock.as_index_provider().debug_bundle_contract_index())?,
+                )?;
+                fs::write(
+                    format!("{root_dir}/index/bundle-to-witness.yaml"),
+                    serde_yaml::to_string(stock.as_index_provider().debug_bundle_witness_index())?,
                 )?;
                 fs::write(
                     format!("{root_dir}/index/contracts.yaml"),
-                    serde_yaml::to_string(runtime.debug_contract_index())?,
+                    serde_yaml::to_string(stock.as_index_provider().debug_contract_index())?,
                 )?;
                 fs::write(
                     format!("{root_dir}/index/terminals.yaml"),
-                    serde_yaml::to_string(runtime.debug_terminal_index())?,
-                )?;
-                fs::write(
-                    format!("{root_dir}/seal-secret.yaml"),
-                    serde_yaml::to_string(runtime.debug_seal_secrets())?,
+                    serde_yaml::to_string(stock.as_index_provider().debug_terminal_index())?,
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
                 None
@@ -989,9 +974,8 @@ impl Exec for RgbArgs {
                 let status =
                     match consignment.validate(&mut resolver, self.general.network.is_testnet()) {
                         Ok(consignment) => consignment.into_validation_status(),
-                        Err(consignment) => consignment.into_validation_status(),
-                    }
-                    .expect("just validated");
+                        Err((status, _)) => status,
+                    };
                 if status.validity() == Validity::Valid {
                     eprintln!("The provided consignment is valid")
                 } else {
@@ -999,21 +983,23 @@ impl Exec for RgbArgs {
                 }
                 None
             }
-            Command::Accept { force, file } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+            Command::Accept { force: _, file } => {
+                // TODO: Ensure we properly handle unmined terminal transactions
+                let mut stock = self.rgb_stock()?;
                 let mut resolver = self.resolver()?;
-                let consignment = Transfer::load_file(file)?;
-                resolver.add_terminals(&consignment);
-                let transfer = consignment
+                let transfer = Transfer::load_file(file)?;
+                resolver.add_terminals(&transfer);
+                let valid = transfer
                     .validate(&mut resolver, self.general.network.is_testnet())
-                    .unwrap_or_else(|c| c);
-                eprintln!("{}", transfer.validation_status().expect("just validated"));
-                runtime.accept_transfer(transfer, &mut resolver, *force)?;
+                    .map_err(|(status, _)| status)?;
+                stock.accept_transfer(valid, &mut resolver)?;
                 eprintln!("Transfer accepted into the stash");
-                Some(runtime)
+                Some(stock)
             }
         } {
-            runtime.store()
+            stock
+                .store(self.general.base_dir())
+                .expect("unable to save stock");
         }
 
         println!();

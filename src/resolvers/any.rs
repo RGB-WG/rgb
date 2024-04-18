@@ -22,7 +22,7 @@
 use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::{WitnessAnchor, WitnessId, XAnchor, XPubWitness};
+use rgbstd::{WitnessAnchor, XWitnessId, XWitnessTx};
 
 #[cfg(feature = "electrum")]
 use crate::electrum;
@@ -73,9 +73,9 @@ impl AnyResolver {
     pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
         match self {
             #[cfg(feature = "electrum")]
-            AnyResolver::Electrum(inner) => inner.add_terminals(consignment),
+            AnyResolver::Electrum(inner) => inner.add_witnesses(consignment),
             #[cfg(feature = "esplora_blocking")]
-            AnyResolver::Esplora(inner) => inner.add_terminals(consignment),
+            AnyResolver::Esplora(inner) => inner.add_witnesses(consignment),
         }
     }
 }
@@ -83,12 +83,12 @@ impl AnyResolver {
 impl ResolveHeight for AnyResolver {
     type Error = AnyAnchorResolverError;
 
-    fn resolve_anchor(&mut self, anchor: &XAnchor) -> Result<WitnessAnchor, Self::Error> {
+    fn resolve_height(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, Self::Error> {
         match self {
             #[cfg(feature = "electrum")]
-            AnyResolver::Electrum(inner) => inner.resolve_anchor(anchor).map_err(|e| e.into()),
+            AnyResolver::Electrum(inner) => inner.resolve_height(witness_id).map_err(|e| e.into()),
             #[cfg(feature = "esplora_blocking")]
-            AnyResolver::Esplora(inner) => inner.resolve_anchor(anchor).map_err(|e| e.into()),
+            AnyResolver::Esplora(inner) => inner.resolve_height(witness_id).map_err(|e| e.into()),
         }
     }
 }
@@ -96,8 +96,8 @@ impl ResolveHeight for AnyResolver {
 impl ResolveWitness for AnyResolver {
     fn resolve_pub_witness(
         &self,
-        witness_id: WitnessId,
-    ) -> Result<XPubWitness, WitnessResolverError> {
+        witness_id: XWitnessId,
+    ) -> Result<XWitnessTx, WitnessResolverError> {
         match self {
             #[cfg(feature = "electrum")]
             AnyResolver::Electrum(inner) => inner.resolve_pub_witness(witness_id),

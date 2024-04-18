@@ -26,9 +26,7 @@ pub use esplora::Error as ResolverError;
 use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::{
-    Layer1, WitnessAnchor, WitnessId, WitnessOrd, WitnessPos, XAnchor, XChain, XPubWitness,
-};
+use rgbstd::{Layer1, WitnessAnchor, WitnessOrd, WitnessPos, XChain, XWitnessId, XWitnessTx};
 
 pub struct Resolver {
     esplora_client: esplora::BlockingClient,
@@ -42,9 +40,6 @@ pub enum AnchorResolverError {
     #[from]
     #[display(inner)]
     Error(esplora::Error),
-
-    /// invalid anchor {0}
-    InvalidAnchor(String),
 
     /// unsupported layer 1 {0}
     UnsupportedLayer1(Layer1),
@@ -60,13 +55,17 @@ impl Resolver {
         })
     }
 
-    pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
+    pub fn add_witnesses<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
         self.terminal_txes.extend(
             consignment
-                .terminals
-                .values()
-                .filter_map(|t| t.witness_tx.as_ref().map(XPubWitness::as_reduced_unsafe))
-                .map(|tx| (tx.txid(), tx.clone())),
+                .bundles
+                .iter()
+                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx.clone()))
+                .filter_map(|tx| match tx {
+                    XChain::Bitcoin(tx) => Some(tx),
+                    XChain::Liquid(_) | XChain::Other(_) => None,
+                })
+                .map(|tx| (tx.txid(), tx)),
         );
     }
 }
@@ -74,18 +73,15 @@ impl Resolver {
 impl ResolveHeight for Resolver {
     type Error = AnchorResolverError;
 
-    fn resolve_anchor(&mut self, anchor: &XAnchor) -> Result<WitnessAnchor, Self::Error> {
-        let XAnchor::Bitcoin(anchor) = anchor else {
-            return Err(AnchorResolverError::UnsupportedLayer1(anchor.layer1()));
+    fn resolve_height(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, Self::Error> {
+        let XWitnessId::Bitcoin(txid) = witness_id else {
+            return Err(AnchorResolverError::UnsupportedLayer1(witness_id.layer1()));
         };
-        let txid = anchor
-            .txid()
-            .ok_or(AnchorResolverError::InvalidAnchor(format!("{:#?}", anchor)))?;
 
         if self.terminal_txes.contains_key(&txid) {
             return Ok(WitnessAnchor {
                 witness_ord: WitnessOrd::OffChain,
-                witness_id: WitnessId::Bitcoin(txid),
+                witness_id,
             });
         }
 
@@ -101,7 +97,7 @@ impl ResolveHeight for Resolver {
         };
         Ok(WitnessAnchor {
             witness_ord: ord,
-            witness_id: WitnessId::Bitcoin(txid),
+            witness_id,
         })
     }
 }
@@ -109,9 +105,9 @@ impl ResolveHeight for Resolver {
 impl ResolveWitness for Resolver {
     fn resolve_pub_witness(
         &self,
-        witness_id: WitnessId,
-    ) -> Result<XPubWitness, WitnessResolverError> {
-        let WitnessId::Bitcoin(txid) = witness_id else {
+        witness_id: XWitnessId,
+    ) -> Result<XWitnessTx, WitnessResolverError> {
+        let XWitnessId::Bitcoin(txid) = witness_id else {
             return Err(WitnessResolverError::Other(
                 witness_id,
                 AnchorResolverError::UnsupportedLayer1(witness_id.layer1()).to_string(),
@@ -119,7 +115,7 @@ impl ResolveWitness for Resolver {
         };
 
         if let Some(tx) = self.terminal_txes.get(&txid) {
-            return Ok(XPubWitness::Bitcoin(tx.clone()));
+            return Ok(XWitnessTx::Bitcoin(tx.clone()));
         }
 
         self.esplora_client
