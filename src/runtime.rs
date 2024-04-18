@@ -165,7 +165,7 @@ impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilte
         if !self.filter.include_outpoint(output) {
             return false;
         }
-        matches!(self.filter.stock.contract_state_for_outpoints(self.contract_id, [output]), Ok(list) if !list.is_empty())
+        matches!(self.filter.stock.contract_assignments_for(self.contract_id, [output]), Ok(list) if !list.is_empty())
     }
 }
 

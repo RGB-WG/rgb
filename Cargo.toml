@@ -24,8 +24,8 @@ license = "Apache-2.0"
 amplify = "4.6.0"
 baid58 = "0.4.4"
 commit_verify = "0.11.0-beta.5"
-strict_encoding = "2.7.0-beta.1"
-strict_types = "2.7.0-beta.2"
+strict_encoding = "2.7.0-beta.3"
+strict_types = "2.7.0-beta.3"
 bp-core = "0.11.0-beta.5"
 bp-seals = "0.11.0-beta.5"
 bp-std = "0.11.0-beta.5"
@@ -93,9 +93,6 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 features = ["all"]
 
 [patch.crates-io]
-strict_encoding_derive = { git = "https://github.com/strict-types/strict-encoding", branch = "rstring" }
-strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "rstring" }
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
 commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.11" }
 single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.11" }
 bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
@@ -108,6 +105,6 @@ bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "v0.11" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "script-refactor" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "script-refactor" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "script-refactor" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
