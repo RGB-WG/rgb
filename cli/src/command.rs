@@ -998,7 +998,7 @@ impl Exec for RgbArgs {
             }
         } {
             stock
-                .store(&self.general.base_dir())
+                .store(self.general.base_dir())
                 .expect("unable to save stock");
         }
 
