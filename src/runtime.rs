@@ -23,27 +23,23 @@
 
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::io;
 use std::io::ErrorKind;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+use std::{fs, io};
 
 use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::Wallet;
-use rgbfs::StockFs;
-use rgbstd::containers::{Contract, LoadError, Transfer};
+use rgbstd::containers::LoadError;
 use rgbstd::interface::{
-    AmountChange, BuilderError, ContractError, IfaceOp, OutpointFilter, WitnessFilter,
-    WrongImplementation,
+    AmountChange, BuilderError, ContractError, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter,
 };
-use rgbstd::persistence::{
-    Inventory, InventoryDataError, InventoryError, Stash, StashError, Stock,
-};
-use rgbstd::resolvers::ResolveHeight;
-use rgbstd::validation::{self, ResolveWitness};
+use rgbstd::persistence::fs::{LoadFs, StoreFs};
+use rgbstd::persistence::{ContractIfaceError, Stock, StockError, StockErrorAll, StockErrorMem};
+use rgbstd::validation::{self};
 use rgbstd::{AssignmentWitness, ContractId, XChain, XOutpoint, XWitnessId};
-use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError, TypeName};
+use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
 
@@ -64,14 +60,6 @@ pub enum RuntimeError {
     Load(LoadError),
 
     #[from]
-    Stash(StashError<Infallible>),
-
-    #[from]
-    #[from(InventoryDataError<Infallible>)]
-    Inventory(InventoryError<Infallible>),
-
-    #[from]
-    #[from(WrongImplementation)]
     Builder(BuilderError),
 
     #[from]
@@ -110,6 +98,12 @@ pub enum RuntimeError {
     #[from]
     #[display(doc_comments)]
     ResolverError(crate::AnyResolverError),
+
+    #[from]
+    #[from(StockError)]
+    #[from(StockErrorMem<ContractIfaceError>)]
+    #[display(inner)]
+    Stock(StockErrorAll),
 
     #[from]
     Yaml(serde_yaml::Error),
@@ -171,7 +165,7 @@ impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilte
         if !self.filter.include_outpoint(output) {
             return false;
         }
-        matches!(self.filter.stock.state_for_outpoints(self.contract_id, [output]), Ok(list) if !list.is_empty())
+        matches!(self.filter.stock.contract_state_for_outpoints(self.contract_id, [output]), Ok(list) if !list.is_empty())
     }
 }
 
@@ -181,23 +175,26 @@ where
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
-    pub fn load_attach(
-        mut stock_path: PathBuf,
-        bprt: bpwallet::Runtime<D, K>,
-    ) -> Result<Self, RuntimeError> {
-        stock_path.push("stock.dat");
-
-        let stock = Stock::load(&stock_path).or_else(|err| {
-            if matches!(err, DeserializeError::Decode(DecodeError::Io(ref err)) if err.kind() == ErrorKind::NotFound) {
+    pub fn load_walletless(stock_path: &PathBuf) -> Result<Stock, RuntimeError> {
+        Stock::load(stock_path).map_err(RuntimeError::from).or_else(|err| {
+            if matches!(err, RuntimeError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 #[cfg(feature = "log")]
                 eprint!("stock file is absent, creating a new one ... ");
                 let stock = Stock::default();
+                fs::create_dir_all(stock_path)?;
+                stock.store(stock_path)?;
                 return Ok(stock)
             }
             eprintln!("stock file is damaged");
             Err(err)
-        })?;
+        })
+    }
 
+    pub fn load_attach(
+        stock_path: PathBuf,
+        bprt: bpwallet::Runtime<D, K>,
+    ) -> Result<Self, RuntimeError> {
+        let stock = Self::load_walletless(&stock_path)?;
         Ok(Self {
             stock_path,
             stock,
@@ -211,6 +208,8 @@ where
             .expect("unable to save stock");
         self.bprt.try_store().expect("unable to save wallet data");
     }
+
+    pub fn into_stock(self) -> Stock { self.stock }
 }
 
 impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
@@ -220,56 +219,16 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
 
     pub fn attach(&mut self, bprt: bpwallet::Runtime<D, K>) { self.bprt = bprt }
 
-    pub fn unload(self) {}
-
     pub fn network(&self) -> Network { self.bprt.network() }
-
-    pub fn import_contract<R: ResolveHeight>(
-        &mut self,
-        contract: Contract,
-        resolver: &mut R,
-    ) -> Result<validation::Status, RuntimeError>
-    where
-        R::Error: 'static,
-    {
-        self.stock
-            .import_contract(contract, resolver)
-            .map_err(RuntimeError::from)
-    }
-
-    pub fn validate_transfer(
-        &mut self,
-        transfer: Transfer,
-        resolver: &mut impl ResolveWitness,
-    ) -> Result<Transfer, RuntimeError> {
-        transfer
-            .validate(resolver, self.network().is_testnet())
-            .map_err(|invalid| invalid.validation_status().expect("just validated").clone())
-            .map_err(RuntimeError::from)
-    }
-
-    pub fn accept_transfer<R: ResolveHeight>(
-        &mut self,
-        transfer: Transfer,
-        resolver: &mut R,
-        force: bool,
-    ) -> Result<validation::Status, RuntimeError>
-    where
-        R::Error: 'static,
-    {
-        self.stock
-            .accept_transfer(transfer, resolver, force)
-            .map_err(RuntimeError::from)
-    }
 
     // TODO: Integrate into BP Wallet `TxRow` as L2 and provide transactional info
     pub fn fungible_history(
         &self,
         contract_id: ContractId,
-        iface_name: impl Into<TypeName>,
+        iface: impl Into<IfaceRef>,
     ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, RuntimeError> {
-        let iface_name = iface_name.into();
-        let iface = self.stock.iface_by_name(&iface_name)?;
+        let iref = iface.into();
+        let iface = self.stock.iface(iref.clone())?;
         let default_op = iface
             .default_operation
             .as_ref()
@@ -282,7 +241,7 @@ impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
             .as_ref()
             .ok_or(HistoryError::NoDefaultAssignment)?
             .clone();
-        let contract = self.stock.contract_iface_named(contract_id, iface_name)?;
+        let contract = self.stock.contract_iface(contract_id, iref)?;
         contract
             .fungible_ops::<AmountChange>(state_name, self, self)
             .map_err(RuntimeError::from)

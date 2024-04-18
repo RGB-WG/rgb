@@ -2,12 +2,10 @@
 members = [
     "psbt",
     "cli",
-    "fs",
     "."
 ]
 default-members = [
     "psbt",
-    "fs",
     "."
 ]
 
@@ -77,7 +75,6 @@ bp-esplora = { workspace = true, optional = true }
 descriptors = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
-rgb-persist-fs = { version = "0.11.1", path = "fs" }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
@@ -96,16 +93,21 @@ serde = ["serde_crate", "serde_with", "serde_yaml", "bp-std/serde", "bp-wallet/s
 features = ["all"]
 
 [patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "reconstruct" }
+strict_encoding_derive = { git = "https://github.com/strict-types/strict-encoding", branch = "rstring" }
+strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "rstring" }
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.11" }
+single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.11" }
 bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.11" }
 bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.11" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.11" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.11" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.11" }
+aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "v0.11" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "script-refactor" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "script-refactor" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "script-refactor" }

@@ -27,6 +27,7 @@ use rgb_rt::{
     electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, Runtime, RuntimeError,
     TapretKey,
 };
+use rgbstd::persistence::Stock;
 
 use crate::Command;
 
@@ -72,6 +73,14 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
+    pub fn rgb_stock(&self) -> Result<Stock, RuntimeError> {
+        eprint!("Loading stock ... ");
+        let runtime = Runtime::<RgbDescr>::load_walletless(&self.general.base_dir())?;
+        eprintln!("success");
+
+        Ok(runtime)
+    }
+
     pub fn rgb_runtime(&self, config: &Config) -> Result<Runtime, RuntimeError> {
         let bprt = self.inner.bp_runtime::<RgbDescr>(config)?;
         eprint!("Loading stock ... ");
