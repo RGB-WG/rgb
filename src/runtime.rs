@@ -23,10 +23,9 @@
 
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::io::ErrorKind;
+use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
-use std::{fs, io};
 
 use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
@@ -39,7 +38,7 @@ use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::{ContractIfaceError, Stock, StockError, StockErrorAll, StockErrorMem};
 use rgbstd::validation::{self};
 use rgbstd::{AssignmentWitness, ContractId, XChain, XOutpoint, XWitnessId};
-use strict_types::encoding::{DecodeError, DeserializeError, Ident, SerializeError};
+use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
 use crate::{DescriptorRgb, RgbDescr};
 
@@ -105,6 +104,7 @@ pub enum RuntimeError {
     #[display(inner)]
     Stock(StockErrorAll),
 
+    #[cfg(feature = "serde_yaml")]
     #[from]
     Yaml(serde_yaml::Error),
 
@@ -176,12 +176,16 @@ where
     for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
 {
     pub fn load_walletless(stock_path: &PathBuf) -> Result<Stock, RuntimeError> {
+        use std::io::ErrorKind;
+
+        use strict_types::encoding::DecodeError;
+
         Stock::load(stock_path).map_err(RuntimeError::from).or_else(|err| {
             if matches!(err, RuntimeError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 #[cfg(feature = "log")]
                 eprint!("stock file is absent, creating a new one ... ");
                 let stock = Stock::default();
-                fs::create_dir_all(stock_path)?;
+                std::fs::create_dir_all(stock_path)?;
                 stock.store(stock_path)?;
                 return Ok(stock)
             }
