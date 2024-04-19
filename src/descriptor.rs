@@ -109,7 +109,6 @@ impl From<RgbKeychain> for Keychain {
     fn from(keychain: RgbKeychain) -> Self { Keychain::from(keychain as u8) }
 }
 
-#[cfg_attr(feature = "serde", serde_as)]
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[cfg_attr(
     feature = "serde",
@@ -119,11 +118,6 @@ impl From<RgbKeychain> for Keychain {
 pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
     pub internal_key: K,
     // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
-    // TODO: Change serde implementation for both Terminal and TapretCommitment
-    #[cfg_attr(
-        feature = "serde",
-        serde_as(as = "HashMap<serde_with::DisplayFromStr, serde_with::DisplayFromStr>")
-    )]
     pub tweaks: HashMap<Terminal, TapretCommitment>,
 }
 
