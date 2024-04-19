@@ -690,7 +690,8 @@ impl Exec for RgbArgs {
                     .set_amount_raw(*value)
                     .finish();
                 println!("{invoice}");
-                Some(runtime.into_stock())
+                runtime.store();
+                None
             }
             Command::Prepare {
                 v2,
@@ -719,7 +720,8 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
-                Some(runtime.into_stock())
+                runtime.store();
+                None
             }
             Command::Consign {
                 invoice,
@@ -735,7 +737,8 @@ impl Exec for RgbArgs {
                 let mut psbt_file = File::create(psbt_name)?;
                 psbt.encode(psbt.version, &mut psbt_file)?;
                 transfer.save_file(out_file)?;
-                Some(runtime.into_stock())
+                runtime.store();
+                None
             }
             Command::Transfer {
                 v2,
@@ -767,7 +770,8 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
-                Some(runtime.into_stock())
+                runtime.store();
+                None
             }
             Command::Inspect { file, dir, path } => {
                 #[derive(Clone, Debug)]
