@@ -306,7 +306,10 @@ impl Runtime {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
         let fascia = psbt.rgb_commit()?;
-        if let Some(output) = psbt.dbc_output::<TapretProof>() {
+        if fascia.anchor.has_tapret() {
+            let output = psbt
+                .dbc_output::<TapretProof>()
+                .ok_or(TapretKeyError::NotTaprootOutput)?;
             let terminal = output
                 .terminal_derivation()
                 .ok_or(CompletionError::InconclusiveDerivation)?;
