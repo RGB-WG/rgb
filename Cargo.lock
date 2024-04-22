@@ -1584,9 +1584,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "rgb-interfaces"
+version = "0.11.0-beta.6"
+source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#b8e612752963a366bd890100e3f9633a3100059b"
+dependencies = [
+ "aluvm",
+ "amplify",
+ "bp-core",
+ "chrono",
+ "rgb-std",
+ "serde_json",
+ "sha2",
+ "strict_encoding",
+ "strict_types",
+]
+
+[[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#0a392e705e1cfd246508021467f2963552d366d7"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#28f9492df5369f7366b325592b1bc7d3171e9a4b"
 dependencies = [
  "amplify",
  "baid58",
@@ -1645,7 +1661,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#0a392e705e1cfd246508021467f2963552d366d7"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#28f9492df5369f7366b325592b1bc7d3171e9a4b"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1681,6 +1697,7 @@ dependencies = [
  "env_logger",
  "log",
  "psbt",
+ "rgb-interfaces",
  "rgb-runtime",
  "rgb-std",
  "serde",
@@ -1723,9 +1740,9 @@ checksum = "d626bb9dae77e28219937af045c257c28bfd3f69333c512553507f5f9798cb76"
 
 [[package]]
 name = "rustix"
-version = "0.38.33"
+version = "0.38.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3cc72858054fcff6d7dea32df2aeaee6a7c24227366d7ea429aada2f26b16ad"
+checksum = "70dc5ec042f7a43c4a73241207cecc9873a06d45debb38b329f8541d85c2730f"
 dependencies = [
  "bitflags 2.5.0",
  "errno",

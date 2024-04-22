@@ -28,6 +28,7 @@ use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid58::ToBaid58;
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
+use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{
@@ -42,7 +43,8 @@ use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
 use rgbstd::vm::RgbIsa;
 use rgbstd::{
-    BundleId, ContractId, GenesisSeal, GraphSeal, OutputSeal, StateType, XChain, XOutputSeal,
+    BundleId, ContractId, GenesisSeal, GraphSeal, Identity, OutputSeal, StateType, XChain,
+    XOutputSeal,
 };
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
@@ -67,8 +69,13 @@ pub enum Command {
     Schemata,
     /// Prints out list of known RGB interfaces
     Interfaces,
+
     /// Prints out list of known RGB contracts
-    Contracts,
+    #[display("contracts")]
+    Contracts {
+        /// Select only contracts using specific interface standard
+        standard: Option<IfaceStandard>,
+    },
 
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc
     #[display("import")]
@@ -141,6 +148,9 @@ pub enum Command {
     Issue {
         /// Schema name to use for the contract
         schema: SchemaId, //String,
+
+        /// Issuer identity string
+        issuer: Identity,
 
         /// File containing contract genesis description in YAML format
         contract: PathBuf,
@@ -328,10 +338,37 @@ impl Exec for RgbArgs {
                 }
                 None
             }
-            Command::Contracts => {
+            Command::Contracts { standard: None } => {
                 let stock = self.rgb_stock()?;
-                for id in stock.contract_ids()? {
-                    println!("{id}");
+                for info in stock.contracts()? {
+                    println!("{info}");
+                }
+                None
+            }
+            Command::Contracts {
+                standard: Some(IfaceStandard::Rgb20),
+            } => {
+                let stock = self.rgb_stock()?;
+                for info in stock.contracts_by::<Rgb20>()? {
+                    println!("{info}");
+                }
+                None
+            }
+            Command::Contracts {
+                standard: Some(IfaceStandard::Rgb21),
+            } => {
+                let stock = self.rgb_stock()?;
+                for info in stock.contracts_by::<Rgb21>()? {
+                    println!("{info}");
+                }
+                None
+            }
+            Command::Contracts {
+                standard: Some(IfaceStandard::Rgb25),
+            } => {
+                let stock = self.rgb_stock()?;
+                for info in stock.contracts_by::<Rgb25>()? {
+                    println!("{info}");
                 }
                 None
             }
@@ -504,6 +541,7 @@ impl Exec for RgbArgs {
             }
             Command::Issue {
                 schema: schema_id,
+                issuer,
                 contract,
             } => {
                 let mut stock = self.rgb_stock()?;
@@ -537,7 +575,7 @@ impl Exec for RgbArgs {
                     ))
                 })?;
 
-                let mut builder = stock.contract_builder(*schema_id, iface_id)?;
+                let mut builder = stock.contract_builder(issuer.clone(), *schema_id, iface_id)?;
                 let types = builder.type_system().clone();
 
                 if let Some(globals) = code.get("globals") {

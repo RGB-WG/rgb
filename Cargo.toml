@@ -37,6 +37,7 @@ descriptors = "0.11.0-beta.5"
 psbt = { version = "0.11.0-beta.5", features = ["client-side-validation"] }
 rgb-std = { version = "0.11.0-beta.5", features = ["fs"] }
 rgb-psbt = { version = "0.11.0-beta.5", path = "psbt" }
+rgb-interfaces = "0.11.0-beta.5"
 indexmap = "2.0.2"
 chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -108,3 +109,4 @@ aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "develop" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "develop" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "develop" }
