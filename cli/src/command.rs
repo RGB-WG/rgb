@@ -34,7 +34,6 @@ use rgbstd::containers::{
     BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Terminal, Transfer,
     UniversalFile,
 };
-use rgbstd::contract::{ContractId, GenesisSeal, GraphSeal, StateType};
 use rgbstd::interface::{AmountChange, ContractSuppl, FilterExclude, IfaceId};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::fs::StoreFs;
@@ -42,7 +41,9 @@ use rgbstd::persistence::StashReadProvider;
 use rgbstd::schema::SchemaId;
 use rgbstd::validation::Validity;
 use rgbstd::vm::RgbIsa;
-use rgbstd::{BundleId, OutputSeal, XChain, XOutputSeal};
+use rgbstd::{
+    BundleId, ContractId, GenesisSeal, GraphSeal, OutputSeal, StateType, XChain, XOutputSeal,
+};
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
