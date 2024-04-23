@@ -23,6 +23,11 @@
             pkg-config
         ];
         cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+
+        stableWithLlvm = pkgs.rust-bin.nightly.latest.default.override {
+          extensions = [ "rustfmt" "llvm-tools-preview" ];
+          targets = [ ];
+        };
       in
       with pkgs;
       {
@@ -51,6 +56,15 @@
             buildInputs = commonPackages ++ [
               rust-bin.nightly.latest.default
             ];
+          };
+
+          codecov = mkShell {
+            buildInputs = commonPackages ++ [
+              stableWithLlvm
+            ];
+            CARGO_INCREMENTAL = "0";
+            RUSTFLAGS = "-Cinstrument-coverage";
+            RUSTDOCFLAGS = "-Cinstrument-coverage";
           };
         };
       }
