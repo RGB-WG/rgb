@@ -187,6 +187,7 @@ where
                 let stock = Stock::default();
                 std::fs::create_dir_all(stock_path)?;
                 stock.store(stock_path)?;
+                eprintln!("success");
                 return Ok(stock)
             }
             eprintln!("stock file is damaged");
