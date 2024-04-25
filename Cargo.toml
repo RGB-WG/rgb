@@ -22,7 +22,7 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.6.0"
-baid58 = "0.4.4"
+baid64 = "0.1.0"
 commit_verify = "0.11.0-beta.5"
 strict_encoding = "2.7.0-beta.3"
 strict_types = "2.7.0-beta.3"
@@ -64,7 +64,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amplify = { workspace = true }
-baid58 = { workspace = true }
+baid64 = { workspace = true }
 bp-electrum = { workspace = true, optional = true }
 commit_verify = { workspace = true }
 strict_types = { workspace = true }
@@ -92,10 +92,11 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "bp-wallet/serde", "descri
 features = ["all"]
 
 [patch.crates-io]
+ascii-armor = { git = "https://github.com/UBIDECO/ascii-armor" }
 strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "develop" }
 strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.11" }
-single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.11" }
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }
+single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }
 bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
 bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
 bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }

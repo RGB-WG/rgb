@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 amplify = { workspace = true }
-baid58 = { workspace = true }
+baid64 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
 commit_verify = { workspace = true }
 bp-seals = { workspace = true }

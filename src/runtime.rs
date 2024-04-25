@@ -80,7 +80,7 @@ pub enum RuntimeError {
     /// invalid identifier.
     #[from]
     #[display(doc_comments)]
-    InvalidId(baid58::Baid58ParseError),
+    InvalidId(baid64::Baid64ParseError),
 
     /// the contract source doesn't fit requirements imposed by the used schema.
     ///

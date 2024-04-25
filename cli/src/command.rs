@@ -25,17 +25,17 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
-use baid58::ToBaid58;
+use baid64::DisplayBaid64;
 use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
 use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
 use rgbstd::containers::{
-    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Terminal, Transfer,
-    UniversalFile,
+    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Terminal,
+    Transfer, UniversalFile,
 };
-use rgbstd::interface::{AmountChange, ContractSuppl, FilterExclude, IfaceId};
+use rgbstd::interface::{AmountChange, FilterExclude, IfaceId};
 use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgbstd::persistence::fs::StoreFs;
 use rgbstd::persistence::StashReadProvider;
@@ -814,7 +814,7 @@ impl Exec for RgbArgs {
                     version: ContainerVer,
                     transfer: bool,
                     terminals: SmallOrdMap<BundleId, Terminal>,
-                    supplements: TinyOrdSet<ContractSuppl>,
+                    supplements: TinyOrdSet<Supplement>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
 
@@ -842,7 +842,7 @@ impl Exec for RgbArgs {
                     for lib in consignment.scripts {
                         let mut buf = Vec::new();
                         lib.print_disassemble::<RgbIsa>(&mut buf)?;
-                        map.insert(format!("{}.aluasm", lib.id().to_baid58().mnemonic()), unsafe {
+                        map.insert(format!("{}.aluasm", lib.id().to_baid64_mnemonic()), unsafe {
                             String::from_utf8_unchecked(buf)
                         });
                     }
