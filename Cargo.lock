@@ -390,7 +390,7 @@ dependencies = [
  "byteorder",
  "libc",
  "log",
- "rustls 0.21.11",
+ "rustls 0.21.12",
  "serde",
  "serde_json",
  "sha2",
@@ -834,9 +834,9 @@ checksum = "658bd65b1cf4c852a3cc96f18a8ce7b5640f6b703f905c7d74532294c2a63984"
 
 [[package]]
 name = "flate2"
-version = "1.0.28"
+version = "1.0.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46303f565772937ffe1d394a4fac6f411c6013172fadde9dcdb1e147a086940e"
+checksum = "4556222738635b7a3417ae6130d8f52201e45a0c4d1a907f0826383adb5f85e7"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -1572,7 +1572,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#3068b168163953700661c4afeffebd44088e3d07"
+source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#69d86f16dc61f48c95bb3977b4f93dc8f1292892"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1588,7 +1588,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#824a90ef5b897533563bc119d14796ab2bacd5e1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#cef39a08e3586b59973c1eae038e15f898814be4"
 dependencies = [
  "amplify",
  "baid64",
@@ -1648,7 +1648,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#824a90ef5b897533563bc119d14796ab2bacd5e1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#cef39a08e3586b59973c1eae038e15f898814be4"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1740,9 +1740,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.21.11"
+version = "0.21.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fecbfb7b1444f477b345853b1fce097a2c6fb637b2bfb87e6bc5db0f043fae4"
+checksum = "3f56a14d1f48b391359b22f731fd4bd7e43c97f3c50eee276f3aa09c94784d3e"
 dependencies = [
  "log",
  "ring",
@@ -2089,7 +2089,7 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 [[package]]
 name = "strict_encoding"
 version = "2.7.0-beta.3"
-source = "git+https://github.com/strict-types/strict-encoding?branch=develop#7fbf31b2bc0f117cba5ae676e46e4ef3656616f5"
+source = "git+https://github.com/strict-types/strict-encoding?branch=develop#901e26ee8b01b3bcff4d7ac76acff2fcc633634b"
 dependencies = [
  "amplify",
  "half",
@@ -2100,7 +2100,7 @@ dependencies = [
 [[package]]
 name = "strict_encoding_derive"
 version = "2.7.0-beta.3"
-source = "git+https://github.com/strict-types/strict-encoding?branch=develop#7fbf31b2bc0f117cba5ae676e46e4ef3656616f5"
+source = "git+https://github.com/strict-types/strict-encoding?branch=develop#901e26ee8b01b3bcff4d7ac76acff2fcc633634b"
 dependencies = [
  "amplify_syn",
  "heck 0.4.1",
@@ -2818,9 +2818,9 @@ checksum = "bec47e5bfd1bff0eeaf6d8b485cc1074891a197ab4225d504cb7a1ab88b02bf0"
 
 [[package]]
 name = "winnow"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c976aaaa0e1f90dbb21e9587cdaf1d9679a1cde8875c0d6bd83ab96a208352"
+checksum = "14b9415ee827af173ebb3f15f9083df5a122eb93572ec28741fb153356ea2578"
 dependencies = [
  "memchr",
 ]
