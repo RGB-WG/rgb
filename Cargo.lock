@@ -29,7 +29,7 @@ dependencies = [
 [[package]]
 name = "aluvm"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/AluVM/rust-aluvm?branch=develop#d8efe3007a5680a99cf86159b8dcc81cf1ed7278"
+source = "git+https://github.com/AluVM/rust-aluvm?branch=develop#25be42a16519383daaa6ba50e65654ff0a1721aa"
 dependencies = [
  "amplify",
  "ascii-armor",
@@ -193,9 +193,9 @@ dependencies = [
 
 [[package]]
 name = "ascii-armor"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f438560a7273569cd4ab8fcf227d0490c1ff01f7cba5e004791752ae8f96091"
+checksum = "673486110323d50d9f33d99f0f526726b4721b1b596284351e75d3692225abe8"
 dependencies = [
  "amplify",
  "baid64",
@@ -955,9 +955,9 @@ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "hashbrown"
-version = "0.14.3"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "heck"
@@ -1123,7 +1123,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.3",
+ "hashbrown 0.14.5",
  "serde",
 ]
 
@@ -1520,11 +1520,10 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=develop#0d7bbcc45d448b71d6c93beb804a3c7062e6891c"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=develop#3fa35c1428796cb607c8a627765aabb2e8329b62"
 dependencies = [
  "aluvm",
  "amplify",
- "ascii-armor",
  "baid64",
  "bp-core",
  "chrono",
@@ -1542,7 +1541,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#eb10305796ca3efbf92e0b3c171c6996d7461120"
+source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#1fb09cb8c23e062c8a059fb9afec7f2f135440ae"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1558,7 +1557,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#cef39a08e3586b59973c1eae038e15f898814be4"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#8ee3144315390b12dad6912b957e8e5e49378762"
 dependencies = [
  "amplify",
  "baid64",
@@ -1618,7 +1617,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#cef39a08e3586b59973c1eae038e15f898814be4"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#8ee3144315390b12dad6912b957e8e5e49378762"
 dependencies = [
  "aluvm",
  "amplify",
@@ -2081,7 +2080,7 @@ dependencies = [
 [[package]]
 name = "strict_types"
 version = "2.7.0-beta.3"
-source = "git+https://github.com/strict-types/strict-types?branch=develop#a2e860f36f24b477712551a6db349edcf08efb3e"
+source = "git+https://github.com/strict-types/strict-types?branch=develop#4effa0b28804f7798a17f5dc6b4411ce6515f2f5"
 dependencies = [
  "amplify",
  "ascii-armor",

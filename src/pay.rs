@@ -24,7 +24,7 @@ use std::marker::PhantomData;
 use std::ops::DerefMut;
 
 use bp::dbc::tapret::TapretProof;
-use bp::seals::txout::{CloseMethod, ExplicitSeal};
+use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
 use bpwallet::Wallet;
@@ -108,10 +108,9 @@ where Self::Descr: DescriptorRgb<K>
         &mut self,
         stock: &mut Stock<S, H, P>,
         invoice: &RgbInvoice,
-        method: CloseMethod,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
-        let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, method, params)?;
+        let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, params)?;
         // ... here we pass PSBT around signers, if necessary
         let transfer = self.transfer(stock, invoice, &mut psbt)?;
         Ok((psbt, meta, transfer))
@@ -122,10 +121,10 @@ where Self::Descr: DescriptorRgb<K>
         &mut self,
         stock: &Stock<S, H, P>,
         invoice: &RgbInvoice,
-        method: CloseMethod,
         mut params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
+        let method = self.descriptor().seal_close_method();
 
         let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
         let iface = stock.iface(iface_name.clone()).map_err(|e| e.to_string())?;

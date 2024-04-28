@@ -44,7 +44,6 @@ use rgb::{
     BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbKeychain,
     StateType, TransferParams, WalletError, WalletProvider, XChain, XOutputSeal,
 };
-use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -179,10 +178,6 @@ pub enum Command {
         #[clap(short = '2')]
         v2: bool,
 
-        /// Method for single-use-seals
-        #[clap(long, default_value = "tapret1st")]
-        method: CloseMethod,
-
         /// Amount of satoshis which should be paid to the address-based
         /// beneficiary
         #[clap(long, default_value = "2000")]
@@ -219,10 +214,6 @@ pub enum Command {
         /// Encode PSBT as V2
         #[clap(short = '2')]
         v2: bool,
-
-        /// Method for single-use-seals
-        #[clap(long, default_value = "tapret1st")]
-        method: CloseMethod,
 
         /// Amount of satoshis which should be paid to the address-based
         /// beneficiary
@@ -719,7 +710,6 @@ impl Exec for RgbArgs {
             }
             Command::Prepare {
                 v2,
-                method,
                 invoice,
                 fee,
                 sats,
@@ -730,7 +720,7 @@ impl Exec for RgbArgs {
                 let params = TransferParams::with(*fee, *sats);
 
                 let (psbt, _) = wallet
-                    .construct_psbt(invoice, *method, params)
+                    .construct_psbt(invoice, params)
                     .map_err(|err| err.to_string())?;
 
                 let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
@@ -762,7 +752,6 @@ impl Exec for RgbArgs {
             }
             Command::Transfer {
                 v2,
-                method,
                 invoice,
                 fee,
                 sats,
@@ -773,9 +762,8 @@ impl Exec for RgbArgs {
                 // TODO: Support lock time and RBFs
                 let params = TransferParams::with(*fee, *sats);
 
-                let (psbt, _, transfer) = wallet
-                    .pay(invoice, *method, params)
-                    .map_err(|err| err.to_string())?;
+                let (psbt, _, transfer) =
+                    wallet.pay(invoice, params).map_err(|err| err.to_string())?;
 
                 transfer.save_file(out_file)?;
 

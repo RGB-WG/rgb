@@ -24,7 +24,6 @@ use std::error::Error;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 
-use bp::seals::txout::CloseMethod;
 use bpstd::XpubDerivable;
 use bpwallet::{StoreError, Wallet, WalletDescr};
 use psrgbt::{Psbt, PsbtMeta};
@@ -123,21 +122,18 @@ where
     pub fn pay(
         &mut self,
         invoice: &RgbInvoice,
-        method: CloseMethod,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
-        self.wallet.pay(&mut self.stock, invoice, method, params)
+        self.wallet.pay(&mut self.stock, invoice, params)
     }
 
     #[allow(clippy::result_large_err)]
     pub fn construct_psbt(
         &mut self,
         invoice: &RgbInvoice,
-        method: CloseMethod,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
-        self.wallet
-            .construct_psbt_rgb(&self.stock, invoice, method, params)
+        self.wallet.construct_psbt_rgb(&self.stock, invoice, params)
     }
 
     #[allow(clippy::result_large_err)]
