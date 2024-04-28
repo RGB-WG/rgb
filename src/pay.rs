@@ -24,8 +24,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
-use bpstd::Address;
-use psbt::{
+use bpstd::{psbt, Address};
+use psrgbt::{
     Beneficiary as BpBeneficiary, CommitError, ConstructionError, EmbedError, Psbt, PsbtMeta,
     RgbPsbt, TapretKeyError, TxParams,
 };

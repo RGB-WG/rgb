@@ -25,7 +25,7 @@ use std::path::Path;
 
 use bp::{Outpoint, Txid};
 use bpwallet::{Wallet, WalletDescr};
-use psbt::PsbtConstructor;
+use psrgbt::PsbtConstructor;
 
 use crate::DescriptorRgb;
 

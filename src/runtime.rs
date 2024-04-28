@@ -68,7 +68,7 @@ pub enum RuntimeError {
     Contract(ContractError),
 
     #[from]
-    PsbtDecode(psbt::DecodeError),
+    PsbtDecode(psrgbt::DecodeError),
 
     /// wallet with id '{0}' is not known to the system.
     #[display(doc_comments)]
