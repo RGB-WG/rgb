@@ -19,17 +19,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::needless_update)] // Caused by the From derivation macro
-
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
+use bpwallet::Wallet;
 use rgb::{
-    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, Runtime, RuntimeError,
-    TapretKey,
+    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, StoredWallet, TapretKey,
+    WalletError,
 };
+use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::Stock;
+use strict_types::encoding::DeserializeError;
 
-use crate::{CliRuntime, Command};
+use crate::Command;
 
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 #[group()]
@@ -73,29 +74,43 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
-    pub fn rgb_stock(&self) -> Result<Stock, RuntimeError> {
+    pub fn rgb_stock(&self) -> Result<Stock, WalletError> {
         if self.verbose > 2 {
             eprint!("Loading stock ... ");
         }
-        let runtime = CliRuntime::load_walletless(&self.general.base_dir())?;
-        if self.verbose > 2 {
-            eprintln!("success");
-        }
+        use std::io::ErrorKind;
 
-        Ok(runtime)
+        use strict_types::encoding::DecodeError;
+
+        let stock_path = self.general.base_dir();
+        let stock = Stock::load(&stock_path).map_err(WalletError::from).or_else(|err| {
+            if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
+                #[cfg(feature = "log")]
+                eprint!("stock file is absent, creating a new one ... ");
+                let stock = Stock::default();
+                std::fs::create_dir_all(&stock_path)?;
+                stock.store(&stock_path)?;
+                if self.verbose > 2 {
+                    eprintln!("success");
+                }
+                return Ok(stock)
+            }
+            eprintln!("stock file is damaged, failing");
+            Err(err)
+        })?;
+
+        Ok(stock)
     }
 
-    pub fn rgb_runtime(&self, config: &Config) -> Result<CliRuntime, RuntimeError> {
+    pub fn rgb_wallet(
+        &self,
+        config: &Config,
+    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+        let stock = self.rgb_stock()?;
         let wallet = self.inner.bp_runtime::<RgbDescr>(config)?.detach();
-        if self.verbose > 2 {
-            eprint!("Loading stock ... ");
-        }
-        let runtime = Runtime::load_attach(self.general.base_dir(), wallet)?;
-        if self.verbose > 2 {
-            eprintln!("success");
-        }
+        let wallet = StoredWallet::attach(self.general.base_dir(), stock, wallet);
 
-        Ok(runtime)
+        Ok(wallet)
     }
 
     #[allow(clippy::result_large_err)]

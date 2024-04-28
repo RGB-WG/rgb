@@ -19,41 +19,83 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::error::Error;
-use std::ops::DerefMut;
-use std::path::Path;
+use std::collections::HashMap;
 
-use bp::{Outpoint, Txid};
-use bpwallet::{Wallet, WalletDescr};
-use psrgbt::PsbtConstructor;
+use bpwallet::Wallet;
+use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter};
+use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 
-use crate::DescriptorRgb;
+use crate::{
+    AssignmentWitness, ContractId, DescriptorRgb, HistoryError, WalletError, WalletProvider,
+    XChain, XOutpoint, XWitnessId,
+};
 
-pub trait Persisting {
-    fn try_store(&self, path: &Path) -> Result<(), impl Error>;
+pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
+
+impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> {}
+impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D> {
+    fn clone(&self) -> Self { WalletWrapper(self.0) }
 }
 
-pub trait WalletProvider<K>: PsbtConstructor
-where Self::Descr: DescriptorRgb<K>
+impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D> {
+    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
+        let output = output.into();
+        self.0
+            .outpoints()
+            .any(|outpoint| XChain::Bitcoin(outpoint) == *output)
+    }
+}
+
+impl<'a, K, D: DescriptorRgb<K>> WitnessFilter for WalletWrapper<'a, K, D> {
+    fn include_witness(&self, witness: impl Into<AssignmentWitness>) -> bool {
+        let witness = witness.into();
+        self.0
+            .txids()
+            .any(|txid| AssignmentWitness::Present(XWitnessId::Bitcoin(txid)) == witness)
+    }
+}
+
+pub trait WalletStock<W: WalletProvider<K>, K>
+where W::Descr: DescriptorRgb<K>
 {
-    fn descriptor_mut(&mut self) -> &mut Self::Descr;
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
-    fn txids(&self) -> impl Iterator<Item = Txid>;
+    fn fungible_history(
+        &self,
+        wallet: &W,
+        contract_id: ContractId,
+        iface: impl Into<IfaceRef>,
+    ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, WalletError>;
 }
 
-#[cfg(feature = "fs")]
-impl<K, D: DescriptorRgb<K>> Persisting for Wallet<K, D>
-where
-    for<'de> WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
+impl<W: WalletProvider<K>, K, S: StashProvider, H: StateProvider, P: IndexProvider>
+    WalletStock<W, K> for Stock<S, H, P>
+where W::Descr: DescriptorRgb<K>
 {
-    fn try_store(&self, path: &Path) -> Result<(), impl Error> { self.store(path) }
-}
-
-impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
-    fn descriptor_mut(&mut self) -> &mut Self::Descr { self.deref_mut() }
-
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
-
-    fn txids(&self) -> impl Iterator<Item = Txid> { self.transactions().keys().copied() }
+    // TODO: Integrate into BP Wallet `TxRow` as L2 and provide transactional info
+    fn fungible_history(
+        &self,
+        wallet: &W,
+        contract_id: ContractId,
+        iface: impl Into<IfaceRef>,
+    ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, WalletError> {
+        let iref = iface.into();
+        let iface = self.iface(iref.clone()).map_err(|e| e.to_string())?;
+        let default_op = iface
+            .default_operation
+            .as_ref()
+            .ok_or(HistoryError::NoDefaultOp)?;
+        let state_name = iface
+            .transitions
+            .get(default_op)
+            .ok_or(HistoryError::DefaultOpNotTransition)?
+            .default_assignment
+            .as_ref()
+            .ok_or(HistoryError::NoDefaultAssignment)?
+            .clone();
+        let contract = self
+            .contract_iface(contract_id, iref)
+            .map_err(|e| e.to_string())?;
+        Ok(contract
+            .fungible_ops::<AmountChange>(state_name, wallet.filter(), wallet.filter())
+            .map_err(|e| e.to_string())?)
+    }
 }

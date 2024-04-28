@@ -25,17 +25,21 @@ extern crate amplify;
 #[macro_use]
 extern crate serde_crate as serde;
 
-mod runtime;
 mod descriptor;
-mod pay;
 #[allow(hidden_glob_reexports)]
 mod resolvers;
 mod wallet;
+pub mod pay;
+mod errors;
+#[cfg(feature = "fs")]
+mod store;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
-pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
+pub use errors::{CompletionError, CompositionError, HistoryError, PayError, WalletError};
+pub use pay::{TransferParams, WalletProvider};
 #[cfg(any(feature = "electrum", feature = "esplora_blocking"))]
 pub use resolvers::*;
 pub use rgbstd::*;
-pub use runtime::{ContractOutpointsFilter, Runtime, RuntimeError};
-pub use wallet::{Persisting, WalletProvider};
+#[cfg(feature = "fs")]
+pub use store::StoredWallet;
+pub use wallet::{WalletStock, WalletWrapper};

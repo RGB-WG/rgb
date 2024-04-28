@@ -20,120 +20,26 @@
 // limitations under the License.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::marker::PhantomData;
+use std::ops::DerefMut;
 
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
+use bpwallet::Wallet;
 use psrgbt::{
-    Beneficiary as BpBeneficiary, CommitError, ConstructionError, EmbedError, Psbt, PsbtMeta,
-    RgbPsbt, TapretKeyError, TxParams,
+    Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
+    TxParams,
 };
 use rgbstd::containers::Transfer;
-use rgbstd::interface::ContractError;
+use rgbstd::interface::{OutpointFilter, WitnessFilter};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
-use rgbstd::persistence::{
-    ComposeError, ConsignError, ContractIfaceError, FasciaError, StockError, StockErrorAll,
-    StockErrorMem,
-};
-use rgbstd::XChain;
+use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
+use rgbstd::{ContractId, XChain, XOutpoint};
 
-use crate::{
-    ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
-    WalletProvider,
-};
-
-#[derive(Debug, Display, Error, From)]
-#[display(inner)]
-pub enum PayError {
-    #[from]
-    Composition(CompositionError),
-
-    #[from]
-    Completion(CompletionError),
-}
-
-#[derive(Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum CompositionError {
-    /// unspecified contract.
-    NoContract,
-
-    /// unspecified interface.
-    NoIface,
-
-    /// invoice doesn't provide information about the operation, and the used
-    /// interface do not define default operation.
-    NoOperation,
-
-    /// invoice doesn't provide information about the assignment type, and the
-    /// used interface do not define default assignment type.
-    NoAssignment,
-
-    /// state provided via PSBT inputs is not sufficient to cover invoice state
-    /// requirements.
-    InsufficientState,
-
-    /// the invoice has expired.
-    InvoiceExpired,
-
-    /// one of the RGB assignments spent require presence of tapret output -
-    /// even this is not a taproot wallet. Unable to create a valid PSBT, manual
-    /// work is needed.
-    TapretRequired,
-
-    /// non-fungible state is not yet supported by the invoices.
-    Unsupported,
-
-    #[from]
-    #[display(inner)]
-    Construction(ConstructionError),
-
-    #[from]
-    #[display(inner)]
-    Interface(ContractError),
-
-    #[from]
-    #[display(inner)]
-    Embed(EmbedError),
-
-    #[from]
-    #[from(StockError)]
-    #[from(StockErrorMem<ComposeError>)]
-    #[from(StockErrorMem<ContractIfaceError>)]
-    #[display(inner)]
-    Stock(StockErrorAll),
-}
-
-#[derive(Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum CompletionError {
-    /// unspecified contract.
-    NoContract,
-
-    /// the provided PSBT doesn't pay any sats to the RGB beneficiary address.
-    NoBeneficiaryOutput,
-
-    /// the provided PSBT has conflicting descriptor in the taptweak output.
-    InconclusiveDerivation,
-
-    #[from]
-    #[display(inner)]
-    MultipleTweaks(TapTweakAlreadyAssigned),
-
-    #[from]
-    #[display(inner)]
-    TapretKey(TapretKeyError),
-
-    #[from]
-    #[display(inner)]
-    Commit(CommitError),
-
-    #[from(StockErrorMem<ConsignError>)]
-    #[from(StockErrorMem<FasciaError>)]
-    #[display(inner)]
-    Stock(StockErrorAll),
-}
+use crate::wallet::WalletWrapper;
+use crate::{CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct TransferParams {
@@ -150,25 +56,71 @@ impl TransferParams {
     }
 }
 
-impl<K, W: WalletProvider<K>> Runtime<W, K>
+struct ContractOutpointsFilter<
+    'stock,
+    'wallet,
+    W: WalletProvider<K> + ?Sized,
+    K,
+    S: StashProvider,
+    H: StateProvider,
+    P: IndexProvider,
+> where W::Descr: DescriptorRgb<K>
+{
+    contract_id: ContractId,
+    stock: &'stock Stock<S, H, P>,
+    wallet: &'wallet W,
+    _phantom: PhantomData<K>,
+}
+
+impl<
+    'a,
+    'stock,
+    'wallet,
+    W: WalletProvider<K> + ?Sized,
+    K,
+    S: StashProvider,
+    H: StateProvider,
+    P: IndexProvider,
+> OutpointFilter for ContractOutpointsFilter<'stock, 'wallet, W, K, S, H, P>
 where W::Descr: DescriptorRgb<K>
 {
+    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
+        let output = output.into();
+        if !self.wallet.filter().include_outpoint(output) {
+            return false;
+        }
+        matches!(self.stock.contract_assignments_for(self.contract_id, [output]), Ok(list) if !list.is_empty())
+    }
+}
+
+pub trait WalletProvider<K>: PsbtConstructor
+where Self::Descr: DescriptorRgb<K>
+{
+    type Filter<'a>: Copy + WitnessFilter + OutpointFilter
+    where Self: 'a;
+    fn filter(&self) -> Self::Filter<'_>;
+    fn descriptor_mut(&mut self) -> &mut Self::Descr;
+    fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
+    fn txids(&self) -> impl Iterator<Item = Txid>;
+
     #[allow(clippy::result_large_err)]
-    pub fn pay(
+    fn pay<S: StashProvider, H: StateProvider, P: IndexProvider>(
         &mut self,
+        stock: &mut Stock<S, H, P>,
         invoice: &RgbInvoice,
         method: CloseMethod,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
-        let (mut psbt, meta) = self.construct_psbt(invoice, method, params)?;
+        let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, method, params)?;
         // ... here we pass PSBT around signers, if necessary
-        let transfer = self.transfer(invoice, &mut psbt)?;
+        let transfer = self.transfer(stock, invoice, &mut psbt)?;
         Ok((psbt, meta, transfer))
     }
 
     #[allow(clippy::result_large_err)]
-    pub fn construct_psbt(
+    fn construct_psbt_rgb<S: StashProvider, H: StateProvider, P: IndexProvider>(
         &mut self,
+        stock: &Stock<S, H, P>,
         invoice: &RgbInvoice,
         method: CloseMethod,
         mut params: TransferParams,
@@ -176,8 +128,10 @@ where W::Descr: DescriptorRgb<K>
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
 
         let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
-        let iface = self.stock().iface(iface_name.clone())?;
-        let contract = self.contract_iface(contract_id, iface_name)?;
+        let iface = stock.iface(iface_name.clone()).map_err(|e| e.to_string())?;
+        let contract = stock
+            .contract_iface(contract_id, iface_name)
+            .map_err(|e| e.to_string())?;
         let operation = invoice
             .operation
             .as_ref()
@@ -200,7 +154,9 @@ where W::Descr: DescriptorRgb<K>
             InvoiceState::Amount(amount) => {
                 let filter = ContractOutpointsFilter {
                     contract_id,
-                    filter: self,
+                    stock,
+                    wallet: self,
+                    _phantom: PhantomData,
                 };
                 let state: BTreeMap<_, Vec<Amount>> = contract
                     .fungible(assignment_name, &filter)?
@@ -246,8 +202,7 @@ where W::Descr: DescriptorRgb<K>
             .map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(method).into();
         let (mut psbt, mut meta) =
-            self.wallet_mut()
-                .construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
+            self.construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
         let beneficiary_script =
             if let Beneficiary::WitnessVout(addr) = invoice.beneficiary.into_inner() {
@@ -288,8 +243,9 @@ where W::Descr: DescriptorRgb<K>
             }
             Beneficiary::BlindedSeal(_) => None,
         };
-        let batch = self
-            .compose(invoice, prev_outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)?;
+        let batch = stock
+            .compose(invoice, prev_outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)
+            .map_err(|e| e.to_string())?;
 
         let methods = batch.close_method_set();
         if methods.has_opret_first() {
@@ -303,8 +259,9 @@ where W::Descr: DescriptorRgb<K>
     }
 
     #[allow(clippy::result_large_err)]
-    pub fn transfer(
+    fn transfer<S: StashProvider, H: StateProvider, P: IndexProvider>(
         &mut self,
+        stock: &mut Stock<S, H, P>,
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
     ) -> Result<Transfer, CompletionError> {
@@ -319,8 +276,7 @@ where W::Descr: DescriptorRgb<K>
                 .terminal_derivation()
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
-            self.wallet_mut()
-                .descriptor_mut()
+            self.descriptor_mut()
                 .add_tapret_tweak(terminal, tapret_commitment)?;
         }
 
@@ -333,7 +289,7 @@ where W::Descr: DescriptorRgb<K>
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let method = self.wallet().descriptor().seal_close_method();
+                let method = self.descriptor().seal_close_method();
                 let seal =
                     XChain::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
                 (vec![], vec![seal])
@@ -341,11 +297,19 @@ where W::Descr: DescriptorRgb<K>
             Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
         };
 
-        self.stock_mut().consume_fascia(fascia)?;
-        let transfer = self
-            .stock()
-            .transfer(contract_id, beneficiary2, beneficiary1)?;
+        stock.consume_fascia(fascia).map_err(|e| e.to_string())?;
+        let transfer = stock
+            .transfer(contract_id, beneficiary2, beneficiary1)
+            .map_err(|e| e.to_string())?;
 
         Ok(transfer)
     }
+}
+
+impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
+    type Filter<'a> = WalletWrapper<'a, K, D> where Self: 'a;
+    fn filter(&self) -> Self::Filter<'_> { WalletWrapper(self) }
+    fn descriptor_mut(&mut self) -> &mut Self::Descr { self.deref_mut() }
+    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
+    fn txids(&self) -> impl Iterator<Item = Txid> { self.transactions().keys().copied() }
 }

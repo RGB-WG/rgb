@@ -34,16 +34,12 @@ mod args;
 
 use std::process::ExitCode;
 
-use bpstd::XpubDerivable;
 use bpwallet::cli::{Config, Exec, LogLevel};
-use bpwallet::Wallet;
 use clap::Parser;
-use rgb::{RgbDescr, Runtime, RuntimeError};
+use rgb::WalletError;
 
 pub use crate::args::RgbArgs;
 pub use crate::command::Command;
-
-pub type CliRuntime = Runtime<Wallet<XpubDerivable, RgbDescr>>;
 
 fn main() -> ExitCode {
     if let Err(err) = run() {
@@ -54,7 +50,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<(), RuntimeError> {
+fn run() -> Result<(), WalletError> {
     let mut args = RgbArgs::parse();
     args.process();
     LogLevel::from_verbosity_flag_count(args.verbose).apply();

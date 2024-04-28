@@ -36,14 +36,13 @@ use rgb::containers::{
 };
 use rgb::interface::{AmountChange, FilterExclude, IfaceId};
 use rgb::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgb::persistence::fs::StoreFs;
 use rgb::persistence::StashReadProvider;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
 use rgb::{
     BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbKeychain,
-    RuntimeError, StateType, TransferParams, XChain, XOutputSeal,
+    StateType, TransferParams, WalletError, WalletProvider, XChain, XOutputSeal,
 };
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};
@@ -199,8 +198,9 @@ pub enum Command {
         psbt: Option<PathBuf>,
     },
 
-    /// Prepare consignment for transferring RGB assets. In the most of cases
-    /// you need to use `transfer` command instead of `prepare` and `consign`.
+    /// Prepare consignment for transferring RGB assets. In the most of the
+    /// cases you need to use `transfer` command instead of `prepare` and
+    /// `consign`.
     #[display("prepare")]
     Consign {
         /// Invoice data
@@ -307,42 +307,46 @@ pub enum DebugCommand {
 }
 
 impl Exec for RgbArgs {
-    type Error = RuntimeError;
+    type Error = WalletError;
     const CONF_FILE_NAME: &'static str = "rgb.toml";
 
-    fn exec(self, config: Config, _name: &'static str) -> Result<(), RuntimeError> {
-        if let Some(stock) = match &self.command {
+    fn exec(self, config: Config, _name: &'static str) -> Result<(), WalletError> {
+        match &self.command {
             Command::General(cmd) => {
                 self.inner.translate(cmd).exec(config, "rgb")?;
-                None
             }
+            Command::Utxos => {
+                self.inner
+                    .translate(&BpCommand::Balance {
+                        addr: true,
+                        utxo: true,
+                    })
+                    .exec(config, "rgb")?;
+            }
+
             Command::Debug(DebugCommand::Taprets) => {
                 let stock = self.rgb_stock()?;
                 for (witness_id, tapret) in stock.as_stash_provider().taprets()? {
                     println!("{witness_id}\t{tapret}");
                 }
-                None
             }
             Command::Schemata => {
                 let stock = self.rgb_stock()?;
                 for info in stock.schemata()? {
                     print!("{info}");
                 }
-                None
             }
             Command::Interfaces => {
                 let stock = self.rgb_stock()?;
                 for info in stock.ifaces()? {
                     print!("{info}");
                 }
-                None
             }
             Command::Contracts { standard: None } => {
                 let stock = self.rgb_stock()?;
                 for info in stock.contracts()? {
                     print!("{info}");
                 }
-                None
             }
             Command::Contracts {
                 standard: Some(IfaceStandard::Rgb20),
@@ -351,7 +355,6 @@ impl Exec for RgbArgs {
                 for info in stock.contracts_by::<Rgb20>()? {
                     print!("{info}");
                 }
-                None
             }
             Command::Contracts {
                 standard: Some(IfaceStandard::Rgb21),
@@ -360,7 +363,6 @@ impl Exec for RgbArgs {
                 for info in stock.contracts_by::<Rgb21>()? {
                     print!("{info}");
                 }
-                None
             }
             Command::Contracts {
                 standard: Some(IfaceStandard::Rgb25),
@@ -369,23 +371,12 @@ impl Exec for RgbArgs {
                 for info in stock.contracts_by::<Rgb25>()? {
                     print!("{info}");
                 }
-                None
-            }
-
-            Command::Utxos => {
-                self.inner
-                    .translate(&BpCommand::Balance {
-                        addr: true,
-                        utxo: true,
-                    })
-                    .exec(config, "rgb")?;
-                None
             }
 
             Command::HistoryFungible { contract_id, iface } => {
-                let runtime = self.rgb_runtime(&config)?;
+                let wallet = self.rgb_wallet(&config)?;
                 let iface: TypeName = tn!(iface.clone());
-                let history = runtime.fungible_history(*contract_id, iface)?;
+                let history = wallet.fungible_history(*contract_id, iface)?;
                 println!("Amount\tCounterparty\tWitness Id");
                 for (id, op) in history {
                     let (cparty, more) = match op.state_change {
@@ -407,7 +398,6 @@ impl Exec for RgbArgs {
                         .unwrap_or_else(|| s!("none"));
                     println!("{}\t{}{}\t{}", op.state_change, cparty, more, id);
                 }
-                None
             }
 
             Command::Import { armored, file } => {
@@ -471,7 +461,6 @@ impl Exec for RgbArgs {
                         .into());
                     }
                 }
-                Some(stock)
             }
             Command::Export {
                 armored: _,
@@ -489,13 +478,11 @@ impl Exec for RgbArgs {
                 } else {
                     println!("{contract}");
                 }
-                None
             }
 
             Command::Armor { file } => {
                 let content = UniversalFile::load_file(file)?;
                 println!("{content}");
-                None
             }
 
             Command::State {
@@ -503,10 +490,11 @@ impl Exec for RgbArgs {
                 iface,
                 all,
             } => {
-                let runtime = self.rgb_runtime(&config)?;
+                let wallet = self.rgb_wallet(&config)?;
 
-                let iface = runtime.iface(tn!(iface.to_owned()))?.clone();
-                let contract = runtime.contract_iface(*contract_id, iface.iface_id())?;
+                let contract = wallet
+                    .stock()
+                    .contract_iface(*contract_id, tn!(iface.to_owned()))?;
 
                 println!("Global:");
                 for global in &contract.iface.global_state {
@@ -520,7 +508,9 @@ impl Exec for RgbArgs {
                 println!("\nOwned:");
                 for owned in &contract.iface.assignments {
                     println!("  {}:", owned.name);
-                    if let Ok(allocations) = contract.fungible(owned.name.clone(), &runtime) {
+                    if let Ok(allocations) =
+                        contract.fungible(owned.name.clone(), wallet.wallet().filter())
+                    {
                         for allocation in allocations {
                             println!(
                                 "    amount={}, utxo={}, witness={} # owned by the wallet",
@@ -529,8 +519,8 @@ impl Exec for RgbArgs {
                         }
                     }
                     if *all {
-                        if let Ok(allocations) =
-                            contract.fungible(owned.name.clone(), &FilterExclude(&runtime))
+                        if let Ok(allocations) = contract
+                            .fungible(owned.name.clone(), &FilterExclude(wallet.wallet().filter()))
                         {
                             for allocation in allocations {
                                 println!(
@@ -542,7 +532,6 @@ impl Exec for RgbArgs {
                     }
                     // TODO: Print out other types of state
                 }
-                None
             }
             Command::Issue {
                 schema: schema_id,
@@ -570,12 +559,12 @@ impl Exec for RgbArgs {
                     .iface(iface_name.clone())
                     .or_else(|_| {
                         let id = IfaceId::from_str(iface_name.as_str())?;
-                        stock.iface(id).map_err(RuntimeError::from)
+                        stock.iface(id).map_err(WalletError::from)
                     })?
                     .clone();
                 let iface_id = iface.iface_id();
                 let iface_impl = schema_ifaces.get(iface_id).ok_or_else(|| {
-                    RuntimeError::Custom(format!(
+                    WalletError::Custom(format!(
                         "no known interface implementation for {iface_name}"
                     ))
                 })?;
@@ -679,7 +668,6 @@ impl Exec for RgbArgs {
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
                      to export the contract."
                 );
-                Some(stock)
             }
             Command::Invoice {
                 address_based,
@@ -687,24 +675,24 @@ impl Exec for RgbArgs {
                 iface,
                 value,
             } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+                let mut wallet = self.rgb_wallet(&config)?;
                 let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
 
-                let outpoint = runtime
+                let outpoint = wallet
                     .wallet()
                     .coinselect(Sats::ZERO, |utxo| {
                         RgbKeychain::contains_rgb(utxo.terminal.keychain)
                     })
                     .next();
-                let network = runtime.wallet().network();
+                let network = wallet.wallet().network();
                 let beneficiary = match (address_based, outpoint) {
                     (false, None) => {
-                        return Err(RuntimeError::Custom(s!(
+                        return Err(WalletError::Custom(s!(
                             "blinded invoice requested but no suitable outpoint is available"
                         )));
                     }
                     (true, _) => {
-                        let addr = runtime
+                        let addr = wallet
                             .wallet()
                             .addresses(RgbKeychain::Rgb)
                             .next()
@@ -714,11 +702,11 @@ impl Exec for RgbArgs {
                     }
                     (_, Some(outpoint)) => {
                         let seal = XChain::Bitcoin(GraphSeal::new_random(
-                            runtime.wallet().seal_close_method(),
+                            wallet.wallet().seal_close_method(),
                             outpoint.txid,
                             outpoint.vout,
                         ));
-                        runtime.store_secret_seal(seal)?;
+                        wallet.stock_mut().store_secret_seal(seal)?;
                         Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
                     }
                 };
@@ -728,8 +716,6 @@ impl Exec for RgbArgs {
                     .set_amount_raw(*value)
                     .finish();
                 println!("{invoice}");
-                runtime.store();
-                None
             }
             Command::Prepare {
                 v2,
@@ -739,11 +725,11 @@ impl Exec for RgbArgs {
                 sats,
                 psbt: psbt_file,
             } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+                let mut wallet = self.rgb_wallet(&config)?;
                 // TODO: Support lock time and RBFs
                 let params = TransferParams::with(*fee, *sats);
 
-                let (psbt, _) = runtime
+                let (psbt, _) = wallet
                     .construct_psbt(invoice, *method, params)
                     .map_err(|err| err.to_string())?;
 
@@ -758,25 +744,21 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
-                runtime.store();
-                None
             }
             Command::Consign {
                 invoice,
                 psbt: psbt_name,
                 consignment: out_file,
             } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+                let mut wallet = self.rgb_wallet(&config)?;
                 let mut psbt_file = File::open(psbt_name)?;
                 let mut psbt = Psbt::decode(&mut psbt_file)?;
-                let transfer = runtime
+                let transfer = wallet
                     .transfer(invoice, &mut psbt)
                     .map_err(|err| err.to_string())?;
                 let mut psbt_file = File::create(psbt_name)?;
                 psbt.encode(psbt.version, &mut psbt_file)?;
                 transfer.save_file(out_file)?;
-                runtime.store();
-                None
             }
             Command::Transfer {
                 v2,
@@ -787,11 +769,11 @@ impl Exec for RgbArgs {
                 psbt: psbt_file,
                 consignment: out_file,
             } => {
-                let mut runtime = self.rgb_runtime(&config)?;
+                let mut wallet = self.rgb_wallet(&config)?;
                 // TODO: Support lock time and RBFs
                 let params = TransferParams::with(*fee, *sats);
 
-                let (psbt, _, transfer) = runtime
+                let (psbt, _, transfer) = wallet
                     .pay(invoice, *method, params)
                     .map_err(|err| err.to_string())?;
 
@@ -808,8 +790,6 @@ impl Exec for RgbArgs {
                         PsbtVer::V2 => println!("{psbt:#}"),
                     },
                 }
-                runtime.store();
-                None
             }
             Command::Inspect { file, dir, path } => {
                 #[derive(Clone, Debug)]
@@ -875,7 +855,6 @@ impl Exec for RgbArgs {
                         fs::write(format!("{}/{file}", path.display()), value)?;
                     }
                 }
-                None
             }
             Command::Reconstruct {
                 contract: false,
@@ -890,7 +869,6 @@ impl Exec for RgbArgs {
                         transfer.save_file(dst)?;
                     }
                 }
-                None
             }
             Command::Reconstruct {
                 contract: true,
@@ -905,7 +883,6 @@ impl Exec for RgbArgs {
                         contract.save_file(dst)?;
                     }
                 }
-                None
             }
             Command::Dump { root_dir } => {
                 let stock = self.rgb_stock()?;
@@ -1014,7 +991,6 @@ impl Exec for RgbArgs {
                     serde_yaml::to_string(stock.as_index_provider().debug_terminal_index())?,
                 )?;
                 eprintln!("Dump is successfully generated and saved to '{root_dir}'");
-                None
             }
             Command::Validate { file } => {
                 let mut resolver = self.resolver()?;
@@ -1030,7 +1006,6 @@ impl Exec for RgbArgs {
                 } else {
                     eprintln!("{status}");
                 }
-                None
             }
             Command::Accept { force: _, file } => {
                 // TODO: Ensure we properly handle unmined terminal transactions
@@ -1043,14 +1018,8 @@ impl Exec for RgbArgs {
                     .map_err(|(status, _)| status)?;
                 stock.accept_transfer(valid, &mut resolver)?;
                 eprintln!("Transfer accepted into the stash");
-                Some(stock)
             }
-        } {
-            stock
-                .store(self.general.base_dir())
-                .expect("unable to save stock");
         }
-
         println!();
 
         Ok(())
