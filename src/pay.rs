@@ -25,8 +25,10 @@ use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::Address;
-use bpwallet::{Beneficiary as BpBeneficiary, ConstructionError, PsbtMeta, TxParams};
-use psbt::{CommitError, EmbedError, Psbt, RgbPsbt, TapretKeyError};
+use psbt::{
+    Beneficiary as BpBeneficiary, CommitError, ConstructionError, EmbedError, Psbt, PsbtMeta,
+    RgbPsbt, TapretKeyError, TxParams,
+};
 use rgbstd::containers::Transfer;
 use rgbstd::interface::ContractError;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
@@ -38,6 +40,7 @@ use rgbstd::XChain;
 
 use crate::{
     ContractOutpointsFilter, DescriptorRgb, RgbKeychain, Runtime, TapTweakAlreadyAssigned,
+    WalletProvider,
 };
 
 #[derive(Debug, Display, Error, From)]
@@ -147,7 +150,9 @@ impl TransferParams {
     }
 }
 
-impl Runtime {
+impl<K, W: WalletProvider<K>> Runtime<W, K>
+where W::Descr: DescriptorRgb<K>
+{
     #[allow(clippy::result_large_err)]
     pub fn pay(
         &mut self,
@@ -315,6 +320,7 @@ impl Runtime {
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
             self.wallet_mut()
+                .descriptor_mut()
                 .add_tapret_tweak(terminal, tapret_commitment)?;
         }
 
@@ -327,7 +333,7 @@ impl Runtime {
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let method = self.wallet().seal_close_method();
+                let method = self.wallet().descriptor().seal_close_method();
                 let seal =
                     XChain::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
                 (vec![], vec![seal])

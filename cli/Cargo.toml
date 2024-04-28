@@ -23,8 +23,7 @@ strict_types = { workspace = true, features = ["serde"] }
 commit_verify = { workspace = true }
 bp-seals = { workspace = true }
 bp-std = { workspace = true, features = ["serde"] }
-bp-wallet = { workspace = true }
-bp-util = { workspace = true }
+bp-wallet = { workspace = true, features = ["cli"] }
 psbt = { workspace = true }
 rgb-std = { workspace = true, features = ["serde"] }
 rgb-interfaces = { workspace = true }

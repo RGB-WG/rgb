@@ -26,8 +26,8 @@ use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
-use bp_util::{BpCommand, Config, Exec};
 use bpstd::Sats;
+use bpwallet::cli::{BpCommand, Config, Exec};
 use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
@@ -59,7 +59,7 @@ use crate::RgbArgs;
 pub enum Command {
     #[clap(flatten)]
     #[display(inner)]
-    General(bp_util::Command),
+    General(bpwallet::cli::Command),
 
     #[clap(flatten)]
     #[display(inner)]

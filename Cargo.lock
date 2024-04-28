@@ -194,7 +194,8 @@ dependencies = [
 [[package]]
 name = "ascii-armor"
 version = "0.4.0"
-source = "git+https://github.com/UBIDECO/ascii-armor#38dc9767f36db3957ac3dade280a04d9a72b6be4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f438560a7273569cd4ab8fcf227d0490c1ff01f7cba5e004791752ae8f96091"
 dependencies = [
  "amplify",
  "baid64",
@@ -368,7 +369,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#6741b11d42e92557ae884b7d5208013f0314807f"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -417,7 +418,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#6741b11d42e92557ae884b7d5208013f0314807f"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
 dependencies = [
  "amplify",
  "bech32",
@@ -445,7 +446,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#6741b11d42e92557ae884b7d5208013f0314807f"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -457,45 +458,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-util"
+name = "bp-wallet"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecf9b988b0c9536f1b95268b592d5425584527006027c38ed172e85bc71bdd85"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=develop#db23c6a1a1e5f7060b68f20c6329abb1377195eb"
 dependencies = [
  "amplify",
  "base64 0.21.7",
  "bp-electrum",
  "bp-esplora",
  "bp-std",
- "bp-wallet",
  "clap",
  "descriptors",
  "env_logger",
  "log",
  "psbt",
  "serde",
+ "serde_json",
  "serde_yaml",
  "shellexpand",
  "strict_encoding",
- "toml",
-]
-
-[[package]]
-name = "bp-wallet"
-version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.11#e05f6c75a1a150851a4b08fcec74f02230de6bb1"
-dependencies = [
- "amplify",
- "bp-electrum",
- "bp-esplora",
- "bp-std",
- "cfg_eval",
- "descriptors",
- "psbt",
- "serde",
- "serde_json",
- "serde_with",
- "serde_yaml",
  "toml",
 ]
 
@@ -528,17 +509,6 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cfg_eval"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45565fc9416b9896014f5732ac776f810ee53a66730c17e4020c3ec064a8f88f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.60",
-]
 
 [[package]]
 name = "chrono"
@@ -743,7 +713,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#6741b11d42e92557ae884b7d5208013f0314807f"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -828,9 +798,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.0.2"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "658bd65b1cf4c852a3cc96f18a8ce7b5640f6b703f905c7d74532294c2a63984"
+checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
 
 [[package]]
 name = "flate2"
@@ -1413,7 +1383,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.11#6741b11d42e92557ae884b7d5208013f0314807f"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
 dependencies = [
  "amplify",
  "base64 0.21.7",
@@ -1572,7 +1542,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#69d86f16dc61f48c95bb3977b4f93dc8f1292892"
+source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=develop#eb10305796ca3efbf92e0b3c171c6996d7461120"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1677,7 +1647,6 @@ dependencies = [
  "baid64",
  "bp-seals",
  "bp-std",
- "bp-util",
  "bp-wallet",
  "clap",
  "commit_verify",
@@ -1919,18 +1888,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.198"
+version = "1.0.199"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9846a40c979031340571da2545a4e5b7c4163bdae79b301d5f86d03979451fcc"
+checksum = "0c9f6e76df036c77cd94996771fb40db98187f096dd0b9af39c6c6e452ba966a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.198"
+version = "1.0.199"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e88edab869b01783ba905e7d0153f9fc1a6505a96e4ad3018011eedb838566d9"
+checksum = "11bd257a6541e141e42ca6d24ae26f7714887b47e89aa739099104c7e4d3b7fc"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -21,15 +21,15 @@
 
 #![allow(clippy::needless_update)] // Caused by the From derivation macro
 
-use bp_util::{Config, DescriptorOpts};
 use bpstd::{Wpkh, XpubDerivable};
+use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use rgb_rt::{
     electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, Runtime, RuntimeError,
     TapretKey,
 };
 use rgbstd::persistence::Stock;
 
-use crate::Command;
+use crate::{CliRuntime, Command};
 
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 #[group()]
@@ -65,7 +65,7 @@ impl DescriptorOpts for DescrRgbOpts {
 #[command(author, version, about)]
 pub struct RgbArgs {
     #[clap(flatten)]
-    pub inner: bp_util::Args<Command, DescrRgbOpts>,
+    pub inner: BpArgs<Command, DescrRgbOpts>,
 }
 
 impl Default for RgbArgs {
@@ -77,7 +77,7 @@ impl RgbArgs {
         if self.verbose > 2 {
             eprint!("Loading stock ... ");
         }
-        let runtime = Runtime::<RgbDescr>::load_walletless(&self.general.base_dir())?;
+        let runtime = CliRuntime::load_walletless(&self.general.base_dir())?;
         if self.verbose > 2 {
             eprintln!("success");
         }
@@ -85,12 +85,12 @@ impl RgbArgs {
         Ok(runtime)
     }
 
-    pub fn rgb_runtime(&self, config: &Config) -> Result<Runtime, RuntimeError> {
-        let bprt = self.inner.bp_runtime::<RgbDescr>(config)?;
+    pub fn rgb_runtime(&self, config: &Config) -> Result<CliRuntime, RuntimeError> {
+        let wallet = self.inner.bp_runtime::<RgbDescr>(config)?.detach();
         if self.verbose > 2 {
             eprint!("Loading stock ... ");
         }
-        let runtime = Runtime::<RgbDescr>::load_attach(self.general.base_dir(), bprt)?;
+        let runtime = Runtime::load_attach(self.general.base_dir(), wallet)?;
         if self.verbose > 2 {
             eprintln!("success");
         }
@@ -100,7 +100,7 @@ impl RgbArgs {
 
     #[allow(clippy::result_large_err)]
     pub fn resolver(&self) -> Result<AnyResolver, AnyResolverError> {
-        if self.resolver.electrum != bp_util::DEFAULT_ELECTRUM {
+        if self.resolver.electrum != bpwallet::cli::DEFAULT_ELECTRUM {
             match electrum::Resolver::new(&self.resolver.electrum) {
                 Ok(c) => Ok(AnyResolver::Electrum(Box::new(c))),
                 Err(e) => Err(AnyResolverError::Electrum(e)),

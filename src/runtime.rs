@@ -24,12 +24,12 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io;
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 use amplify::IoError;
 use bpstd::{Network, XpubDerivable};
-use bpwallet::Wallet;
 use rgbstd::containers::LoadError;
 use rgbstd::interface::{
     AmountChange, BuilderError, ContractError, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter,
@@ -40,7 +40,7 @@ use rgbstd::validation::{self};
 use rgbstd::{AssignmentWitness, ContractId, XChain, XOutpoint, XWitnessId};
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
-use crate::{DescriptorRgb, RgbDescr};
+use super::{DescriptorRgb, Persisting, WalletProvider};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -117,49 +117,63 @@ impl From<Infallible> for RuntimeError {
 }
 
 #[derive(Getters)]
-pub struct Runtime<D: DescriptorRgb<K> = RgbDescr, K = XpubDerivable> {
+pub struct Runtime<W: WalletProvider<K>, K = XpubDerivable>
+where W::Descr: DescriptorRgb<K>
+{
     stock_path: PathBuf,
     #[getter(as_mut)]
-    // TODO: Parametrize by the stock
     stock: Stock,
-    bprt: bpwallet::Runtime<D, K /* TODO: Add layer 2 */>,
+    #[getter(as_mut)]
+    wallet: W,
+    _phantom: PhantomData<K>,
 }
 
-impl<D: DescriptorRgb<K>, K> Deref for Runtime<D, K> {
+impl<K, W: WalletProvider<K>> Deref for Runtime<W, K>
+where W::Descr: DescriptorRgb<K>
+{
     type Target = Stock;
 
     fn deref(&self) -> &Self::Target { &self.stock }
 }
 
-impl<D: DescriptorRgb<K>, K> DerefMut for Runtime<D, K> {
+impl<K, W: WalletProvider<K>> DerefMut for Runtime<W, K>
+where W::Descr: DescriptorRgb<K>
+{
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.stock }
 }
 
-impl<D: DescriptorRgb<K>, K> OutpointFilter for Runtime<D, K> {
+impl<K, W: WalletProvider<K>> OutpointFilter for Runtime<W, K>
+where W::Descr: DescriptorRgb<K>
+{
     fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
-        self.wallet()
-            .coins()
-            .any(|utxo| XChain::Bitcoin(utxo.outpoint) == *output)
+        self.wallet
+            .outpoints()
+            .any(|outpoint| XChain::Bitcoin(outpoint) == *output)
     }
 }
 
-impl<D: DescriptorRgb<K>, K> WitnessFilter for Runtime<D, K> {
+impl<K, W: WalletProvider<K>> WitnessFilter for Runtime<W, K>
+where W::Descr: DescriptorRgb<K>
+{
     fn include_witness(&self, witness: impl Into<AssignmentWitness>) -> bool {
         let witness = witness.into();
         self.wallet()
-            .transactions()
-            .keys()
-            .any(|txid| AssignmentWitness::Present(XWitnessId::Bitcoin(*txid)) == witness)
+            .txids()
+            .any(|txid| AssignmentWitness::Present(XWitnessId::Bitcoin(txid)) == witness)
     }
 }
 
-pub struct ContractOutpointsFilter<'runtime, D: DescriptorRgb<K>, K> {
+pub struct ContractOutpointsFilter<'runtime, K, W: WalletProvider<K>>
+where W::Descr: DescriptorRgb<K>
+{
     pub contract_id: ContractId,
-    pub filter: &'runtime Runtime<D, K>,
+    pub filter: &'runtime Runtime<W, K>,
 }
 
-impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilter<'runtime, D, K> {
+impl<'runtime, K, W: WalletProvider<K>> OutpointFilter for ContractOutpointsFilter<'runtime, K, W>
+where W::Descr: DescriptorRgb<K>
+{
     fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         if !self.filter.include_outpoint(output) {
@@ -170,10 +184,35 @@ impl<'runtime, D: DescriptorRgb<K>, K> OutpointFilter for ContractOutpointsFilte
 }
 
 #[cfg(feature = "serde")]
-impl<D: DescriptorRgb<K>, K> Runtime<D, K>
+impl<K, W: WalletProvider<K>> Runtime<W, K>
 where
-    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> bpwallet::WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
+    W::Descr: DescriptorRgb<K>,
+    W: Persisting,
+{
+    pub fn load_attach(stock_path: PathBuf, wallet: W) -> Result<Self, RuntimeError> {
+        let stock = Self::load_walletless(&stock_path)?;
+        Ok(Self {
+            stock_path,
+            stock,
+            wallet,
+            _phantom: PhantomData,
+        })
+    }
+
+    pub fn store(&mut self) {
+        self.stock
+            .store(&self.stock_path)
+            .expect("unable to save stock");
+        self.wallet
+            .try_store(&self.stock_path)
+            .expect("unable to save wallet data");
+    }
+
+    pub fn into_stock(self) -> Stock { self.stock }
+}
+
+impl<K, W: WalletProvider<K>> Runtime<W, K>
+where W::Descr: DescriptorRgb<K>
 {
     pub fn load_walletless(stock_path: &PathBuf) -> Result<Stock, RuntimeError> {
         use std::io::ErrorKind;
@@ -195,36 +234,7 @@ where
         })
     }
 
-    pub fn load_attach(
-        stock_path: PathBuf,
-        bprt: bpwallet::Runtime<D, K>,
-    ) -> Result<Self, RuntimeError> {
-        let stock = Self::load_walletless(&stock_path)?;
-        Ok(Self {
-            stock_path,
-            stock,
-            bprt,
-        })
-    }
-
-    pub fn store(&mut self) {
-        self.stock
-            .store(&self.stock_path)
-            .expect("unable to save stock");
-        self.bprt.try_store().expect("unable to save wallet data");
-    }
-
-    pub fn into_stock(self) -> Stock { self.stock }
-}
-
-impl<D: DescriptorRgb<K>, K> Runtime<D, K> {
-    pub fn wallet(&self) -> &Wallet<K, D> { self.bprt.wallet() }
-
-    pub fn wallet_mut(&mut self) -> &mut Wallet<K, D> { self.bprt.wallet_mut() }
-
-    pub fn attach(&mut self, bprt: bpwallet::Runtime<D, K>) { self.bprt = bprt }
-
-    pub fn network(&self) -> Network { self.bprt.network() }
+    pub fn network(&self) -> Network { self.wallet.network() }
 
     // TODO: Integrate into BP Wallet `TxRow` as L2 and provide transactional info
     pub fn fungible_history(

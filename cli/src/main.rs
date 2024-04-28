@@ -34,12 +34,16 @@ mod args;
 
 use std::process::ExitCode;
 
-use bp_util::{Config, Exec, LogLevel};
+use bpstd::XpubDerivable;
+use bpwallet::cli::{Config, Exec, LogLevel};
+use bpwallet::Wallet;
 use clap::Parser;
-use rgb_rt::RuntimeError;
+use rgb_rt::{RgbDescr, Runtime, RuntimeError};
 
 pub use crate::args::RgbArgs;
 pub use crate::command::Command;
+
+pub type CliRuntime = Runtime<Wallet<XpubDerivable, RgbDescr>>;
 
 fn main() -> ExitCode {
     if let Err(err) = run() {

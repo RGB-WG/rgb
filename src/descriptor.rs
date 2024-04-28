@@ -20,8 +20,8 @@
 // limitations under the License.
 
 use std::collections::{BTreeSet, HashMap};
+use std::iter;
 use std::str::FromStr;
-use std::{iter, vec};
 
 use amplify::Wrapper;
 use bp::dbc::tapret::TapretCommitment;
@@ -182,15 +182,17 @@ impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
 }
 
 impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
-    type KeyIter<'k> = iter::Once<&'k K> where Self: 'k, K: 'k;
-    type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
-    type XpubIter<'x> = iter::Once<&'x XpubSpec> where Self: 'x;
-
     fn class(&self) -> SpkClass { SpkClass::P2tr }
 
-    fn keys(&self) -> Self::KeyIter<'_> { iter::once(&self.internal_key) }
-    fn vars(&self) -> Self::VarIter<'_> { iter::empty() }
-    fn xpubs(&self) -> Self::XpubIter<'_> { iter::once(self.internal_key.xpub_spec()) }
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
+    where K: 'a {
+        iter::once(&self.internal_key)
+    }
+    fn vars<'a>(&'a self) -> impl Iterator<Item = &'a ()>
+    where (): 'a {
+        iter::empty()
+    }
+    fn xpubs(&self) -> impl Iterator<Item = &XpubSpec> { iter::once(self.internal_key.xpub_spec()) }
 
     fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
         IndexMap::new()
@@ -273,10 +275,6 @@ impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
 impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K> for RgbDescr<K>
 where Self: Derive<DerivedScript>
 {
-    type KeyIter<'k> = vec::IntoIter<&'k K> where Self: 'k, K: 'k;
-    type VarIter<'v> = iter::Empty<&'v ()> where Self: 'v, (): 'v;
-    type XpubIter<'x> = vec::IntoIter<&'x XpubSpec> where Self: 'x;
-
     fn class(&self) -> SpkClass {
         match self {
             RgbDescr::Wpkh(d) => d.class(),
@@ -284,7 +282,8 @@ where Self: Derive<DerivedScript>
         }
     }
 
-    fn keys(&self) -> Self::KeyIter<'_> {
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
+    where K: 'a {
         match self {
             RgbDescr::Wpkh(d) => d.keys().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.keys().collect::<Vec<_>>(),
@@ -292,14 +291,12 @@ where Self: Derive<DerivedScript>
         .into_iter()
     }
 
-    fn vars(&self) -> Self::VarIter<'_> {
-        match self {
-            RgbDescr::Wpkh(d) => d.vars(),
-            RgbDescr::TapretKey(d) => d.vars(),
-        }
+    fn vars<'a>(&'a self) -> impl Iterator<Item = &'a ()>
+    where (): 'a {
+        iter::empty()
     }
 
-    fn xpubs(&self) -> Self::XpubIter<'_> {
+    fn xpubs<'a>(&'a self) -> impl Iterator<Item = &XpubSpec> {
         match self {
             RgbDescr::Wpkh(d) => d.xpubs().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.xpubs().collect::<Vec<_>>(),
