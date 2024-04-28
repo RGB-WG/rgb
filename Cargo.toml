@@ -58,7 +58,7 @@ edition.workspace = true
 license.workspace = true
 
 [lib]
-name = "rgb_rt"
+name = "rgb"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

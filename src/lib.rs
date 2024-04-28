@@ -28,6 +28,7 @@ extern crate serde_crate as serde;
 mod runtime;
 mod descriptor;
 mod pay;
+#[allow(hidden_glob_reexports)]
 mod resolvers;
 mod wallet;
 
@@ -35,5 +36,6 @@ pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssign
 pub use pay::{CompletionError, CompositionError, PayError, TransferParams};
 #[cfg(any(feature = "electrum", feature = "esplora_blocking"))]
 pub use resolvers::*;
+pub use rgbstd::*;
 pub use runtime::{ContractOutpointsFilter, Runtime, RuntimeError};
 pub use wallet::{Persisting, WalletProvider};

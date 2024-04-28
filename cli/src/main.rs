@@ -38,7 +38,7 @@ use bpstd::XpubDerivable;
 use bpwallet::cli::{Config, Exec, LogLevel};
 use bpwallet::Wallet;
 use clap::Parser;
-use rgb_rt::{RgbDescr, Runtime, RuntimeError};
+use rgb::{RgbDescr, Runtime, RuntimeError};
 
 pub use crate::args::RgbArgs;
 pub use crate::command::Command;

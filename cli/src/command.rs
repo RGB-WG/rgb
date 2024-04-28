@@ -30,21 +30,20 @@ use bpstd::Sats;
 use bpwallet::cli::{BpCommand, Config, Exec};
 use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
-use rgb_rt::{DescriptorRgb, RgbKeychain, RuntimeError, TransferParams};
-use rgbstd::containers::{
+use rgb::containers::{
     BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Terminal,
     Transfer, UniversalFile,
 };
-use rgbstd::interface::{AmountChange, FilterExclude, IfaceId};
-use rgbstd::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgbstd::persistence::fs::StoreFs;
-use rgbstd::persistence::StashReadProvider;
-use rgbstd::schema::SchemaId;
-use rgbstd::validation::Validity;
-use rgbstd::vm::RgbIsa;
-use rgbstd::{
-    BundleId, ContractId, GenesisSeal, GraphSeal, Identity, OutputSeal, StateType, XChain,
-    XOutputSeal,
+use rgb::interface::{AmountChange, FilterExclude, IfaceId};
+use rgb::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
+use rgb::persistence::fs::StoreFs;
+use rgb::persistence::StashReadProvider;
+use rgb::schema::SchemaId;
+use rgb::validation::Validity;
+use rgb::vm::RgbIsa;
+use rgb::{
+    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbKeychain,
+    RuntimeError, StateType, TransferParams, XChain, XOutputSeal,
 };
 use seals::txout::CloseMethod;
 use serde_crate::{Deserialize, Serialize};

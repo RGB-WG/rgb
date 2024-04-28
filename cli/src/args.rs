@@ -23,7 +23,7 @@
 
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
-use rgb_rt::{
+use rgb::{
     electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, Runtime, RuntimeError,
     TapretKey,
 };
