@@ -22,6 +22,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 use bpstd::XpubDerivable;
@@ -52,6 +53,77 @@ where
 {
     type Err = StoreError;
     fn store(&self, path: impl AsRef<Path>) -> Result<(), Self::Err> { self.store(path.as_ref()) }
+}
+
+#[derive(Getters)]
+pub struct StoredStock<
+    S: StashProvider = MemStash,
+    H: StateProvider = MemState,
+    P: IndexProvider = MemIndex,
+> where
+    S: StoreFs,
+    H: StoreFs,
+    P: StoreFs,
+{
+    stock_path: PathBuf,
+    stock: Stock<S, H, P>,
+    #[getter(prefix = "is_")]
+    dirty: bool,
+}
+
+impl<S: StashProvider, H: StateProvider, P: IndexProvider> Deref for StoredStock<S, H, P>
+where
+    S: StoreFs,
+    H: StoreFs,
+    P: StoreFs,
+{
+    type Target = Stock<S, H, P>;
+
+    fn deref(&self) -> &Self::Target { &self.stock }
+}
+
+impl<S: StashProvider, H: StateProvider, P: IndexProvider> DerefMut for StoredStock<S, H, P>
+where
+    S: StoreFs,
+    H: StoreFs,
+    P: StoreFs,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.dirty = true;
+        &mut self.stock
+    }
+}
+
+impl<S: StashProvider, H: StateProvider, P: IndexProvider> StoredStock<S, H, P>
+where
+    S: StoreFs,
+    H: StoreFs,
+    P: StoreFs,
+{
+    pub fn attach(path: PathBuf, stock: Stock<S, H, P>) -> Self {
+        Self {
+            stock_path: path,
+            stock,
+            dirty: false,
+        }
+    }
+
+    pub fn store(&self) {
+        if self.dirty {
+            self.stock
+                .store(&self.stock_path)
+                .expect("error saving data");
+        }
+    }
+}
+
+impl<S: StashProvider, H: StateProvider, P: IndexProvider> Drop for StoredStock<S, H, P>
+where
+    S: StoreFs,
+    H: StoreFs,
+    P: StoreFs,
+{
+    fn drop(&mut self) { self.store() }
 }
 
 #[derive(Getters)]

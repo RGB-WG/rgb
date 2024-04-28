@@ -21,16 +21,20 @@
 
 #![allow(clippy::needless_update)] // Required by From derive macro
 
+use std::fs;
+use std::io::ErrorKind;
+use std::path::Path;
+
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
 use rgb::{
-    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, StoredWallet, TapretKey,
-    WalletError,
+    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, StoredStock, StoredWallet,
+    TapretKey, WalletError,
 };
 use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::Stock;
-use strict_types::encoding::DeserializeError;
+use strict_types::encoding::{DecodeError, DeserializeError};
 
 use crate::Command;
 
@@ -76,41 +80,43 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
-    pub fn rgb_stock(&self) -> Result<Stock, WalletError> {
-        if self.verbose > 2 {
+    fn load_stock(&self, stock_path: &Path) -> Result<Stock, WalletError> {
+        if self.verbose > 1 {
             eprint!("Loading stock ... ");
         }
-        use std::io::ErrorKind;
 
-        use strict_types::encoding::DecodeError;
-
-        let stock_path = self.general.base_dir();
-        let stock = Stock::load(&stock_path).map_err(WalletError::from).or_else(|err| {
+        Stock::load(&stock_path).map_err(WalletError::from).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
-                #[cfg(feature = "log")]
-                eprint!("stock file is absent, creating a new one ... ");
+                if self.verbose > 1 {
+                    eprint!("stock file is absent, creating a new one ... ");
+                }
                 let stock = Stock::default();
-                std::fs::create_dir_all(&stock_path)?;
+                fs::create_dir_all(&stock_path)?;
                 stock.store(&stock_path)?;
-                if self.verbose > 2 {
+                if self.verbose > 1 {
                     eprintln!("success");
                 }
                 return Ok(stock)
             }
             eprintln!("stock file is damaged, failing");
             Err(err)
-        })?;
+        })
+    }
 
-        Ok(stock)
+    pub fn rgb_stock(&self) -> Result<StoredStock, WalletError> {
+        let stock_path = self.general.base_dir();
+        let stock = self.load_stock(&stock_path)?;
+        Ok(StoredStock::attach(stock_path, stock))
     }
 
     pub fn rgb_wallet(
         &self,
         config: &Config,
     ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
-        let stock = self.rgb_stock()?;
+        let stock_path = self.general.base_dir();
+        let stock = self.load_stock(&stock_path)?;
         let wallet = self.inner.bp_runtime::<RgbDescr>(config)?.detach();
-        let wallet = StoredWallet::attach(self.general.base_dir(), stock, wallet);
+        let wallet = StoredWallet::attach(stock_path, stock, wallet);
 
         Ok(wallet)
     }

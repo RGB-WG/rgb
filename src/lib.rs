@@ -41,5 +41,5 @@ pub use pay::{TransferParams, WalletProvider};
 pub use resolvers::*;
 pub use rgbstd::*;
 #[cfg(feature = "fs")]
-pub use store::StoredWallet;
+pub use store::{StoredStock, StoredWallet};
 pub use wallet::{WalletStock, WalletWrapper};
