@@ -73,7 +73,6 @@ struct ContractOutpointsFilter<
 }
 
 impl<
-    'a,
     'stock,
     'wallet,
     W: WalletProvider<K> + ?Sized,

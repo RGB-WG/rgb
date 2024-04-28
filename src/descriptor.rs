@@ -296,7 +296,7 @@ where Self: Derive<DerivedScript>
         iter::empty()
     }
 
-    fn xpubs<'a>(&'a self) -> impl Iterator<Item = &XpubSpec> {
+    fn xpubs(&self) -> impl Iterator<Item = &XpubSpec> {
         match self {
             RgbDescr::Wpkh(d) => d.xpubs().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.xpubs().collect::<Vec<_>>(),

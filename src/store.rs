@@ -109,6 +109,7 @@ where
         &mut self.wallet
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn fungible_history(
         &self,
         contract_id: ContractId,

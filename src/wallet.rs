@@ -34,7 +34,7 @@ pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
 
 impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> {}
 impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D> {
-    fn clone(&self) -> Self { WalletWrapper(self.0) }
+    fn clone(&self) -> Self { *self }
 }
 
 impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D> {
@@ -58,6 +58,7 @@ impl<'a, K, D: DescriptorRgb<K>> WitnessFilter for WalletWrapper<'a, K, D> {
 pub trait WalletStock<W: WalletProvider<K>, K>
 where W::Descr: DescriptorRgb<K>
 {
+    #[allow(clippy::result_large_err)]
     fn fungible_history(
         &self,
         wallet: &W,
