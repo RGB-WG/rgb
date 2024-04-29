@@ -763,8 +763,8 @@ impl Exec for RgbArgs {
                         psbt.encode(ver, &mut psbt_file)?;
                     }
                     None => match ver {
-                        PsbtVer::V0 => println!("{psbt}"),
-                        PsbtVer::V2 => println!("{psbt:#}"),
+                        PsbtVer::V0 => println!("{psbt:0}"),
+                        PsbtVer::V2 => println!("{psbt:2}"),
                     },
                 }
                 Some(runtime.into_stock())
