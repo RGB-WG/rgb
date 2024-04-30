@@ -82,6 +82,7 @@ pub enum WalletError {
     #[display(doc_comments)]
     IncompleteContract(validation::Status),
 
+    #[cfg(feature = "fs")]
     #[from]
     #[from(bpwallet::LoadError)]
     Bp(bpwallet::RuntimeError),
