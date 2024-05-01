@@ -232,7 +232,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b8b80494235048845f856b267a4a1d97df59fd14ed7ca92652f834ce93becc6"
 dependencies = [
  "amplify",
- "base64 0.22.0",
+ "base64 0.22.1",
  "mnemonic",
  "sha2",
 ]
@@ -245,9 +245,9 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "base64"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base85"
@@ -500,9 +500,9 @@ checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
 
 [[package]]
 name = "cc"
-version = "1.0.95"
+version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d32a725bc159af97c3e629873bb9f88fb8cf8a4867175f76dc987815ea07c83b"
+checksum = "065a29261d53ba54260972629f9ca6bffa69bac13cd1fed61420f7fa68b9f8bd"
 
 [[package]]
 name = "cfg-if"
@@ -1167,9 +1167,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.153"
+version = "0.2.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
+checksum = "ae743338b92ff9146ce83992f766a31066a91a8c84a45e0e9f21e7cf6de6d346"
 
 [[package]]
 name = "libredox"
@@ -1520,7 +1520,7 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=develop#3fa35c1428796cb607c8a627765aabb2e8329b62"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=develop#f0469333a36abcb70dff6667938fc1eae438e1d2"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1557,7 +1557,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#8ee3144315390b12dad6912b957e8e5e49378762"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#5d170662ecdb4fffd7f9d7f5fa8c5ce3ac98bbe9"
 dependencies = [
  "amplify",
  "baid64",
@@ -1617,7 +1617,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#8ee3144315390b12dad6912b957e8e5e49378762"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#5d170662ecdb4fffd7f9d7f5fa8c5ce3ac98bbe9"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1953,7 +1953,7 @@ version = "3.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ad483d2ab0149d5a5ebcd9972a3852711e0153d863bf5a5d0391d28883c4a20"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "chrono",
  "hex",
  "indexmap 1.9.3",
@@ -2421,7 +2421,7 @@ version = "2.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d11a831e3c0b56e438a28308e7c810799e3c118417f342d30ecec080105395cd"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "flate2",
  "log",
  "once_cell",
