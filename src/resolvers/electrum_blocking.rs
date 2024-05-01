@@ -28,6 +28,12 @@ use rgbstd::{WitnessAnchor, WitnessOrd, WitnessPos, XWitnessId};
 
 use super::RgbResolver;
 
+macro_rules! check {
+    ($e:expr) => {
+        $e.map_err(|e| e.to_string())?
+    };
+}
+
 impl RgbResolver for Client {
     fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
         let mut witness_anchor = WitnessAnchor {
@@ -35,35 +41,23 @@ impl RgbResolver for Client {
             witness_id: XWitnessId::Bitcoin(txid),
         };
 
-        let tx_details = self
-            .raw_call("blockchain.transaction.get", vec![
-                Param::String(txid.to_string()),
-                Param::Bool(true),
-            ])
-            .map_err(|e| e.to_string())?;
+        let tx_details = check!(self.raw_call("blockchain.transaction.get", vec![
+            Param::String(txid.to_string()),
+            Param::Bool(true),
+        ]));
 
-        let Some(confirmations) = tx_details.get("confirmations") else {
-            return Ok(witness_anchor);
-        };
-        let confirmations = confirmations
-            .as_u64()
-            .and_then(|x| u32::try_from(x).ok())
-            .ok_or(Error::InvalidResponse(tx_details.clone()))
-            .map_err(|e| e.to_string())?;
-
-        let header = self.block_headers_subscribe().map_err(|e| e.to_string())?;
-        let last_block_height_min =
-            u32::try_from(header.height).map_err(|_| s!("height overflow"))?;
-        let last_block_height_max = last_block_height_min;
-        let skew = confirmations - 1;
-        let mut tx_height: u32 = 0;
-        for height in (last_block_height_min - skew)..=(last_block_height_max - skew) {
-            if let Ok(get_merkle_res) = self.transaction_get_merkle(&txid, height as usize) {
-                tx_height = u32::try_from(get_merkle_res.block_height)
-                    .map_err(|_| s!("height overflow"))?;
-                break;
+        let mut header = check!(self.block_headers_subscribe());
+        let tx_height = loop {
+            let height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
+            let get_merkle_res = check!(self.transaction_get_merkle(&txid, height as usize));
+            let tx_height = u32::try_from(get_merkle_res.block_height)
+                .map_err(|_| s!("impossible height value"))?;
+            match check!(self.block_headers_pop()) {
+                None => break tx_height,
+                Some(h) => header = h,
             }
-        }
+        };
+
         let block_time = tx_details
             .get("blocktime")
             .and_then(|v| v.as_i64())
