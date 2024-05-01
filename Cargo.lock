@@ -460,7 +460,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=develop#db23c6a1a1e5f7060b68f20c6329abb1377195eb"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=develop#e4c1a7c68c28f2963b9699c4de9017581ede39c3"
 dependencies = [
  "amplify",
  "base64 0.21.7",
@@ -1557,7 +1557,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#5d170662ecdb4fffd7f9d7f5fa8c5ce3ac98bbe9"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#75fb0dd098574957478bf6d4bf3533abc325efb5"
 dependencies = [
  "amplify",
  "baid64",
@@ -1617,7 +1617,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#5d170662ecdb4fffd7f9d7f5fa8c5ce3ac98bbe9"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#75fb0dd098574957478bf6d4bf3533abc325efb5"
 dependencies = [
  "aluvm",
  "amplify",

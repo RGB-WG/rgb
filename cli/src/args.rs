@@ -28,10 +28,7 @@ use std::path::Path;
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
-use rgb::{
-    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, StoredStock, StoredWallet,
-    TapretKey, WalletError,
-};
+use rgb::{AnyResolver, RgbDescr, StoredStock, StoredWallet, TapretKey, WalletError};
 use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::Stock;
 use strict_types::encoding::{DecodeError, DeserializeError};
@@ -121,18 +118,12 @@ impl RgbArgs {
         Ok(wallet)
     }
 
-    #[allow(clippy::result_large_err)]
-    pub fn resolver(&self) -> Result<AnyResolver, AnyResolverError> {
-        if self.resolver.electrum != bpwallet::cli::DEFAULT_ELECTRUM {
-            match electrum::Resolver::new(&self.resolver.electrum) {
-                Ok(c) => Ok(AnyResolver::Electrum(Box::new(c))),
-                Err(e) => Err(AnyResolverError::Electrum(e)),
-            }
-        } else {
-            match esplora_blocking::Resolver::new(&self.resolver.esplora) {
-                Ok(c) => Ok(AnyResolver::Esplora(Box::new(c))),
-                Err(e) => Err(AnyResolverError::Esplora(e)),
-            }
+    pub fn resolver(&self) -> Result<AnyResolver, WalletError> {
+        match (&self.resolver.esplora, &self.resolver.electrum) {
+            (None, Some(url)) => AnyResolver::electrum_blocking(url),
+            (Some(url), None) => AnyResolver::esplora_blocking(url),
+            _ => unreachable!("clap is broken"),
         }
+        .map_err(WalletError::Resolver)
     }
 }

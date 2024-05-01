@@ -88,10 +88,8 @@ pub enum WalletError {
     Bp(bpwallet::RuntimeError),
 
     /// resolver error: {0}
-    #[cfg(any(feature = "electrum", feature = "esplora_blocking"))]
-    #[from]
     #[display(doc_comments)]
-    ResolverError(crate::AnyResolverError),
+    Resolver(String),
 
     #[from(StockError)]
     #[from(StockErrorAll)]

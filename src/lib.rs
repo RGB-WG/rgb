@@ -37,7 +37,7 @@ mod store;
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
 pub use errors::{CompletionError, CompositionError, HistoryError, PayError, WalletError};
 pub use pay::{TransferParams, WalletProvider};
-#[cfg(any(feature = "electrum", feature = "esplora_blocking"))]
+#[cfg(any(feature = "electrum_blocking", feature = "esplora_blocking"))]
 pub use resolvers::*;
 pub use rgbstd::*;
 #[cfg(feature = "fs")]

@@ -82,10 +82,10 @@ log = { workspace = true, optional = true }
 
 [features]
 default = ["esplora_blocking"]
-all = ["esplora_blocking", "electrum", "serde", "log", "fs"]
+all = ["esplora_blocking", "electrum_blocking", "serde", "log", "fs"]
 fs = ["serde", "bp-wallet/fs"]
 esplora_blocking = ["bp-esplora"]
-electrum = ["bp-electrum"]
+electrum_blocking = ["bp-electrum"]
 serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
