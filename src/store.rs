@@ -141,6 +141,7 @@ pub struct StoredWallet<
     P: StoreFs,
 {
     stock_path: PathBuf,
+    wallet_path: Option<PathBuf>,
     stock: Stock<S, H, P>,
     wallet: W,
     #[getter(prefix = "is_")]
@@ -160,9 +161,15 @@ where
     H: StoreFs,
     P: StoreFs,
 {
-    pub fn attach(path: PathBuf, stock: Stock<S, H, P>, wallet: W) -> Self {
+    pub fn attach(
+        stock_path: PathBuf,
+        wallet_path: Option<PathBuf>,
+        stock: Stock<S, H, P>,
+        wallet: W,
+    ) -> Self {
         Self {
-            stock_path: path,
+            stock_path,
+            wallet_path,
             stock,
             wallet,
             stock_dirty: false,
@@ -232,9 +239,11 @@ where
             Ok(())
         };
         let r2 = if self.wallet_dirty {
-            self.wallet
-                .store(&self.stock_path)
-                .map_err(|e| e.to_string())
+            if let Some(path) = self.wallet_path.as_ref() {
+                self.wallet.store(path).map_err(|e| e.to_string())
+            } else {
+                Ok(())
+            }
         } else {
             Ok(())
         };
