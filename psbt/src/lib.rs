@@ -77,10 +77,11 @@ impl RgbPsbt for Psbt {
             let contract_id = info.transition.contract_id;
             let mut inputs = info.inputs.into_inner();
             for input in self.inputs_mut() {
-                inputs.remove(&XChain::Bitcoin(input.prevout().outpoint()));
-                input
-                    .set_rgb_consumer(contract_id, info.id)
-                    .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
+                if inputs.remove(&XChain::Bitcoin(input.prevout().outpoint())) {
+                    input
+                        .set_rgb_consumer(contract_id, info.id)
+                        .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
+                }
             }
             if !inputs.is_empty() {
                 return Err(EmbedError::AbsentInputs);
