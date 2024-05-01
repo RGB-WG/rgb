@@ -41,33 +41,53 @@ impl RgbResolver for Client {
             witness_id: XWitnessId::Bitcoin(txid),
         };
 
+        // We get the height of the tip of blockchain
+        let header = check!(self.block_headers_subscribe());
+
+        // Now we get and parse transaction information to get the number of
+        // confirmations
         let tx_details = check!(self.raw_call("blockchain.transaction.get", vec![
             Param::String(txid.to_string()),
             Param::Bool(true),
         ]));
 
-        let mut header = check!(self.block_headers_subscribe());
+        let Some(confirmations) = tx_details.get("confirmations") else {
+            return Ok(witness_anchor);
+        };
+        let confirmations = check!(
+            confirmations
+                .as_u64()
+                .and_then(|x| u32::try_from(x).ok())
+                .ok_or(Error::InvalidResponse(tx_details.clone()))
+        );
+        let block_time = check!(
+            tx_details
+                .get("blocktime")
+                .and_then(|v| v.as_i64())
+                .ok_or(Error::InvalidResponse(tx_details.clone()))
+        );
+
+        let tip_height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
+        let mut height: usize = (tip_height + 1 - confirmations) as usize;
         let tx_height = loop {
-            let height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
-            let get_merkle_res = check!(self.transaction_get_merkle(&txid, height as usize));
-            let tx_height = u32::try_from(get_merkle_res.block_height)
-                .map_err(|_| s!("impossible height value"))?;
-            match check!(self.block_headers_pop()) {
-                None => break tx_height,
-                Some(h) => header = h,
+            match self.transaction_get_merkle(&txid, height) {
+                Ok(get_merkle_res) => {
+                    break u32::try_from(get_merkle_res.block_height)
+                        .map_err(|_| s!("impossible height value"))?;
+                }
+                Err(Error::Protocol(_)) if self.block_headers_pop().ok().flatten().is_some() => {
+                    height += 1;
+                    continue;
+                }
+                Err(err) => return Err(err.to_string()),
             }
         };
 
-        let block_time = tx_details
-            .get("blocktime")
-            .and_then(|v| v.as_i64())
-            .ok_or(Error::InvalidResponse(tx_details.clone()))
-            .map_err(|e| e.to_string())?;
-        witness_anchor.witness_ord = WitnessOrd::OnChain(
+        let pos = check!(
             WitnessPos::new(tx_height, block_time)
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
-                .map_err(|e| e.to_string())?,
         );
+        witness_anchor.witness_ord = WitnessOrd::OnChain(pos);
 
         Ok(witness_anchor)
     }

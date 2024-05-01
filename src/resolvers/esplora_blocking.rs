@@ -34,9 +34,9 @@ impl RgbResolver for BlockingClient {
             .block_height
             .and_then(|h| status.block_time.map(|t| (h, t)))
         {
-            Some((h, t)) => WitnessOrd::OnChain(
-                WitnessPos::new(h, t as i64).ok_or(esplora::Error::InvalidServerData)?,
-            ),
+            Some((h, t)) => {
+                WitnessOrd::OnChain(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
+            }
             None => WitnessOrd::OffChain,
         };
         Ok(WitnessAnchor {
