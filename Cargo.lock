@@ -369,7 +369,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#3703d406e76d7ce1f85dd811a416569b4fabd889"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -418,7 +418,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#3703d406e76d7ce1f85dd811a416569b4fabd889"
 dependencies = [
  "amplify",
  "bech32",
@@ -446,7 +446,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#3703d406e76d7ce1f85dd811a416569b4fabd889"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -460,7 +460,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=develop#e4c1a7c68c28f2963b9699c4de9017581ede39c3"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=develop#03bb754618f99351d56f5f972a62f0580292a8e8"
 dependencies = [
  "amplify",
  "base64 0.21.7",
@@ -713,7 +713,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#3703d406e76d7ce1f85dd811a416569b4fabd889"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1383,7 +1383,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-std?branch=develop#987ed3cd2a3cb9619e62b1f887a46b412c52d27a"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#3703d406e76d7ce1f85dd811a416569b4fabd889"
 dependencies = [
  "amplify",
  "base64 0.21.7",

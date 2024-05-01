@@ -224,7 +224,7 @@ where
     }
 
     pub fn store(&self) {
-        let r1 = if self.wallet_dirty {
+        let r1 = if self.stock_dirty {
             self.stock
                 .store(&self.stock_path)
                 .map_err(|e| e.to_string())
