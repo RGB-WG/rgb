@@ -197,6 +197,8 @@ where
         invoice: &RgbInvoice,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
+        self.stock_dirty = true;
+        self.wallet_dirty = true;
         self.wallet.pay(&mut self.stock, invoice, params)
     }
 
@@ -206,6 +208,7 @@ where
         invoice: &RgbInvoice,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
+        self.wallet_dirty = true;
         self.wallet.construct_psbt_rgb(&self.stock, invoice, params)
     }
 
@@ -215,6 +218,8 @@ where
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
     ) -> Result<Transfer, CompletionError> {
+        self.stock_dirty = true;
+        self.wallet_dirty = true;
         self.wallet.transfer(&mut self.stock, invoice, psbt)
     }
 
