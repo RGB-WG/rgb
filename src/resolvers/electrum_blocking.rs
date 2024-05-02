@@ -21,6 +21,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::iter;
+
 use bp::ConsensusDecode;
 use bpstd::{Tx, Txid};
 use electrum::{Client, ElectrumApi, Error, Param};
@@ -50,6 +52,7 @@ impl RgbResolver for Client {
             Param::String(txid.to_string()),
             Param::Bool(true),
         ]));
+        let forward = iter::from_fn(|| self.block_headers_pop().ok().flatten()).count();
 
         let Some(confirmations) = tx_details.get("confirmations") else {
             return Ok(witness_anchor);
@@ -68,20 +71,12 @@ impl RgbResolver for Client {
         );
 
         let tip_height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
-        let mut height: usize = (tip_height + 1 - confirmations) as usize;
-        let tx_height = loop {
-            match self.transaction_get_merkle(&txid, height) {
-                Ok(get_merkle_res) => {
-                    break u32::try_from(get_merkle_res.block_height)
-                        .map_err(|_| s!("impossible height value"))?;
-                }
-                Err(Error::Protocol(_)) if self.block_headers_pop().ok().flatten().is_some() => {
-                    height += 1;
-                    continue;
-                }
-                Err(err) => return Err(err.to_string()),
-            }
-        };
+        let height: usize = (tip_height + 1 - confirmations) as usize;
+        let get_merkle_res = (0..=forward)
+            .find_map(|offset| self.transaction_get_merkle(&txid, height + offset).ok())
+            .ok_or_else(|| s!("transaction can't be located in the blockchain"))?;
+        let tx_height = u32::try_from(get_merkle_res.block_height)
+            .map_err(|_| s!("impossible height value"))?;
 
         let pos = check!(
             WitnessPos::new(tx_height, block_time)
