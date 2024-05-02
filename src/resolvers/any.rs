@@ -24,6 +24,7 @@
 use std::collections::HashMap;
 
 use bp::Tx;
+use bpstd::Network;
 use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
@@ -32,6 +33,7 @@ use rgbstd::{WitnessAnchor, XWitnessId, XWitnessTx};
 use crate::{Txid, WitnessOrd, XChain};
 
 pub trait RgbResolver {
+    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String>;
     fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String>;
     fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>>;
 }
@@ -63,6 +65,17 @@ impl AnyResolver {
             ),
             terminal_txes: Default::default(),
         })
+    }
+
+    pub fn check(&self, network: Network) -> Result<(), String> {
+        let expected_block_hash = match network {
+            Network::Mainnet => "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+            Network::Testnet3 => "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943",
+            Network::Signet => "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6",
+            Network::Regtest => "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
+        }
+        .to_string();
+        self.inner.check(network, expected_block_hash)
     }
 
     pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
