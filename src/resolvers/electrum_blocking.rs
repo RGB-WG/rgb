@@ -72,9 +72,16 @@ impl RgbResolver for Client {
 
         let tip_height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
         let height: usize = (tip_height + 1 - confirmations) as usize;
-        let get_merkle_res = (0..=forward)
+        // first check from expected min to max height then max + 1 and finally min - 1
+        let get_merkle_res = if let Some(res) = (0..=forward + 1)
             .find_map(|offset| self.transaction_get_merkle(&txid, height + offset).ok())
-            .ok_or_else(|| s!("transaction can't be located in the blockchain"))?;
+        {
+            res
+        } else {
+            self.transaction_get_merkle(&txid, height - 1)
+                .or_else(|_| Err(s!("transaction can't be located in the blockchain")))?
+        };
+
         let tx_height = u32::try_from(get_merkle_res.block_height)
             .map_err(|_| s!("impossible height value"))?;
 
