@@ -20,7 +20,7 @@
 // limitations under the License.
 
 use bp::Tx;
-use bpstd::Txid;
+use bpstd::{Network, Txid};
 use esplora::{BlockingClient, Error};
 use rgbstd::{WitnessAnchor, WitnessOrd, WitnessPos};
 
@@ -28,6 +28,15 @@ use super::RgbResolver;
 use crate::XWitnessId;
 
 impl RgbResolver for BlockingClient {
+    fn check(&self, _network: Network, expected_block_hash: String) -> Result<(), String> {
+        // check the esplora server is for the correct network
+        let block_hash = self.block_hash(0)?.to_string();
+        if expected_block_hash != block_hash {
+            return Err(s!("resolver is for a network different from the wallet's one"));
+        }
+        Ok(())
+    }
+
     fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
         let status = self.tx_status(&txid)?;
         let ord = match status
