@@ -52,7 +52,7 @@ impl RgbResolver for Client {
             Param::String(txid.to_string()),
             Param::Bool(true),
         ]));
-        let forward = iter::from_fn(|| self.block_headers_pop().ok().flatten()).count();
+        let forward = iter::from_fn(|| self.block_headers_pop().ok().flatten()).count() as isize;
 
         let Some(confirmations) = tx_details.get("confirmations") else {
             return Ok(witness_anchor);
@@ -71,11 +71,14 @@ impl RgbResolver for Client {
         );
 
         let tip_height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
-        let height: usize = (tip_height - confirmations) as usize;
-        // first check from expected min to max height then max + 1 and finally min - 1
+        let height: isize = (tip_height - confirmations) as isize;
+        const SAFETY_MARGIN: isize = 1;
+        // first check from expected min to max height, then max + 1 and finally min - 1
         let get_merkle_res = (1..=forward + 1)
-            .chain([0])
-            .find_map(|offset| self.transaction_get_merkle(&txid, height + offset).ok())
+            // we need this under assumption that electrum was lying due to "DB desynchronization"
+            // since this have a very low probability we do that after everything else
+            .chain((1..=SAFETY_MARGIN).flat_map(|i| [i + forward + 1, 1 - i]))
+            .find_map(|offset| self.transaction_get_merkle(&txid, (height + offset) as usize).ok())
             .ok_or_else(|| s!("transaction can't be located in the blockchain"))?;
 
         let tx_height = u32::try_from(get_merkle_res.block_height)
