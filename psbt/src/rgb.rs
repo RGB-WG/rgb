@@ -27,10 +27,11 @@ use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use commit_verify::mpc;
 use psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
-use rgbstd::accessors::{MergeReveal, MergeRevealError};
-use rgbstd::containers::BundleDichotomy;
-use rgbstd::interface::VelocityHint;
-use rgbstd::{ContractId, InputMap, OpId, Operation, Transition, TransitionBundle, Vin};
+use rgbstd::containers::{BundleDichotomy, VelocityHint};
+use rgbstd::{
+    ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
+    TransitionBundle, Vin,
+};
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
 
 // TODO: Instead of storing whole RGB contract in PSBT create a shortened

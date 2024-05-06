@@ -34,9 +34,9 @@ mod args;
 
 use std::process::ExitCode;
 
-use bp_util::{Config, Exec, LogLevel};
+use bpwallet::cli::{Config, Exec, LogLevel};
 use clap::Parser;
-use rgb_rt::RuntimeError;
+use rgb::WalletError;
 
 pub use crate::args::RgbArgs;
 pub use crate::command::Command;
@@ -50,14 +50,16 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<(), RuntimeError> {
+fn run() -> Result<(), WalletError> {
     let mut args = RgbArgs::parse();
     args.process();
     LogLevel::from_verbosity_flag_count(args.verbose).apply();
     trace!("Command-line arguments: {:#?}", &args);
 
-    eprintln!("RGB: command-line wallet for RGB smart contracts");
-    eprintln!("     by LNP/BP Standards Association\n");
+    if args.verbose > 3 {
+        eprintln!("RGB: command-line wallet for RGB smart contracts");
+        eprintln!("     by LNP/BP Standards Association\n");
+    }
 
     let conf = Config::load(&args.conf_path("rgb"));
     debug!("Executing command: {:?}", args.command);

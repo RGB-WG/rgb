@@ -4,6 +4,8 @@
 //
 // Written in 2024 by
 //     Zoe Faltibà <zoefaltiba@gmail.com>
+// Rewritten in 2024 by
+//     Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
 //
 // Copyright (C) 2024 LNP/BP Standards Association. All rights reserved.
 //
@@ -19,77 +21,92 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
+use bp::Tx;
+use bpstd::Network;
 use rgbstd::containers::Consignment;
 use rgbstd::resolvers::ResolveHeight;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
 use rgbstd::{WitnessAnchor, XWitnessId, XWitnessTx};
 
-#[cfg(feature = "electrum")]
-use crate::electrum;
-#[cfg(feature = "esplora_blocking")]
-use crate::esplora_blocking;
+use crate::{Txid, WitnessOrd, XChain};
+
+pub trait RgbResolver {
+    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String>;
+    fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String>;
+    fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>>;
+}
 
 /// Type that contains any of the [`Resolver`] types defined by the library
 #[derive(From)]
 #[non_exhaustive]
-pub enum AnyResolver {
-    #[cfg(feature = "electrum")]
-    #[from]
-    /// Electrum resolver
-    Electrum(Box<electrum::Resolver>),
-    #[cfg(feature = "esplora_blocking")]
-    #[from]
-    /// Esplora resolver
-    Esplora(Box<esplora_blocking::Resolver>),
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum AnyResolverError {
-    #[cfg(feature = "electrum")]
-    #[display(inner)]
-    Electrum(::electrum::Error),
-    #[cfg(feature = "esplora_blocking")]
-    #[display(inner)]
-    Esplora(esplora::Error),
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum AnyAnchorResolverError {
-    #[cfg(feature = "electrum")]
-    #[from]
-    #[display(inner)]
-    Electrum(electrum::AnchorResolverError),
-    #[cfg(feature = "esplora_blocking")]
-    #[from]
-    #[display(inner)]
-    Esplora(esplora_blocking::AnchorResolverError),
+pub struct AnyResolver {
+    inner: Box<dyn RgbResolver>,
+    terminal_txes: HashMap<Txid, Tx>,
 }
 
 impl AnyResolver {
-    pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
-        match self {
-            #[cfg(feature = "electrum")]
-            AnyResolver::Electrum(inner) => inner.add_witnesses(consignment),
-            #[cfg(feature = "esplora_blocking")]
-            AnyResolver::Esplora(inner) => inner.add_witnesses(consignment),
+    #[cfg(feature = "electrum_blocking")]
+    pub fn electrum_blocking(url: &str) -> Result<Self, String> {
+        Ok(AnyResolver {
+            inner: Box::new(electrum::Client::new(url).map_err(|e| e.to_string())?),
+            terminal_txes: Default::default(),
+        })
+    }
+
+    #[cfg(feature = "esplora_blocking")]
+    pub fn esplora_blocking(url: &str) -> Result<Self, String> {
+        Ok(AnyResolver {
+            inner: Box::new(
+                esplora::Builder::new(url)
+                    .build_blocking()
+                    .map_err(|e| e.to_string())?,
+            ),
+            terminal_txes: Default::default(),
+        })
+    }
+
+    pub fn check(&self, network: Network) -> Result<(), String> {
+        let expected_block_hash = match network {
+            Network::Mainnet => "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+            Network::Testnet3 => "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943",
+            Network::Signet => "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6",
+            Network::Regtest => "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
         }
+        .to_string();
+        self.inner.check(network, expected_block_hash)
+    }
+
+    pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
+        self.terminal_txes.extend(
+            consignment
+                .bundles
+                .iter()
+                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx.clone()))
+                .filter_map(|tx| match tx {
+                    XChain::Bitcoin(tx) => Some(tx),
+                    XChain::Liquid(_) | XChain::Other(_) => None,
+                })
+                .map(|tx| (tx.txid(), tx)),
+        );
     }
 }
 
 impl ResolveHeight for AnyResolver {
-    type Error = AnyAnchorResolverError;
+    fn resolve_height(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, String> {
+        let XWitnessId::Bitcoin(txid) = witness_id else {
+            return Err(format!("{} is not supported as layer 1 network", witness_id.layer1()));
+        };
 
-    fn resolve_height(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, Self::Error> {
-        match self {
-            #[cfg(feature = "electrum")]
-            AnyResolver::Electrum(inner) => inner.resolve_height(witness_id).map_err(|e| e.into()),
-            #[cfg(feature = "esplora_blocking")]
-            AnyResolver::Esplora(inner) => inner.resolve_height(witness_id).map_err(|e| e.into()),
+        if self.terminal_txes.contains_key(&txid) {
+            return Ok(WitnessAnchor {
+                witness_ord: WitnessOrd::OffChain,
+                witness_id,
+            });
         }
+
+        self.inner.resolve_height(txid)
     }
 }
 
@@ -98,11 +115,23 @@ impl ResolveWitness for AnyResolver {
         &self,
         witness_id: XWitnessId,
     ) -> Result<XWitnessTx, WitnessResolverError> {
-        match self {
-            #[cfg(feature = "electrum")]
-            AnyResolver::Electrum(inner) => inner.resolve_pub_witness(witness_id),
-            #[cfg(feature = "esplora_blocking")]
-            AnyResolver::Esplora(inner) => inner.resolve_pub_witness(witness_id),
+        let XWitnessId::Bitcoin(txid) = witness_id else {
+            return Err(WitnessResolverError::Other(
+                witness_id,
+                format!("{} is not supported as layer 1 network", witness_id.layer1()),
+            ));
+        };
+
+        if let Some(tx) = self.terminal_txes.get(&txid) {
+            return Ok(XWitnessTx::Bitcoin(tx.clone()));
         }
+
+        self.inner
+            .resolve_pub_witness(txid)
+            .map(XWitnessTx::Bitcoin)
+            .map_err(|e| match e {
+                None => WitnessResolverError::Unknown(witness_id),
+                Some(e) => WitnessResolverError::Other(witness_id, e),
+            })
     }
 }
