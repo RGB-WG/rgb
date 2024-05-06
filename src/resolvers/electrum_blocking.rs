@@ -73,7 +73,7 @@ impl RgbResolver for Client {
         let tip_height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
         let height: isize = (tip_height - confirmations) as isize;
         const SAFETY_MARGIN: isize = 1;
-        // first check from expected min to max height, then max + 1 and finally min - 1
+        // first check from expected min to max height
         let get_merkle_res = (1..=forward + 1)
             // we need this under assumption that electrum was lying due to "DB desynchronization"
             // since this have a very low probability we do that after everything else
