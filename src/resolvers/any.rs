@@ -48,19 +48,21 @@ pub struct AnyResolver {
 
 impl AnyResolver {
     #[cfg(feature = "electrum_blocking")]
-    pub fn electrum_blocking(url: &str) -> Result<Self, String> {
+    pub fn electrum_blocking(url: &str, config: Option<electrum::Config>) -> Result<Self, String> {
         Ok(AnyResolver {
-            inner: Box::new(electrum::Client::new(url).map_err(|e| e.to_string())?),
+            inner: Box::new(
+                electrum::Client::from_config(url, config.unwrap_or_default())
+                    .map_err(|e| e.to_string())?,
+            ),
             terminal_txes: Default::default(),
         })
     }
 
     #[cfg(feature = "esplora_blocking")]
-    pub fn esplora_blocking(url: &str) -> Result<Self, String> {
+    pub fn esplora_blocking(url: &str, config: Option<esplora::Config>) -> Result<Self, String> {
         Ok(AnyResolver {
             inner: Box::new(
-                esplora::Builder::new(url)
-                    .build_blocking()
+                esplora::BlockingClient::from_config(url, config.unwrap_or_default())
                     .map_err(|e| e.to_string())?,
             ),
             terminal_txes: Default::default(),

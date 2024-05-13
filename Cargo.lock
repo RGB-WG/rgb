@@ -403,8 +403,7 @@ dependencies = [
 [[package]]
 name = "bp-esplora"
 version = "0.11.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9e6234da60b0b790b2221567e14a7a89ac522bfd79f95d94a2ed9760d931a4"
+source = "git+https://github.com/BP-WG/bp-esplora-client?branch=master#2026b45770f32e1ac7d28f31d0866eb91c720119"
 dependencies = [
  "amplify",
  "bp-std",

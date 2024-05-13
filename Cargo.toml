@@ -92,6 +92,7 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 features = ["all"]
 
 [patch.crates-io]
+bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
 strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "develop" }
 strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
 commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }

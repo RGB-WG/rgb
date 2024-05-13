@@ -121,8 +121,8 @@ impl RgbArgs {
 
     pub fn resolver(&self) -> Result<AnyResolver, WalletError> {
         let resolver = match (&self.resolver.esplora, &self.resolver.electrum) {
-            (None, Some(url)) => AnyResolver::electrum_blocking(url),
-            (Some(url), None) => AnyResolver::esplora_blocking(url),
+            (None, Some(url)) => AnyResolver::electrum_blocking(url, None),
+            (Some(url), None) => AnyResolver::esplora_blocking(url, None),
             _ => unreachable!("clap is broken"),
         }
         .map_err(WalletError::Resolver)?;
