@@ -28,8 +28,8 @@ use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
 pub use psbt::*;
 pub use rgb::*;
-use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia};
-use rgbstd::{XChain, XWitnessId};
+use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia, PubWitness, XPubWitness};
+use rgbstd::XChain;
 
 pub use self::rgb::{
     ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -77,10 +77,11 @@ impl RgbPsbt for Psbt {
             let contract_id = info.transition.contract_id;
             let mut inputs = info.inputs.into_inner();
             for input in self.inputs_mut() {
-                inputs.remove(&XChain::Bitcoin(input.prevout().outpoint()));
-                input
-                    .set_rgb_consumer(contract_id, info.id)
-                    .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
+                if inputs.remove(&XChain::Bitcoin(input.prevout().outpoint())) {
+                    input
+                        .set_rgb_consumer(contract_id, info.id)
+                        .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
+                }
             }
             if !inputs.is_empty() {
                 return Err(EmbedError::AbsentInputs);
@@ -115,8 +116,10 @@ impl RgbPsbt for Psbt {
             (None, Some(opret)) => AnchorSet::Opret(opret),
             (Some(tapret), Some(opret)) => AnchorSet::Double { tapret, opret },
         };
+        // TODO: Use signed transaction here!
+        let witness = PubWitness::with(self.to_unsigned_tx().finalize());
         Ok(Fascia {
-            witness_id: XWitnessId::Bitcoin(self.txid()),
+            witness: XPubWitness::Bitcoin(witness),
             anchor,
             bundles,
         })

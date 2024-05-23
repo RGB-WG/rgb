@@ -19,15 +19,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::needless_update)] // Caused by the From derivation macro
+#![allow(clippy::needless_update)] // Required by From derive macro
 
-use bp_util::{Config, DescriptorOpts};
+use std::fs;
+use std::io::ErrorKind;
+use std::path::Path;
+
 use bpstd::{Wpkh, XpubDerivable};
-use rgb_rt::{
-    electrum, esplora_blocking, AnyResolver, AnyResolverError, RgbDescr, Runtime, RuntimeError,
-    TapretKey,
-};
+use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
+use bpwallet::Wallet;
+use rgb::{AnyResolver, RgbDescr, StoredStock, StoredWallet, TapretKey, WalletError};
+use rgbstd::persistence::fs::{LoadFs, StoreFs};
 use rgbstd::persistence::Stock;
+use strict_types::encoding::{DecodeError, DeserializeError};
 
 use crate::Command;
 
@@ -65,7 +69,7 @@ impl DescriptorOpts for DescrRgbOpts {
 #[command(author, version, about)]
 pub struct RgbArgs {
     #[clap(flatten)]
-    pub inner: bp_util::Args<Command, DescrRgbOpts>,
+    pub inner: BpArgs<Command, DescrRgbOpts>,
 }
 
 impl Default for RgbArgs {
@@ -73,35 +77,56 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
-    pub fn rgb_stock(&self) -> Result<Stock, RuntimeError> {
-        eprint!("Loading stock ... ");
-        let runtime = Runtime::<RgbDescr>::load_walletless(&self.general.base_dir())?;
-        eprintln!("success");
-
-        Ok(runtime)
-    }
-
-    pub fn rgb_runtime(&self, config: &Config) -> Result<Runtime, RuntimeError> {
-        let bprt = self.inner.bp_runtime::<RgbDescr>(config)?;
-        eprint!("Loading stock ... ");
-        let runtime = Runtime::<RgbDescr>::load_attach(self.general.base_dir(), bprt)?;
-        eprintln!("success");
-
-        Ok(runtime)
-    }
-
-    #[allow(clippy::result_large_err)]
-    pub fn resolver(&self) -> Result<AnyResolver, AnyResolverError> {
-        if self.resolver.electrum != bp_util::DEFAULT_ELECTRUM {
-            match electrum::Resolver::new(&self.resolver.electrum) {
-                Ok(c) => Ok(AnyResolver::Electrum(Box::new(c))),
-                Err(e) => Err(AnyResolverError::Electrum(e)),
-            }
-        } else {
-            match esplora_blocking::Resolver::new(&self.resolver.esplora) {
-                Ok(c) => Ok(AnyResolver::Esplora(Box::new(c))),
-                Err(e) => Err(AnyResolverError::Esplora(e)),
-            }
+    fn load_stock(&self, stock_path: &Path) -> Result<Stock, WalletError> {
+        if self.verbose > 1 {
+            eprint!("Loading stock ... ");
         }
+
+        Stock::load(&stock_path).map_err(WalletError::from).or_else(|err| {
+            if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
+                if self.verbose > 1 {
+                    eprint!("stock file is absent, creating a new one ... ");
+                }
+                let stock = Stock::default();
+                fs::create_dir_all(&stock_path)?;
+                stock.store(&stock_path)?;
+                if self.verbose > 1 {
+                    eprintln!("success");
+                }
+                return Ok(stock)
+            }
+            eprintln!("stock file is damaged, failing");
+            Err(err)
+        })
+    }
+
+    pub fn rgb_stock(&self) -> Result<StoredStock, WalletError> {
+        let stock_path = self.general.base_dir();
+        let stock = self.load_stock(&stock_path)?;
+        Ok(StoredStock::attach(stock_path, stock))
+    }
+
+    pub fn rgb_wallet(
+        &self,
+        config: &Config,
+    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+        let stock_path = self.general.base_dir();
+        let stock = self.load_stock(&stock_path)?;
+        let wallet = self.inner.bp_runtime::<RgbDescr>(config)?;
+        let wallet_path = wallet.path().clone();
+        let wallet = StoredWallet::attach(stock_path, wallet_path, stock, wallet.detach());
+
+        Ok(wallet)
+    }
+
+    pub fn resolver(&self) -> Result<AnyResolver, WalletError> {
+        let resolver = match (&self.resolver.esplora, &self.resolver.electrum) {
+            (None, Some(url)) => AnyResolver::electrum_blocking(url),
+            (Some(url), None) => AnyResolver::esplora_blocking(url),
+            _ => unreachable!("clap is broken"),
+        }
+        .map_err(WalletError::Resolver)?;
+        resolver.check(self.general.network)?;
+        Ok(resolver)
     }
 }
