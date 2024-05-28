@@ -22,13 +22,13 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.6.0"
-baid64 = "0.1.0"
-commit_verify = "0.11.0-beta.5"
-strict_encoding = "2.7.0-beta.3"
-strict_types = "2.7.0-beta.3"
-bp-core = "0.11.0-beta.5"
-bp-seals = "0.11.0-beta.5"
-bp-std = "0.11.0-beta.5"
+baid64 = "0.2.2"
+strict_encoding = "2.7.0-beta.4"
+strict_types = "2.7.0-beta.4"
+commit_verify = "0.11.0-beta.6"
+bp-core = "0.11.0-beta.6"
+bp-seals = "0.11.0-beta.6"
+bp-std = "0.11.0-beta.6"
 bp-electrum = "0.11.0-beta.5"
 bp-esplora = "0.11.0-beta.5"
 descriptors = "0.11.0-beta.5"
@@ -93,22 +93,14 @@ features = ["all"]
 
 [patch.crates-io]
 bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
-strict_encoding = { git = "https://github.com/strict-types/strict-encoding", branch = "develop" }
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }
-single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "develop" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "develop" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "develop" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
-rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "develop" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "master" }
+
+# invoice-pay2vout
