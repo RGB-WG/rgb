@@ -203,9 +203,9 @@ where Self::Descr: DescriptorRgb<K>
         };
         let beneficiaries = match invoice.beneficiary.into_inner() {
             Beneficiary::BlindedSeal(_) => vec![],
-            Beneficiary::WitnessVout(payload) => {
+            Beneficiary::WitnessVout(pay2vout) => {
                 vec![BpBeneficiary::new(
-                    Address::new(payload, invoice.address_network()),
+                    Address::new(pay2vout.address, invoice.address_network()),
                     params.min_amount,
                 )]
             }
@@ -220,8 +220,8 @@ where Self::Descr: DescriptorRgb<K>
             self.construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
         let beneficiary_script =
-            if let Beneficiary::WitnessVout(addr) = invoice.beneficiary.into_inner() {
-                Some(addr.script_pubkey())
+            if let Beneficiary::WitnessVout(pay2vout) = invoice.beneficiary.into_inner() {
+                Some(pay2vout.address.script_pubkey())
             } else {
                 None
             };
@@ -246,8 +246,8 @@ where Self::Descr: DescriptorRgb<K>
         }
 
         let beneficiary_vout = match invoice.beneficiary.into_inner() {
-            Beneficiary::WitnessVout(addr) => {
-                let s = addr.script_pubkey();
+            Beneficiary::WitnessVout(pay2vout) => {
+                let s = pay2vout.address.script_pubkey();
                 let vout = psbt
                     .outputs()
                     .find(|output| output.script == s)
@@ -297,8 +297,8 @@ where Self::Descr: DescriptorRgb<K>
 
         let witness_txid = psbt.txid();
         let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
-            Beneficiary::WitnessVout(addr) => {
-                let s = addr.script_pubkey();
+            Beneficiary::WitnessVout(pay2vout) => {
+                let s = pay2vout.address.script_pubkey();
                 let vout = psbt
                     .outputs()
                     .position(|output| output.script == s)

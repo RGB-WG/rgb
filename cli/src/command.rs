@@ -35,7 +35,7 @@ use rgb::containers::{
     Transfer, UniversalFile,
 };
 use rgb::interface::{AmountChange, FilterExclude, IfaceId};
-use rgb::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
+use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::StashReadProvider;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
@@ -689,7 +689,10 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessVout(addr.payload)
+                        Beneficiary::WitnessVout(Pay2Vout {
+                            address: addr.payload,
+                            method: wallet.wallet().seal_close_method(),
+                        })
                     }
                     (_, Some(outpoint)) => {
                         let seal = XChain::Bitcoin(GraphSeal::new_random(

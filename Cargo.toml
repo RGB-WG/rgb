@@ -99,8 +99,6 @@ bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "invoice-pay2vout" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "invoice-pay2vout" }
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "master" }
-
-# invoice-pay2vout
