@@ -36,8 +36,9 @@ use rgbstd::containers::Transfer;
 use rgbstd::interface::{OutpointFilter, WitnessFilter};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
-use rgbstd::{ContractId, XChain, XOutpoint};
+use rgbstd::{ContractId, DataState, XChain, XOutpoint};
 
+use crate::invoice::NonFungible;
 use crate::wallet::WalletWrapper;
 use crate::{CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid};
 
@@ -180,6 +181,22 @@ where Self::Descr: DescriptorRgb<K>
                         }
                     })
                     .map(|(_, seal, _)| *seal)
+                    .collect::<BTreeSet<_>>()
+            }
+            InvoiceState::Data(NonFungible::RGB21(allocation)) => {
+                let filter = ContractOutpointsFilter {
+                    contract_id,
+                    stock,
+                    wallet: self,
+                    _phantom: PhantomData,
+                };
+                let state = contract.data(assignment_name, &filter)?.collect::<Vec<_>>();
+
+                let data_state = DataState::from(allocation);
+                state
+                    .into_iter()
+                    .filter(|x| x.state == data_state)
+                    .map(|x| x.seal)
                     .collect::<BTreeSet<_>>()
             }
             _ => return Err(CompositionError::Unsupported),
