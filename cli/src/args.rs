@@ -82,14 +82,14 @@ impl RgbArgs {
             eprint!("Loading stock ... ");
         }
 
-        Stock::load(&stock_path).map_err(WalletError::from).or_else(|err| {
+        Stock::load(stock_path).map_err(WalletError::from).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
                 }
                 let stock = Stock::default();
-                fs::create_dir_all(&stock_path)?;
-                stock.store(&stock_path)?;
+                fs::create_dir_all(stock_path)?;
+                stock.store(stock_path)?;
                 if self.verbose > 1 {
                     eprintln!("success");
                 }
