@@ -509,6 +509,36 @@ impl Exec for RgbArgs {
                             );
                         }
                     }
+                    if let Ok(allocations) =
+                        contract.data(owned.name.clone(), &FilterExclude(&runtime))
+                    {
+                        for allocation in allocations {
+                            println!(
+                                "   data={}, utxo={}, witness={}",
+                                allocation.state, allocation.seal, allocation.witness
+                            );
+                        }
+                    }
+                    if let Ok(allocations) =
+                        contract.attachments(owned.name.clone(), &FilterExclude(&runtime))
+                    {
+                        for allocation in allocations {
+                            println!(
+                                "   attachments={}, utxo={}, witness={}",
+                                allocation.state, allocation.seal, allocation.witness
+                            );
+                        }
+                    }
+                    if let Ok(allocations) =
+                        contract.rights(owned.name.clone(), &FilterExclude(&runtime))
+                    {
+                        for allocation in allocations {
+                            println!(
+                                "   rights={}, utxo={}, witness={}",
+                                allocation.state, allocation.seal, allocation.witness
+                            );
+                        }
+                    }
                     if *all {
                         if let Ok(allocations) = contract
                             .fungible(owned.name.clone(), &FilterExclude(wallet.wallet().filter()))
@@ -516,6 +546,36 @@ impl Exec for RgbArgs {
                             for allocation in allocations {
                                 println!(
                                     "    amount={}, utxo={}, witness={} # owner unknown",
+                                    allocation.state, allocation.seal, allocation.witness
+                                );
+                            }
+                        }
+                        if let Ok(allocations) =
+                            contract.data(owned.name.clone(), &FilterExclude(&runtime))
+                        {
+                            for allocation in allocations {
+                                println!(
+                                    "   data={}, utxo={}, witness={}",
+                                    allocation.state, allocation.seal, allocation.witness
+                                );
+                            }
+                        }
+                        if let Ok(allocations) =
+                            contract.attachments(owned.name.clone(), &FilterExclude(&runtime))
+                        {
+                            for allocation in allocations {
+                                println!(
+                                    "   attachments={}, utxo={}, witness={}",
+                                    allocation.state, allocation.seal, allocation.witness
+                                );
+                            }
+                        }
+                        if let Ok(allocations) =
+                            contract.rights(owned.name.clone(), &FilterExclude(&runtime))
+                        {
+                            for allocation in allocations {
+                                println!(
+                                    "   rights={}, utxo={}, witness={}",
                                     allocation.state, allocation.seal, allocation.witness
                                 );
                             }
