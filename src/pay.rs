@@ -304,9 +304,10 @@ where Self::Descr: DescriptorRgb<K>
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let method = self.descriptor().seal_close_method();
-                let seal =
-                    XChain::Bitcoin(ExplicitSeal::new(method, Outpoint::new(witness_txid, vout)));
+                let seal = XChain::Bitcoin(ExplicitSeal::new(
+                    pay2vout.method,
+                    Outpoint::new(witness_txid, vout),
+                ));
                 (vec![], vec![seal])
             }
             Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
