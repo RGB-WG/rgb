@@ -33,7 +33,7 @@ bp-electrum = "0.11.0-beta.6"
 bp-esplora = "0.11.0-beta.6"
 descriptors = "0.11.0-beta.6"
 psbt = { version = "0.11.0-beta.6", features = ["client-side-validation"] }
-bp-wallet = { version = "0.11.0-beta.6" }
+bp-wallet = { version = "0.11.0-beta.6.1" }
 rgb-std = { version = "0.11.0-beta.6", features = ["fs"] }
 rgb-psbt = { version = "0.11.0-beta.6", path = "psbt" }
 rgb-interfaces = "0.11.0-beta.6"
@@ -74,6 +74,7 @@ descriptors = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
+rgb-interfaces = { workspace = true }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }

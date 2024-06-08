@@ -26,24 +26,27 @@ use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
-use bpstd::Sats;
+use bpstd::{Sats, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
+use bpwallet::Wallet;
 use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb::containers::{
     BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Terminal,
     Transfer, UniversalFile,
 };
-use rgb::interface::{AmountChange, FilterExclude, IfaceId};
+use rgb::interface::{AmountChange, IfaceId};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::StashReadProvider;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
 use rgb::{
-    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbKeychain,
-    StateType, TransferParams, WalletError, WalletProvider, XChain, XOutputSeal,
+    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbDescr,
+    RgbKeychain, StateType, StoredWallet, TransferParams, WalletError, WalletProvider, XChain,
+    XOutpoint, XOutputSeal,
 };
+use rgbstd::interface::OutpointFilter;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -481,13 +484,21 @@ impl Exec for RgbArgs {
                 iface,
                 all,
             } => {
-                let wallet = self.rgb_wallet(&config)?;
+                let stock_path = self.general.base_dir();
+                let stock = self.load_stock(&stock_path)?;
 
-                let contract = wallet
-                    .stock()
-                    .contract_iface(*contract_id, tn!(iface.to_owned()))?;
+                let contract = stock.contract_iface(*contract_id, tn!(iface.to_owned()))?;
 
-                println!("Global:");
+                let filter = match self.rgb_wallet_from_stock(&config, stock) {
+                    Ok(wallet) if *all => Filter::WalletAll(wallet),
+                    Ok(wallet) => Filter::Wallet(wallet),
+                    Err(_) => {
+                        println!("no wallets found");
+                        Filter::NoWallet
+                    }
+                };
+
+                println!("\nGlobal:");
                 for global in &contract.iface.global_state {
                     if let Ok(values) = contract.global(global.name.clone()) {
                         for val in values {
@@ -496,73 +507,78 @@ impl Exec for RgbArgs {
                     }
                 }
 
+                enum Filter {
+                    Wallet(StoredWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    WalletAll(StoredWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    NoWallet,
+                }
+                impl OutpointFilter for Filter {
+                    fn include_outpoint(&self, outpoint: impl Into<XOutpoint>) -> bool {
+                        match self {
+                            Filter::Wallet(wallet) => {
+                                wallet.wallet().filter().include_outpoint(outpoint)
+                            }
+                            _ => true,
+                        }
+                    }
+                }
+                impl Filter {
+                    fn comment(&self, outpoint: XOutpoint) -> &'static str {
+                        match self {
+                            Filter::Wallet(wallet) | Filter::WalletAll(wallet)
+                                if wallet.wallet().filter().include_outpoint(outpoint) =>
+                            {
+                                ""
+                            }
+                            _ => "-- owner unknown",
+                        }
+                    }
+                }
+
                 println!("\nOwned:");
-                let filter = wallet.wallet().filter();
                 for owned in &contract.iface.assignments {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "    amount={}, utxo={}, witness={} # owned by the wallet",
-                                allocation.state, allocation.seal, allocation.witness
+                                "    value={}, utxo={}, witness={} {}",
+                                allocation.state,
+                                allocation.seal,
+                                allocation.witness,
+                                filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "   data={}, utxo={}, witness={}",
-                                allocation.state, allocation.seal, allocation.witness
+                                "   data={}, utxo={}, witness={} {}",
+                                allocation.state,
+                                allocation.seal,
+                                allocation.witness,
+                                filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "   attachments={}, utxo={}, witness={}",
-                                allocation.state, allocation.seal, allocation.witness
+                                "   file={}, utxo={}, witness={} {}",
+                                allocation.state,
+                                allocation.seal,
+                                allocation.witness,
+                                filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            println!("   utxo={}, witness={}", allocation.seal, allocation.witness);
-                        }
-                    }
-
-                    let filter = FilterExclude(filter);
-                    if *all {
-                        if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
-                            for allocation in allocations {
-                                println!(
-                                    "    amount={}, utxo={}, witness={} # owner unknown",
-                                    allocation.state, allocation.seal, allocation.witness
-                                );
-                            }
-                        }
-                        if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
-                            for allocation in allocations {
-                                println!(
-                                    "   data={}, utxo={}, witness={} # owner unknown",
-                                    allocation.state, allocation.seal, allocation.witness
-                                );
-                            }
-                        }
-                        if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
-                            for allocation in allocations {
-                                println!(
-                                    "   attachments={}, utxo={}, witness={} # owner unknown",
-                                    allocation.state, allocation.seal, allocation.witness
-                                );
-                            }
-                        }
-                        if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
-                            for allocation in allocations {
-                                println!(
-                                    "   utxo={}, witness={} # owner unknown",
-                                    allocation.seal, allocation.witness
-                                );
-                            }
+                            println!(
+                                "   utxo={}, witness={} {}",
+                                allocation.seal,
+                                allocation.witness,
+                                filter.comment(allocation.seal.to_outpoint())
+                            );
                         }
                     }
                 }

@@ -77,7 +77,7 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
-    fn load_stock(&self, stock_path: &Path) -> Result<Stock, WalletError> {
+    pub(crate) fn load_stock(&self, stock_path: &Path) -> Result<Stock, WalletError> {
         if self.verbose > 1 {
             eprint!("Loading stock ... ");
         }
@@ -112,6 +112,15 @@ impl RgbArgs {
     ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock_path = self.general.base_dir();
         let stock = self.load_stock(&stock_path)?;
+        self.rgb_wallet_from_stock(config, stock)
+    }
+
+    pub fn rgb_wallet_from_stock(
+        &self,
+        config: &Config,
+        stock: Stock,
+    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+        let stock_path = self.general.base_dir();
         let wallet = self.inner.bp_runtime::<RgbDescr>(config)?;
         let wallet_path = wallet.path().clone();
         let wallet = StoredWallet::attach(stock_path, wallet_path, stock, wallet.detach());
@@ -123,7 +132,8 @@ impl RgbArgs {
         let resolver = match (&self.resolver.esplora, &self.resolver.electrum) {
             (None, Some(url)) => AnyResolver::electrum_blocking(url, None),
             (Some(url), None) => AnyResolver::esplora_blocking(url, None),
-            _ => unreachable!("clap is broken"),
+            _ => Err(s!(" - error: no transaction resolver is specified; use either --esplora \
+                         or --electrum argument")),
         }
         .map_err(WalletError::Resolver)?;
         resolver.check(self.general.network)?;
