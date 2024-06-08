@@ -497,11 +497,10 @@ impl Exec for RgbArgs {
                 }
 
                 println!("\nOwned:");
+                let filter = wallet.wallet().filter();
                 for owned in &contract.iface.assignments {
                     println!("  {}:", owned.name);
-                    if let Ok(allocations) =
-                        contract.fungible(owned.name.clone(), wallet.wallet().filter())
-                    {
+                    if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
                                 "    amount={}, utxo={}, witness={} # owned by the wallet",
@@ -509,10 +508,31 @@ impl Exec for RgbArgs {
                             );
                         }
                     }
+                    if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
+                        for allocation in allocations {
+                            println!(
+                                "   data={}, utxo={}, witness={}",
+                                allocation.state, allocation.seal, allocation.witness
+                            );
+                        }
+                    }
+                    if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
+                        for allocation in allocations {
+                            println!(
+                                "   attachments={}, utxo={}, witness={}",
+                                allocation.state, allocation.seal, allocation.witness
+                            );
+                        }
+                    }
+                    if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
+                        for allocation in allocations {
+                            println!("   utxo={}, witness={}", allocation.seal, allocation.witness);
+                        }
+                    }
+
+                    let filter = FilterExclude(filter);
                     if *all {
-                        if let Ok(allocations) = contract
-                            .fungible(owned.name.clone(), &FilterExclude(wallet.wallet().filter()))
-                        {
+                        if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                             for allocation in allocations {
                                 println!(
                                     "    amount={}, utxo={}, witness={} # owner unknown",
@@ -520,8 +540,31 @@ impl Exec for RgbArgs {
                                 );
                             }
                         }
+                        if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
+                            for allocation in allocations {
+                                println!(
+                                    "   data={}, utxo={}, witness={} # owner unknown",
+                                    allocation.state, allocation.seal, allocation.witness
+                                );
+                            }
+                        }
+                        if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
+                            for allocation in allocations {
+                                println!(
+                                    "   attachments={}, utxo={}, witness={} # owner unknown",
+                                    allocation.state, allocation.seal, allocation.witness
+                                );
+                            }
+                        }
+                        if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
+                            for allocation in allocations {
+                                println!(
+                                    "   utxo={}, witness={} # owner unknown",
+                                    allocation.seal, allocation.witness
+                                );
+                            }
+                        }
                     }
-                    // TODO: Print out other types of state
                 }
             }
             Command::Issue {
