@@ -542,7 +542,7 @@ impl Exec for RgbArgs {
                         for allocation in allocations {
                             println!(
                                 "    value={}, utxo={}, witness={} {}",
-                                allocation.state,
+                                allocation.state.value(),
                                 allocation.seal,
                                 allocation.witness,
                                 filter.comment(allocation.seal.to_outpoint())
