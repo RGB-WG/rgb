@@ -78,10 +78,19 @@ impl RgbResolver for Client {
 
         // Now we get and parse transaction information to get the number of
         // confirmations
-        let tx_details = check!(self.raw_call("blockchain.transaction.get", vec![
+        let tx_details = match self.raw_call("blockchain.transaction.get", vec![
             Param::String(txid.to_string()),
             Param::Bool(true),
-        ]));
+        ]) {
+            Err(e)
+                if e.to_string()
+                    .contains("No such mempool or blockchain transaction") =>
+            {
+                return Ok(witness_anchor);
+            }
+            Err(e) => return Err(e.to_string()),
+            Ok(v) => v,
+        };
         let forward = iter::from_fn(|| self.block_headers_pop().ok().flatten()).count() as isize;
 
         let Some(confirmations) = tx_details.get("confirmations") else {
