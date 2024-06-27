@@ -121,7 +121,7 @@ impl RgbArgs {
         stock: Stock,
     ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock_path = self.general.base_dir();
-        let wallet = self.inner.bp_runtime::<RgbDescr>(config)?;
+        let wallet = self.inner.bp_wallet::<RgbDescr>(config)?;
         let wallet_path = wallet.path().clone();
         let wallet = StoredWallet::attach(stock_path, wallet_path, stock, wallet.detach());
 
