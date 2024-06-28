@@ -30,7 +30,7 @@ bp-core = "0.11.0-beta.6"
 bp-seals = "0.11.0-beta.6"
 bp-std = "0.11.0-beta.6"
 bp-electrum = "0.11.0-beta.6"
-bp-esplora = "0.11.0-beta.6"
+bp-esplora = { version = "0.11.0-beta.6", default-features = false, features = ["blocking"] }
 descriptors = "0.11.0-beta.6"
 psbt = { version = "0.11.0-beta.6", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.0-beta.6.1" }
