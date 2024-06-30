@@ -28,9 +28,10 @@ use std::path::Path;
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
-use rgb::{AnyResolver, RgbDescr, StoredStock, StoredWallet, TapretKey, WalletError};
-use rgbstd::persistence::fs::{LoadFs, StoreFs};
-use rgbstd::persistence::Stock;
+use rgb::persistence::fs::{LoadFs, StoreFs};
+use rgb::persistence::Stock;
+use rgb::resolvers::AnyResolver;
+use rgb::{RgbDescr, StoredStock, StoredWallet, TapretKey, WalletError};
 use strict_types::encoding::{DecodeError, DeserializeError};
 
 use crate::Command;
@@ -121,7 +122,7 @@ impl RgbArgs {
         stock: Stock,
     ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock_path = self.general.base_dir();
-        let wallet = self.inner.bp_runtime::<RgbDescr>(config)?;
+        let wallet = self.inner.bp_wallet::<RgbDescr>(config)?;
         let wallet_path = wallet.path().clone();
         let wallet = StoredWallet::attach(stock_path, wallet_path, stock, wallet.detach());
 

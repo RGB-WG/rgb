@@ -91,3 +91,6 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "runtime" }
