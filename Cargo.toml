@@ -94,6 +94,9 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 features = ["all"]
 
 [patch.crates-io]
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "signer" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }

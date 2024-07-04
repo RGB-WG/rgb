@@ -30,7 +30,7 @@ use bp::seals::txout::CloseMethod;
 use bpstd::{
     CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase,
     IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, TapScript,
-    TapTree, Terminal, XOnlyPk, XpubDerivable, XpubSpec,
+    TapTree, Terminal, XOnlyPk, XpubAccount, XpubDerivable,
 };
 use commit_verify::CommitVerify;
 use descriptors::{Descriptor, SpkClass, StdDescr, TrKey, Wpkh};
@@ -192,7 +192,9 @@ impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
     where (): 'a {
         iter::empty()
     }
-    fn xpubs(&self) -> impl Iterator<Item = &XpubSpec> { iter::once(self.internal_key.xpub_spec()) }
+    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> {
+        iter::once(self.internal_key.xpub_spec())
+    }
 
     fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
         IndexMap::new()
@@ -296,7 +298,7 @@ where Self: Derive<DerivedScript>
         iter::empty()
     }
 
-    fn xpubs(&self) -> impl Iterator<Item = &XpubSpec> {
+    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> {
         match self {
             RgbDescr::Wpkh(d) => d.xpubs().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.xpubs().collect::<Vec<_>>(),
