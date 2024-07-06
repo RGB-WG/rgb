@@ -21,7 +21,7 @@
 
 use std::collections::HashMap;
 
-use bpwallet::Wallet;
+use bpwallet::{Save, Wallet};
 use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 
@@ -30,14 +30,19 @@ use crate::{
     XChain, XOutpoint, XWitnessId,
 };
 
-pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
+pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>)
+where Wallet<K, D>: Save;
 
-impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> {}
-impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> where Wallet<K, D>: Save {}
+impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D>
+where Wallet<K, D>: Save
+{
     fn clone(&self) -> Self { *self }
 }
 
-impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D>
+where Wallet<K, D>: Save
+{
     fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         self.0
@@ -46,7 +51,9 @@ impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D> {
     }
 }
 
-impl<'a, K, D: DescriptorRgb<K>> WitnessFilter for WalletWrapper<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>> WitnessFilter for WalletWrapper<'a, K, D>
+where Wallet<K, D>: Save
+{
     fn include_witness(&self, witness: impl Into<AssignmentWitness>) -> bool {
         let witness = witness.into();
         self.0

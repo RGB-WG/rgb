@@ -20,17 +20,19 @@
 // limitations under the License.
 
 use std::collections::HashMap;
-use std::error::Error;
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+#[cfg(feature = "fs")]
 use std::path::{Path, PathBuf};
 
 use bpstd::XpubDerivable;
-use bpwallet::{StoreError, Wallet, WalletDescr};
+#[cfg(feature = "fs")]
+use bpwallet::fs::Warning;
+use bpwallet::{Wallet, WalletDescr};
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
 use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef};
-use rgbstd::persistence::fs::StoreFs;
+#[cfg(feature = "fs")]
+use rgbstd::persistence::fs::FsStored;
 use rgbstd::persistence::{
     IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider, Stock,
 };
@@ -41,91 +43,6 @@ use super::{
 };
 use crate::invoice::RgbInvoice;
 
-pub trait Store {
-    type Err: Error;
-    fn store(&self, path: impl AsRef<Path>) -> Result<(), Self::Err>;
-}
-
-impl<K, D: DescriptorRgb<K>> Store for Wallet<K, D>
-where
-    for<'de> WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
-{
-    type Err = StoreError;
-    fn store(&self, path: impl AsRef<Path>) -> Result<(), Self::Err> { self.store(path.as_ref()) }
-}
-
-#[derive(Getters)]
-pub struct StoredStock<
-    S: StashProvider = MemStash,
-    H: StateProvider = MemState,
-    P: IndexProvider = MemIndex,
-> where
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
-{
-    stock_path: PathBuf,
-    stock: Stock<S, H, P>,
-    #[getter(prefix = "is_")]
-    dirty: bool,
-}
-
-impl<S: StashProvider, H: StateProvider, P: IndexProvider> Deref for StoredStock<S, H, P>
-where
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
-{
-    type Target = Stock<S, H, P>;
-
-    fn deref(&self) -> &Self::Target { &self.stock }
-}
-
-impl<S: StashProvider, H: StateProvider, P: IndexProvider> DerefMut for StoredStock<S, H, P>
-where
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.dirty = true;
-        &mut self.stock
-    }
-}
-
-impl<S: StashProvider, H: StateProvider, P: IndexProvider> StoredStock<S, H, P>
-where
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
-{
-    pub fn attach(path: PathBuf, stock: Stock<S, H, P>) -> Self {
-        Self {
-            stock_path: path,
-            stock,
-            dirty: false,
-        }
-    }
-
-    pub fn store(&self) {
-        if self.dirty {
-            self.stock
-                .store(&self.stock_path)
-                .expect("error saving data");
-        }
-    }
-}
-
-impl<S: StashProvider, H: StateProvider, P: IndexProvider> Drop for StoredStock<S, H, P>
-where
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
-{
-    fn drop(&mut self) { self.store() }
-}
-
 #[derive(Getters)]
 pub struct StoredWallet<
     W: WalletProvider<K>,
@@ -133,60 +50,56 @@ pub struct StoredWallet<
     S: StashProvider = MemStash,
     H: StateProvider = MemState,
     P: IndexProvider = MemIndex,
-> where
-    W::Descr: DescriptorRgb<K>,
-    W: Store,
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
+> where W::Descr: DescriptorRgb<K>
 {
-    stock_path: PathBuf,
-    wallet_path: Option<PathBuf>,
     stock: Stock<S, H, P>,
     wallet: W,
-    #[getter(prefix = "is_")]
-    stock_dirty: bool,
-    #[getter(prefix = "is_")]
-    wallet_dirty: bool,
+    warnings: Vec<Warning>,
     #[getter(skip)]
     _phantom: PhantomData<K>,
 }
 
+#[cfg(feature = "fs")]
+impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
+    StoredWallet<Wallet<K, D>, K, S, H, P>
+where
+    S: FsStored,
+    H: FsStored,
+    P: FsStored,
+    for<'de> WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
+{
+    pub fn load(
+        stock_path: impl ToOwned<Owned = PathBuf>,
+        wallet_path: impl AsRef<Path>,
+    ) -> Result<Self, WalletError> {
+        let stock = Stock::load(stock_path)?;
+        let (wallet, warnings) = Wallet::load(wallet_path.as_ref(), true)?;
+        Ok(Self {
+            wallet,
+            stock,
+            warnings,
+            _phantom: PhantomData,
+        })
+    }
+}
+
 impl<K, W: WalletProvider<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
     StoredWallet<W, K, S, H, P>
-where
-    W::Descr: DescriptorRgb<K>,
-    W: Store,
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
+where W::Descr: DescriptorRgb<K>
 {
-    pub fn attach(
-        stock_path: PathBuf,
-        wallet_path: Option<PathBuf>,
-        stock: Stock<S, H, P>,
-        wallet: W,
-    ) -> Self {
+    pub fn new(stock: Stock<S, H, P>, wallet: W) -> Self {
         Self {
-            stock_path,
-            wallet_path,
             stock,
             wallet,
-            stock_dirty: false,
-            wallet_dirty: false,
+            warnings: none!(),
             _phantom: PhantomData,
         }
     }
 
-    pub fn stock_mut(&mut self) -> &mut Stock<S, H, P> {
-        self.stock_dirty = true;
-        &mut self.stock
-    }
+    pub fn stock_mut(&mut self) -> &mut Stock<S, H, P> { &mut self.stock }
 
-    pub fn wallet_mut(&mut self) -> &mut W {
-        self.wallet_dirty = true;
-        &mut self.wallet
-    }
+    pub fn wallet_mut(&mut self) -> &mut W { &mut self.wallet }
 
     #[allow(clippy::result_large_err)]
     pub fn fungible_history(
@@ -204,8 +117,6 @@ where
         invoice: &RgbInvoice,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
-        self.stock_dirty = true;
-        self.wallet_dirty = true;
         self.wallet.pay(&mut self.stock, invoice, params)
     }
 
@@ -215,7 +126,6 @@ where
         invoice: &RgbInvoice,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
-        self.wallet_dirty = true;
         self.wallet.construct_psbt_rgb(&self.stock, invoice, params)
     }
 
@@ -225,40 +135,6 @@ where
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
     ) -> Result<Transfer, CompletionError> {
-        self.stock_dirty = true;
-        self.wallet_dirty = true;
         self.wallet.transfer(&mut self.stock, invoice, psbt)
     }
-
-    pub fn store(&self) {
-        let r1 = if self.stock_dirty {
-            self.stock
-                .store(&self.stock_path)
-                .map_err(|e| e.to_string())
-        } else {
-            Ok(())
-        };
-        let r2 = if self.wallet_dirty {
-            if let Some(path) = self.wallet_path.as_ref() {
-                self.wallet.store(path).map_err(|e| e.to_string())
-            } else {
-                Ok(())
-            }
-        } else {
-            Ok(())
-        };
-        r1.and(r2).expect("error saving data");
-    }
-}
-
-impl<K, W: WalletProvider<K>, S: StashProvider, H: StateProvider, P: IndexProvider> Drop
-    for StoredWallet<W, K, S, H, P>
-where
-    W::Descr: DescriptorRgb<K>,
-    W: Store,
-    S: StoreFs,
-    H: StoreFs,
-    P: StoreFs,
-{
-    fn drop(&mut self) { self.store() }
 }

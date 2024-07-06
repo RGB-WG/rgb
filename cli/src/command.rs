@@ -37,7 +37,6 @@ use rgb::containers::{
 };
 use rgb::interface::{AmountChange, IfaceId};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgb::persistence::StashReadProvider;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
@@ -47,6 +46,7 @@ use rgb::{
     XOutpoint, XOutputSeal,
 };
 use rgbstd::interface::OutpointFilter;
+use rgbstd::persistence::StashReadProvider;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -485,7 +485,7 @@ impl Exec for RgbArgs {
                 all,
             } => {
                 let stock_path = self.general.base_dir();
-                let stock = self.load_stock(&stock_path)?;
+                let stock = self.load_stock(stock_path)?;
 
                 let contract = stock.contract_iface(*contract_id, tn!(iface.to_owned()))?;
 

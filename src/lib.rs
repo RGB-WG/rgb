@@ -30,7 +30,6 @@ mod indexers;
 mod wallet;
 pub mod pay;
 mod errors;
-#[cfg(feature = "fs")]
 mod store;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
@@ -44,6 +43,5 @@ pub mod resolvers {
     pub use super::indexers::*;
     pub use super::indexers::{AnyResolver, RgbResolver};
 }
-#[cfg(feature = "fs")]
-pub use store::{StoredStock, StoredWallet};
+pub use store::StoredWallet;
 pub use wallet::{WalletStock, WalletWrapper};

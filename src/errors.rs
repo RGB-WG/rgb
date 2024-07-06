@@ -84,8 +84,8 @@ pub enum WalletError {
 
     #[cfg(feature = "fs")]
     #[from]
-    #[from(bpwallet::LoadError)]
-    Bp(bpwallet::WalletError),
+    #[from(bpwallet::fs::LoadError)]
+    Bp(bpwallet::cli::ExecError),
 
     /// resolver error: {0}
     #[display(doc_comments)]

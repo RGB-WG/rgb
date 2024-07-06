@@ -21,13 +21,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
-use std::ops::DerefMut;
 
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
-use bpwallet::Wallet;
+use bpwallet::{Save, Wallet, WalletDescr};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
     TxParams,
@@ -99,7 +98,7 @@ where Self::Descr: DescriptorRgb<K>
     type Filter<'a>: Copy + WitnessFilter + OutpointFilter
     where Self: 'a;
     fn filter(&self) -> Self::Filter<'_>;
-    fn descriptor_mut(&mut self) -> &mut Self::Descr;
+    fn descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R) -> R;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
     fn txids(&self) -> impl Iterator<Item = Txid>;
 
@@ -291,8 +290,7 @@ where Self::Descr: DescriptorRgb<K>
                 .terminal_derivation()
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
-            self.descriptor_mut()
-                .add_tapret_tweak(terminal, tapret_commitment)?;
+            self.descriptor_mut(|descr| descr.add_tapret_tweak(terminal, tapret_commitment))?;
         }
 
         let witness_txid = psbt.txid();
@@ -322,10 +320,14 @@ where Self::Descr: DescriptorRgb<K>
     }
 }
 
-impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
+impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D>
+where Wallet<K, D>: Save
+{
     type Filter<'a> = WalletWrapper<'a, K, D> where Self: 'a;
     fn filter(&self) -> Self::Filter<'_> { WalletWrapper(self) }
-    fn descriptor_mut(&mut self) -> &mut Self::Descr { self.deref_mut() }
+    fn descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
+        self.descriptor_mut(f)
+    }
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
     fn txids(&self) -> impl Iterator<Item = Txid> { self.transactions().keys().copied() }
 }
