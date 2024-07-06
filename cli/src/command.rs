@@ -42,7 +42,7 @@ use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
 use rgb::{
     BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbDescr,
-    RgbKeychain, StateType, StoredWallet, TransferParams, WalletError, WalletProvider, XChain,
+    RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
     XOutpoint, XOutputSeal,
 };
 use rgbstd::interface::OutpointFilter;
@@ -508,8 +508,8 @@ impl Exec for RgbArgs {
                 }
 
                 enum Filter {
-                    Wallet(StoredWallet<Wallet<XpubDerivable, RgbDescr>>),
-                    WalletAll(StoredWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    Wallet(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    WalletAll(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
                 impl OutpointFilter for Filter {

@@ -38,7 +38,7 @@ use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::{ContractId, DataState, XChain, XOutpoint};
 
 use crate::invoice::NonFungible;
-use crate::wallet::WalletWrapper;
+use crate::wrapper::WalletWrapper;
 use crate::{CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid};
 
 #[derive(Clone, PartialEq, Debug)]

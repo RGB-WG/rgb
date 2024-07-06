@@ -30,7 +30,7 @@ use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
 use rgb::persistence::Stock;
 use rgb::resolvers::AnyResolver;
-use rgb::{RgbDescr, StoredWallet, TapretKey, WalletError};
+use rgb::{RgbDescr, RgbWallet, TapretKey, WalletError};
 use strict_types::encoding::{DecodeError, DeserializeError};
 
 use crate::Command;
@@ -112,7 +112,7 @@ impl RgbArgs {
     pub fn rgb_wallet(
         &self,
         config: &Config,
-    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock_path = self.general.base_dir();
         let stock = self.load_stock(stock_path)?;
         self.rgb_wallet_from_stock(config, stock)
@@ -122,9 +122,9 @@ impl RgbArgs {
         &self,
         config: &Config,
         stock: Stock,
-    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let wallet = self.inner.bp_wallet::<RgbDescr>(config)?;
-        let wallet = StoredWallet::new(stock, wallet);
+        let wallet = RgbWallet::new(stock, wallet);
 
         Ok(wallet)
     }

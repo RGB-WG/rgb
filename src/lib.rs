@@ -27,10 +27,10 @@ extern crate serde_crate as serde;
 
 mod descriptor;
 mod indexers;
-mod wallet;
+mod wrapper;
 pub mod pay;
 mod errors;
-mod store;
+mod wallet;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
 pub use errors::{CompletionError, CompositionError, HistoryError, PayError, WalletError};
@@ -43,5 +43,5 @@ pub mod resolvers {
     pub use super::indexers::*;
     pub use super::indexers::{AnyResolver, RgbResolver};
 }
-pub use store::StoredWallet;
-pub use wallet::{WalletStock, WalletWrapper};
+pub use wallet::RgbWallet;
+pub use wrapper::WalletWrapper;
