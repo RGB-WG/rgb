@@ -129,9 +129,10 @@ impl RgbArgs {
     }
 
     pub fn resolver(&self) -> Result<AnyResolver, WalletError> {
-        let resolver = match (&self.resolver.esplora, &self.resolver.electrum) {
-            (None, Some(url)) => AnyResolver::electrum_blocking(url, None),
-            (Some(url), None) => AnyResolver::esplora_blocking(url, None),
+        let resolver = match (&self.resolver.esplora, &self.resolver.electrum, &self.resolver.mempool) {
+            (None, Some(url), None) => AnyResolver::electrum_blocking(url, None),
+            (Some(url), None, None) => AnyResolver::esplora_blocking(url, None),
+            (None, None, Some(url)) => AnyResolver::mempool_blocking(url, None),
             _ => Err(s!(" - error: no transaction resolver is specified; use either --esplora \
                          or --electrum argument")),
         }
