@@ -147,3 +147,13 @@ impl ResolveWitness for AnyResolver {
             })
     }
 }
+
+
+impl ResolveWitness for &AnyResolver {
+    fn resolve_pub_witness(
+            &self,
+            witness_id: XWitnessId,
+        ) -> Result<XWitnessTx, WitnessResolverError> {
+            (*self).resolve_pub_witness(witness_id)
+        }
+}

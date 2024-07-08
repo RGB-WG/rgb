@@ -33,13 +33,13 @@ bp-seals = "0.11.0-beta.6"
 bp-std = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4"}
 descriptors = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4"}
 psbt = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4", features = ["client-side-validation"]}
-bp-wallet = { git = "https://github.com/will-bitlight/bp-wallet.git", branch = "testnet4"}
+bp-wallet = { git = "https://github.com/will-bitlight/bp-wallet.git", rev = "d8d4341"}
 rgb-std =  { git = "https://github.com/will-bitlight/rgb-std.git", rev = "929c416", features = ["fs"]}
+rgb-interfaces = { git = "https://github.com/will-bitlight/rgb-interfaces.git", branch = "testnet4"}
 
 bp-electrum = "0.11.0-beta.6"
 bp-esplora = { version = "0.11.0-beta.6", default-features = false, features = ["blocking"] }
 rgb-psbt = { version = "0.11.0-beta.6", path = "psbt" }
-rgb-interfaces = "0.11.0-beta.6"
 indexmap = "2.0.2"
 chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
