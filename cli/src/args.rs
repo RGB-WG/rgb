@@ -81,11 +81,13 @@ impl RgbArgs {
         &self,
         stock_path: impl ToOwned<Owned = PathBuf>,
     ) -> Result<Stock, WalletError> {
+        let stock_path = stock_path.to_owned();
+
         if self.verbose > 1 {
-            eprint!("Loading stock ... ");
+            eprint!("Loading stock from `{}` ... ", stock_path.display());
         }
 
-        Stock::load(stock_path.to_owned()).map_err(WalletError::from).or_else(|err| {
+        let stock = Stock::load(stock_path.clone()).map_err(WalletError::from).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
@@ -93,14 +95,17 @@ impl RgbArgs {
                 fs::create_dir_all(stock_path.to_owned())?;
                 let stock = Stock::new(stock_path.to_owned());
                 stock.store()?;
-                if self.verbose > 1 {
-                    eprintln!("success");
-                }
                 return Ok(stock)
             }
             eprintln!("stock file is damaged, failing");
             Err(err)
-        })
+        })?;
+
+        if self.verbose > 1 {
+            eprintln!("success");
+        }
+
+        Ok(stock)
     }
 
     pub fn rgb_stock(&self) -> Result<Stock, WalletError> {

@@ -488,7 +488,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.6.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=runtime#b3cdda624394f6ade6f83076a43bc66078895c2a"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=runtime#24e947a90539abbe85b127e7bf9871cdfe3a90a9"
 dependencies = [
  "amplify",
  "base64",
@@ -1116,7 +1116,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
