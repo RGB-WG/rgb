@@ -1116,7 +1116,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -1398,7 +1398,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=runtime#f00e86085e13a342fbd2300e49f3e7f7242cdd9c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=runtime#c2f83473eb612638b9b67c0fb5150c574c35171e"
 dependencies = [
  "amplify",
  "baid64",
@@ -1460,7 +1460,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=runtime#f00e86085e13a342fbd2300e49f3e7f7242cdd9c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=runtime#c2f83473eb612638b9b67c0fb5150c574c35171e"
 dependencies = [
  "aluvm",
  "amplify",
