@@ -35,8 +35,9 @@ use rgb::containers::{
     BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Terminal,
     Transfer, UniversalFile,
 };
-use rgb::interface::{AmountChange, IfaceId};
+use rgb::interface::{AmountChange, IfaceId, OutpointFilter};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
+use rgb::persistence::StashReadProvider;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
@@ -45,8 +46,6 @@ use rgb::{
     RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
     XOutpoint, XOutputSeal,
 };
-use rgbstd::interface::OutpointFilter;
-use rgbstd::persistence::StashReadProvider;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;

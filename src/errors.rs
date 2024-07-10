@@ -50,7 +50,15 @@ pub enum WalletError {
     Deserialize(DeserializeError),
 
     #[from]
-    Load(LoadError),
+    StockLoad(LoadError),
+
+    #[cfg(feature = "fs")]
+    #[from]
+    WalletLoad(bpwallet::fs::LoadError),
+
+    #[cfg(feature = "cli")]
+    #[from]
+    WalletExect(bpwallet::cli::ExecError),
 
     #[from]
     Builder(BuilderError),
@@ -81,11 +89,6 @@ pub enum WalletError {
     /// {0}
     #[display(doc_comments)]
     IncompleteContract(validation::Status),
-
-    #[cfg(feature = "fs")]
-    #[from]
-    #[from(bpwallet::fs::LoadError)]
-    Bp(bpwallet::cli::ExecError),
 
     /// resolver error: {0}
     #[display(doc_comments)]
