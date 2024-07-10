@@ -439,7 +439,7 @@ impl Exec for RgbArgs {
                         let mut resolver = self.resolver()?;
                         eprint!("- validating the contract {} ... ", contract.contract_id());
                         let contract = contract
-                            .validate(&mut resolver, self.general.network.is_testnet())
+                            .validate(&resolver, self.general.network.is_testnet())
                             .map_err(|(status, _)| {
                                 eprintln!("failure");
                                 status.to_string()
@@ -1046,7 +1046,7 @@ impl Exec for RgbArgs {
                 let consignment = Transfer::load_file(file)?;
                 resolver.add_terminals(&consignment);
                 let status =
-                    match consignment.validate(&mut resolver, self.general.network.is_testnet()) {
+                    match consignment.validate(&resolver, self.general.network.is_testnet()) {
                         Ok(consignment) => consignment.into_validation_status(),
                         Err((status, _)) => status,
                     };
@@ -1063,7 +1063,7 @@ impl Exec for RgbArgs {
                 let transfer = Transfer::load_file(file)?;
                 resolver.add_terminals(&transfer);
                 let valid = transfer
-                    .validate(&mut resolver, self.general.network.is_testnet())
+                    .validate(&resolver, self.general.network.is_testnet())
                     .map_err(|(status, _)| status)?;
                 stock.accept_transfer(valid, &mut resolver)?;
                 eprintln!("Transfer accepted into the stash");

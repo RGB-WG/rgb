@@ -92,7 +92,7 @@ impl RgbArgs {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
                 }
-                fs::create_dir_all(stock_path.to_owned())?;
+                fs::create_dir_all(&stock_path)?;
                 let stock = Stock::new(stock_path.to_owned());
                 stock.store()?;
                 return Ok(stock)

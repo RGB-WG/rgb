@@ -69,6 +69,7 @@ where
     for<'de> WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
     for<'de> D: serde::Serialize + serde::Deserialize<'de>,
 {
+    #[allow(clippy::result_large_err)]
     pub fn load(
         stock_path: impl ToOwned<Owned = PathBuf>,
         wallet_path: impl AsRef<Path>,
