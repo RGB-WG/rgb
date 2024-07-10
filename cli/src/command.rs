@@ -35,7 +35,7 @@ use rgb::containers::{
     BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Terminal,
     Transfer, UniversalFile,
 };
-use rgb::interface::{AmountChange, IfaceId};
+use rgb::interface::{AmountChange, IfaceId, OutpointFilter};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::StashReadProvider;
 use rgb::schema::SchemaId;
@@ -43,10 +43,9 @@ use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
 use rgb::{
     BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbDescr,
-    RgbKeychain, StateType, StoredWallet, TransferParams, WalletError, WalletProvider, XChain,
+    RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
     XOutpoint, XOutputSeal,
 };
-use rgbstd::interface::OutpointFilter;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -485,7 +484,7 @@ impl Exec for RgbArgs {
                 all,
             } => {
                 let stock_path = self.general.base_dir();
-                let stock = self.load_stock(&stock_path)?;
+                let stock = self.load_stock(stock_path)?;
 
                 let contract = stock.contract_iface(*contract_id, tn!(iface.to_owned()))?;
 
@@ -508,8 +507,8 @@ impl Exec for RgbArgs {
                 }
 
                 enum Filter {
-                    Wallet(StoredWallet<Wallet<XpubDerivable, RgbDescr>>),
-                    WalletAll(StoredWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    Wallet(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    WalletAll(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
                 impl OutpointFilter for Filter {

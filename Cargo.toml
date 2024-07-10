@@ -83,11 +83,17 @@ log = { workspace = true, optional = true }
 
 [features]
 default = ["esplora_blocking"]
-all = ["esplora_blocking", "electrum_blocking", "serde", "log", "fs"]
+all = ["esplora_blocking", "electrum_blocking", "serde", "log", "fs", "cli"]
 fs = ["serde", "bp-wallet/fs"]
+cli = ["fs"]
 esplora_blocking = ["bp-esplora"]
 electrum_blocking = ["bp-electrum"]
 serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "runtime" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "runtime" }

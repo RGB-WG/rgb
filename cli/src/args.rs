@@ -23,14 +23,14 @@
 
 use std::fs;
 use std::io::ErrorKind;
-use std::path::Path;
+use std::path::PathBuf;
 
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
-use rgb::{AnyResolver, RgbDescr, StoredStock, StoredWallet, TapretKey, WalletError};
-use rgbstd::persistence::fs::{LoadFs, StoreFs};
-use rgbstd::persistence::Stock;
+use rgb::persistence::Stock;
+use rgb::resolvers::AnyResolver;
+use rgb::{RgbDescr, RgbWallet, TapretKey, WalletError};
 use strict_types::encoding::{DecodeError, DeserializeError};
 
 use crate::Command;
@@ -77,41 +77,49 @@ impl Default for RgbArgs {
 }
 
 impl RgbArgs {
-    pub(crate) fn load_stock(&self, stock_path: &Path) -> Result<Stock, WalletError> {
+    pub(crate) fn load_stock(
+        &self,
+        stock_path: impl ToOwned<Owned = PathBuf>,
+    ) -> Result<Stock, WalletError> {
+        let stock_path = stock_path.to_owned();
+
         if self.verbose > 1 {
-            eprint!("Loading stock ... ");
+            eprint!("Loading stock from `{}` ... ", stock_path.display());
         }
 
-        Stock::load(stock_path).map_err(WalletError::from).or_else(|err| {
+        let stock = Stock::load(stock_path.clone()).map_err(WalletError::from).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
                 }
-                let stock = Stock::default();
-                fs::create_dir_all(stock_path)?;
-                stock.store(stock_path)?;
-                if self.verbose > 1 {
-                    eprintln!("success");
-                }
+                fs::create_dir_all(stock_path.to_owned())?;
+                let stock = Stock::new(stock_path.to_owned());
+                stock.store()?;
                 return Ok(stock)
             }
             eprintln!("stock file is damaged, failing");
             Err(err)
-        })
+        })?;
+
+        if self.verbose > 1 {
+            eprintln!("success");
+        }
+
+        Ok(stock)
     }
 
-    pub fn rgb_stock(&self) -> Result<StoredStock, WalletError> {
+    pub fn rgb_stock(&self) -> Result<Stock, WalletError> {
         let stock_path = self.general.base_dir();
-        let stock = self.load_stock(&stock_path)?;
-        Ok(StoredStock::attach(stock_path, stock))
+        let stock = self.load_stock(stock_path)?;
+        Ok(stock)
     }
 
     pub fn rgb_wallet(
         &self,
         config: &Config,
-    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock_path = self.general.base_dir();
-        let stock = self.load_stock(&stock_path)?;
+        let stock = self.load_stock(stock_path)?;
         self.rgb_wallet_from_stock(config, stock)
     }
 
@@ -119,11 +127,9 @@ impl RgbArgs {
         &self,
         config: &Config,
         stock: Stock,
-    ) -> Result<StoredWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
-        let stock_path = self.general.base_dir();
-        let wallet = self.inner.bp_runtime::<RgbDescr>(config)?;
-        let wallet_path = wallet.path().clone();
-        let wallet = StoredWallet::attach(stock_path, wallet_path, stock, wallet.detach());
+    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
+        let wallet = self.inner.bp_wallet::<RgbDescr>(config)?;
+        let wallet = RgbWallet::new(stock, wallet);
 
         Ok(wallet)
     }
