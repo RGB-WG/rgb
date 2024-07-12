@@ -73,7 +73,7 @@ impl AnyResolver {
     pub fn mempool_blocking(url: &str, _: Option<()>) -> Result<Self, String> {
         Ok(AnyResolver {
             inner: Box::new(
-                crate::mempool_blocking::MemPoolClient::new(url),
+                super::mempool_blocking::MemPoolClient::new(url),
             ),
             terminal_txes: Default::default(),
         })
@@ -146,14 +146,4 @@ impl ResolveWitness for AnyResolver {
                 Some(e) => WitnessResolverError::Other(witness_id, e),
             })
     }
-}
-
-
-impl ResolveWitness for &AnyResolver {
-    fn resolve_pub_witness(
-            &self,
-            witness_id: XWitnessId,
-        ) -> Result<XWitnessTx, WitnessResolverError> {
-            (*self).resolve_pub_witness(witness_id)
-        }
 }

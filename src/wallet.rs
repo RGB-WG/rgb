@@ -20,66 +20,97 @@
 // limitations under the License.
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
+#[cfg(feature = "fs")]
+use std::path::{Path, PathBuf};
 
-use bpwallet::Wallet;
-use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef, OutpointFilter, WitnessFilter};
-use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
-
-use crate::{
-    AssignmentWitness, ContractId, DescriptorRgb, HistoryError, WalletError, WalletProvider,
-    XChain, XOutpoint, XWitnessId,
+use bpstd::XpubDerivable;
+#[cfg(feature = "fs")]
+use bpwallet::fs::Warning;
+use bpwallet::{Wallet, WalletDescr};
+use psrgbt::{Psbt, PsbtMeta};
+use rgbstd::containers::Transfer;
+use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef};
+#[cfg(feature = "fs")]
+use rgbstd::persistence::fs::FsStored;
+use rgbstd::persistence::{
+    IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider, Stock,
 };
 
-pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
+use super::{
+    CompletionError, CompositionError, ContractId, DescriptorRgb, HistoryError, PayError,
+    TransferParams, WalletError, WalletProvider, XWitnessId,
+};
+use crate::invoice::RgbInvoice;
 
-impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> {}
-impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D> {
-    fn clone(&self) -> Self { *self }
+#[derive(Getters)]
+pub struct RgbWallet<
+    W: WalletProvider<K>,
+    K = XpubDerivable,
+    S: StashProvider = MemStash,
+    H: StateProvider = MemState,
+    P: IndexProvider = MemIndex,
+> where W::Descr: DescriptorRgb<K>
+{
+    stock: Stock<S, H, P>,
+    wallet: W,
+    warnings: Vec<Warning>,
+    #[getter(skip)]
+    _phantom: PhantomData<K>,
 }
 
-impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D> {
-    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
-        let output = output.into();
-        self.0
-            .outpoints()
-            .any(|outpoint| XChain::Bitcoin(outpoint) == *output)
-    }
-}
-
-impl<'a, K, D: DescriptorRgb<K>> WitnessFilter for WalletWrapper<'a, K, D> {
-    fn include_witness(&self, witness: impl Into<AssignmentWitness>) -> bool {
-        let witness = witness.into();
-        self.0
-            .txids()
-            .any(|txid| AssignmentWitness::Present(XWitnessId::Bitcoin(txid)) == witness)
-    }
-}
-
-pub trait WalletStock<W: WalletProvider<K>, K>
-where W::Descr: DescriptorRgb<K>
+#[cfg(feature = "fs")]
+impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
+    RgbWallet<Wallet<K, D>, K, S, H, P>
+where
+    S: FsStored,
+    H: FsStored,
+    P: FsStored,
+    for<'de> WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
 {
     #[allow(clippy::result_large_err)]
-    fn fungible_history(
-        &self,
-        wallet: &W,
-        contract_id: ContractId,
-        iface: impl Into<IfaceRef>,
-    ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, WalletError>;
+    pub fn load(
+        stock_path: impl ToOwned<Owned = PathBuf>,
+        wallet_path: impl AsRef<Path>,
+    ) -> Result<Self, WalletError> {
+        let stock = Stock::load(stock_path)?;
+        let (wallet, warnings) = Wallet::load(wallet_path.as_ref(), true)?;
+        Ok(Self {
+            wallet,
+            stock,
+            warnings,
+            _phantom: PhantomData,
+        })
+    }
 }
 
-impl<W: WalletProvider<K>, K, S: StashProvider, H: StateProvider, P: IndexProvider>
-    WalletStock<W, K> for Stock<S, H, P>
+impl<K, W: WalletProvider<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
+    RgbWallet<W, K, S, H, P>
 where W::Descr: DescriptorRgb<K>
 {
-    // TODO: Integrate into BP Wallet `TxRow` as L2 and provide transactional info
-    fn fungible_history(
+    pub fn new(stock: Stock<S, H, P>, wallet: W) -> Self {
+        Self {
+            stock,
+            wallet,
+            warnings: none!(),
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn stock_mut(&mut self) -> &mut Stock<S, H, P> { &mut self.stock }
+
+    pub fn wallet_mut(&mut self) -> &mut W { &mut self.wallet }
+
+    #[allow(clippy::result_large_err)]
+    pub fn fungible_history(
         &self,
-        wallet: &W,
         contract_id: ContractId,
         iface: impl Into<IfaceRef>,
     ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, WalletError> {
+        let wallet = &self.wallet;
         let iref = iface.into();
-        let iface = self.iface(iref.clone()).map_err(|e| e.to_string())?;
+        let iface = self.stock.iface(iref.clone()).map_err(|e| e.to_string())?;
         let default_op = iface
             .default_operation
             .as_ref()
@@ -93,10 +124,38 @@ where W::Descr: DescriptorRgb<K>
             .ok_or(HistoryError::NoDefaultAssignment)?
             .clone();
         let contract = self
+            .stock
             .contract_iface(contract_id, iref)
             .map_err(|e| e.to_string())?;
         Ok(contract
             .fungible_ops::<AmountChange>(state_name, wallet.filter(), wallet.filter())
             .map_err(|e| e.to_string())?)
+    }
+
+    #[allow(clippy::result_large_err)]
+    pub fn pay(
+        &mut self,
+        invoice: &RgbInvoice,
+        params: TransferParams,
+    ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
+        self.wallet.pay(&mut self.stock, invoice, params)
+    }
+
+    #[allow(clippy::result_large_err)]
+    pub fn construct_psbt(
+        &mut self,
+        invoice: &RgbInvoice,
+        params: TransferParams,
+    ) -> Result<(Psbt, PsbtMeta), CompositionError> {
+        self.wallet.construct_psbt_rgb(&self.stock, invoice, params)
+    }
+
+    #[allow(clippy::result_large_err)]
+    pub fn transfer(
+        &mut self,
+        invoice: &RgbInvoice,
+        psbt: &mut Psbt,
+    ) -> Result<Transfer, CompletionError> {
+        self.wallet.transfer(&mut self.stock, invoice, psbt)
     }
 }
