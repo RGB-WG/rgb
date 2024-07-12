@@ -558,7 +558,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.6.1"
-source = "git+https://github.com/will-bitlight/bp-wallet.git?rev=d8d4341#d8d4341ec249b2be35981bd95344dc2b8e4d7465"
+source = "git+https://github.com/will-bitlight/bp-wallet.git?rev=c1d7ce9#c1d7ce951018a554c12f3b796f9382e2c341a597"
 dependencies = [
  "amplify",
  "base64",
@@ -570,6 +570,7 @@ dependencies = [
  "env_logger",
  "log",
  "psbt 0.11.0-beta.6 (git+https://github.com/will-bitlight/bp-std.git?branch=testnet4)",
+ "reqwest",
  "serde",
  "serde_json",
  "serde_yaml",

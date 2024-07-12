@@ -33,7 +33,7 @@ bp-seals = "0.11.0-beta.6"
 bp-std = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4"}
 descriptors = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4"}
 psbt = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4", features = ["client-side-validation"]}
-bp-wallet = { git = "https://github.com/will-bitlight/bp-wallet.git", rev = "d8d4341"}
+bp-wallet = { git = "https://github.com/will-bitlight/bp-wallet.git", rev = "c1d7ce9"}
 rgb-std =  { git = "https://github.com/will-bitlight/rgb-std.git", rev = "929c416", features = ["fs"]}
 rgb-interfaces = { git = "https://github.com/will-bitlight/rgb-interfaces.git", branch = "testnet4"}
 
