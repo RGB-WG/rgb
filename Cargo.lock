@@ -558,7 +558,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.6.1"
-source = "git+https://github.com/will-bitlight/bp-wallet.git?rev=c1d7ce9#c1d7ce951018a554c12f3b796f9382e2c341a597"
+source = "git+https://github.com/will-bitlight/bp-wallet.git?rev=bcba0d4#bcba0d49671731f2643ac34936e0d96048385ada"
 dependencies = [
  "amplify",
  "base64",
@@ -1880,7 +1880,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/will-bitlight/rgb-interfaces.git?branch=testnet4#bd11bd690dd26c760089108479f344f6b5f8aacb"
+source = "git+https://github.com/will-bitlight/rgb-interfaces.git?rev=19526d5#19526d587e97b40f0880796cdde240447290b6ba"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1896,7 +1896,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/will-bitlight/rgb-std.git?rev=929c416#929c4169ec3037cef91b6d7792ae7ae687a61302"
+source = "git+https://github.com/will-bitlight/rgb-std.git?rev=78a4951#78a4951e5d029ce81f4f5794df2db6effee18b28"
 dependencies = [
  "amplify",
  "baid64",
@@ -1959,7 +1959,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/will-bitlight/rgb-std.git?rev=929c416#929c4169ec3037cef91b6d7792ae7ae687a61302"
+source = "git+https://github.com/will-bitlight/rgb-std.git?rev=78a4951#78a4951e5d029ce81f4f5794df2db6effee18b28"
 dependencies = [
  "aluvm",
  "amplify",
