@@ -73,6 +73,7 @@ impl AnyResolver {
         let expected_block_hash = match network {
             Network::Mainnet => "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
             Network::Testnet3 => "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943",
+            Network::Testnet4 => "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943",
             Network::Signet => "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6",
             Network::Regtest => "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
         }

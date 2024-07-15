@@ -100,3 +100,7 @@ bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "signer" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "signer" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
