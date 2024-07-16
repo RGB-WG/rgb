@@ -28,15 +28,12 @@ strict_types = "2.7.0-beta.4"
 commit_verify = "0.11.0-beta.6"
 bp-core = "0.11.0-beta.6"
 bp-seals = "0.11.0-beta.6"
-# TODO: To test testnet4 upstream and downstream, 
-# git dependencies were used temporarily during development
-bp-std = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4"}
-descriptors = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4"}
-psbt = { git = "https://github.com/will-bitlight/bp-std.git", branch = "testnet4", features = ["client-side-validation"]}
-bp-wallet = { git = "https://github.com/will-bitlight/bp-wallet.git", rev = "bcba0d4", features = ["cli"]}
-rgb-std =  { git = "https://github.com/will-bitlight/rgb-std.git", rev = "78a4951", features = ["fs"]}
-rgb-interfaces = { git = "https://github.com/will-bitlight/rgb-interfaces.git", rev = "19526d5"}
-
+bp-std = "0.11.0-beta.6"
+descriptors = "0.11.0-beta.6"
+psbt = { version = "0.11.0-beta.6", features = ["client-side-validation"] }
+bp-wallet = { version = "0.11.0-beta.6.1", features = ["cli"] }
+rgb-std = { version = "0.11.0-beta.6", features = ["fs"] }
+rgb-interfaces = "0.11.0-beta.6"
 bp-electrum = "0.11.0-beta.6"
 bp-esplora = { version = "0.11.0-beta.6", default-features = false, features = ["blocking"] }
 rgb-psbt = { version = "0.11.0-beta.6", path = "psbt" }
@@ -45,7 +42,6 @@ chrono = "0.4.31"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
-reqwest = { version = "0.12", features = ["json", "blocking"] }
 
 [package]
 name = "rgb-runtime"
@@ -84,7 +80,6 @@ chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
 
 [features]
 default = ["esplora_blocking", "mempool_blocking"]
@@ -94,12 +89,17 @@ cli = ["fs"]
 esplora_blocking = ["bp-esplora"]
 electrum_blocking = ["bp-electrum"]
 serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-psbt/serde"]
-mempool_blocking = ["reqwest"]
+mempool_blocking = ["esplora_blocking"]
 
 [package.metadata.docs.rs]
 features = ["all"]
 
 [patch.crates-io]
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master", features = ["cli"] }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+bp-std = { git = "https://github.com/BP-WG/bp-std.git", branch = "master" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std.git", branch = "master"}
+psbt = { git = "https://github.com/BP-WG/bp-std.git", branch = "master" }
+descriptors = { git = "https://github.com/BP-WG/bp-std.git", branch = "master" }
+rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces.git", branch = "master" }

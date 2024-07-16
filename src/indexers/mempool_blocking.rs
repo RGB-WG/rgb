@@ -19,182 +19,110 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::Cursor;
-
-use bp::{ConsensusDecode, Tx};
+use bp::Tx;
 use bpstd::{Network, Txid};
-use esplora::{Error, TxStatus};
-use rgbstd::{WitnessAnchor, WitnessOrd, WitnessPos};
+use esplora::{BlockingClient, Config, Error};
+use rgbstd::WitnessAnchor;
 
 use super::RgbResolver;
-use crate::XWitnessId;
 
 #[derive(Clone, Debug)]
 /// Represents a client for interacting with a mempool.
+// Currently, this client is wrapping an `esplora::BlockingClient` instance.
+// If the mempool service changes in the future and is not compatible with
+// esplora::BlockingClient, Only the internal implementation needs to be
+// modified
 pub struct MemPoolClient {
-    url: String,
+    inner: BlockingClient,
 }
 
-/// Represents a client for interacting with a mempool.
 impl MemPoolClient {
-    /// Creates a new instance of `MemPoolClient` with the specified URL.
+    /// Creates a new `MemPoolClient` instance.
     ///
     /// # Arguments
     ///
-    /// * `url` - The URL of the mempool.
+    /// * `url` - The URL of the mempool server.
+    /// * `config` - The configuration for the mempool client.
     ///
     /// # Returns
     ///
-    /// A new instance of `MemPoolClient`.
-    pub fn new(url: &str) -> Self {
-        MemPoolClient {
-            url: url.to_string(),
-        }
+    /// Returns a `Result` containing the `MemPoolClient` instance if
+    /// successful, or an `Error` if an error occurred.
+    pub fn new(url: &str, config: Config) -> Result<Self, Error> {
+        let inner = BlockingClient::from_config(url, config)?;
+        Ok(MemPoolClient { inner })
     }
 }
 
 impl RgbResolver for MemPoolClient {
-    fn check(&self, _network: Network, expected_block_hash: String) -> Result<(), String> {
-        // check the mempool server is for the correct network
-        let block_hash = self.block_hash(0)?;
-        if expected_block_hash != block_hash {
-            return Err(s!("resolver is for a network different from the wallet's one"));
-        }
-        Ok(())
+    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String> {
+        self.inner.check(network, expected_block_hash)
     }
 
     fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
-        let status = self.tx_status(&txid)?;
-        let ord = match status
-            .block_height
-            .and_then(|h| status.block_time.map(|t| (h, t)))
-        {
-            Some((h, t)) => {
-                WitnessOrd::OnChain(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
-            }
-            None => WitnessOrd::OffChain,
-        };
-        Ok(WitnessAnchor {
-            witness_ord: ord,
-            witness_id: XWitnessId::Bitcoin(txid),
-        })
+        self.inner.resolve_height(txid)
     }
 
     fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>> {
-        self.tx(&txid).map_err(|e| {
-            if e.contains("Transaction not found") {
-                None
-            } else {
-                Some(e)
-            }
-        })
-    }
-}
-
-/// Implementation of a MemPoolClient struct.
-impl MemPoolClient {
-    /// Retrieves the block hash for a given height from mempool.space.
-    ///
-    /// # Arguments
-    ///
-    /// * `height` - The height of the block.
-    ///
-    /// # Returns
-    ///
-    /// Returns a Result containing the block hash as a String if successful, or an error message as a String if unsuccessful.
-    fn block_hash(&self, height: u32) -> Result<String, String> {
-        let url = self.url.as_str();
-        let http_response = reqwest::blocking::get(format!("{url}/block-height/{height}"))
-            .map_err(|err| format!("Failed to get block-hash from mempool.space: {}", err))?;
-        let response = http_response
-            .text()
-            .map_err(|err| format!("Failed to get block-hash from mempool.space: {}", err))?;
-        Ok(response)
-    }
-
-    /// Retrieves the transaction status for a given transaction ID from mempool.space.
-    ///
-    /// # Arguments
-    ///
-    /// * `txid` - The transaction ID.
-    ///
-    /// # Returns
-    ///
-    /// Returns a Result containing the transaction status as a TxStatus enum if successful, or an error message as a String if unsuccessful.
-    fn tx_status(&self, txid: &Txid) -> Result<TxStatus, String> {
-        let url = self.url.as_str();
-        let http_response = reqwest::blocking::get(format!("{url}/tx/{txid}/status"))
-            .map_err(|err| format!("Failed to get tx status from mempool.space: {}", err))?;
-        let response = http_response
-            .json::<TxStatus>()
-            .map_err(|err| format!("Failed to get tx status from mempool.space: {}", err))?;
-        Ok(response)
-    }
-
-    /// Retrieves the transaction for a given transaction ID from mempool.space.
-    ///
-    /// # Arguments
-    ///
-    /// * `txid` - The transaction ID.
-    ///
-    /// # Returns
-    ///
-    /// Returns a Result containing the transaction as a Tx struct if successful, or an error message as a String if unsuccessful.
-    fn tx(&self, txid: &Txid) -> Result<Tx, String> {
-        let url = self.url.as_str();
-        let http_response = reqwest::blocking::get(format!("{url}/tx/{txid}/raw"))
-            .map_err(|err| format!("Failed to get tx from mempool.space: {}", err))?;
-        let bytes = http_response
-            .bytes()
-            .map_err(|err| format!("Failed to get tx from mempool.space: {}", err))?;
-        let tx = Tx::consensus_decode(&mut Cursor::new(bytes))
-            .map_err(|err| format!("Failed to get tx from mempool.space: {}", err))?;
-        Ok(tx)
+        self.inner.resolve_pub_witness(txid)
     }
 }
 
 #[cfg(test)]
 mod test {
+    use esplora::Config;
     #[test]
     fn test_mempool_client_mainnet_tx() {
-        let client = super::MemPoolClient::new("https://mempool.space/api");
+        let client = super::MemPoolClient::new("https://mempool.space/api", Config::default())
+            .expect("Failed to create client");
         let txid = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
             .parse()
             .unwrap();
-        let status = client.tx_status(&txid).unwrap();
+        let status = client.inner.tx_status(&txid).unwrap();
         assert_eq!(status.block_height, Some(0));
         assert_eq!(status.block_time, Some(1231006505));
     }
 
     #[test]
     fn test_mempool_client_testnet_tx() {
-        let client = super::MemPoolClient::new("https://mempool.space/testnet/api");
+        let client =
+            super::MemPoolClient::new("https://mempool.space/testnet/api", Config::default())
+                .expect("Failed to create client");
+
         let txid = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
             .parse()
             .unwrap();
-        let status = client.tx_status(&txid).unwrap();
+        let status = client.inner.tx_status(&txid).unwrap();
         assert_eq!(status.block_height, Some(0));
         assert_eq!(status.block_time, Some(1296688602));
     }
 
     #[test]
     fn test_mempool_client_testnet4_tx() {
-        let client = super::MemPoolClient::new("https://mempool.space/testnet4/api");
+        let client =
+            super::MemPoolClient::new("https://mempool.space/testnet4/api", Config::default())
+                .expect("Failed to create client");
         let txid = "7aa0a7ae1e223414cb807e40cd57e667b718e42aaf9306db9102fe28912b7b4e"
             .parse()
             .unwrap();
-        let status = client.tx_status(&txid).unwrap();
+        let status = client.inner.tx_status(&txid).unwrap();
         assert_eq!(status.block_height, Some(0));
         assert_eq!(status.block_time, Some(1714777860));
     }
 
     #[test]
     fn test_mempool_client_testnet4_tx_detail() {
-        let client = super::MemPoolClient::new("https://mempool.space/testnet4/api");
+        let client =
+            super::MemPoolClient::new("https://mempool.space/testnet4/api", Config::default())
+                .expect("Failed to create client");
         let txid = "7aa0a7ae1e223414cb807e40cd57e667b718e42aaf9306db9102fe28912b7b4e"
             .parse()
             .unwrap();
-        let tx = client.tx(&txid).expect("Failed to get tx");
+        let tx = client
+            .inner
+            .tx(&txid)
+            .expect("Failed to get tx")
+            .expect("Tx not found");
         assert!(tx.inputs.len() > 0);
         assert!(tx.outputs.len() > 0);
         assert_eq!(tx.outputs[0].value, 5_000_000_000);

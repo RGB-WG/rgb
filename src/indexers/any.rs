@@ -70,11 +70,12 @@ impl AnyResolver {
     }
 
     #[cfg(feature = "mempool_blocking")]
-    pub fn mempool_blocking(url: &str, _: Option<()>) -> Result<Self, String> {
+    pub fn mempool_blocking(url: &str, config: Option<esplora::Config>) -> Result<Self, String> {
         Ok(AnyResolver {
-            inner: Box::new(
-                super::mempool_blocking::MemPoolClient::new(url),
-            ),
+            inner: Box::new(super::mempool_blocking::MemPoolClient::new(
+                url,
+                config.unwrap_or_default(),
+            )?),
             terminal_txes: Default::default(),
         })
     }
