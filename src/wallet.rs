@@ -27,6 +27,7 @@ use std::path::{Path, PathBuf};
 use bpstd::XpubDerivable;
 #[cfg(feature = "fs")]
 use bpwallet::fs::Warning;
+#[cfg(feature = "fs")]
 use bpwallet::{Wallet, WalletDescr};
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
@@ -54,6 +55,7 @@ pub struct RgbWallet<
 {
     stock: Stock<S, H, P>,
     wallet: W,
+    #[cfg(feature = "fs")]
     warnings: Vec<Warning>,
     #[getter(skip)]
     _phantom: PhantomData<K>,
@@ -93,6 +95,7 @@ where W::Descr: DescriptorRgb<K>
         Self {
             stock,
             wallet,
+            #[cfg(feature = "fs")]
             warnings: none!(),
             _phantom: PhantomData,
         }

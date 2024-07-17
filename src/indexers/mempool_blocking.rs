@@ -48,6 +48,7 @@ impl MemPoolClient {
     ///
     /// Returns a `Result` containing the `MemPoolClient` instance if
     /// successful, or an `Error` if an error occurred.
+    #[allow(clippy::result_large_err)]
     pub fn new(url: &str, config: Config) -> Result<Self, Error> {
         let inner = BlockingClient::from_config(url, config)?;
         Ok(MemPoolClient { inner })
