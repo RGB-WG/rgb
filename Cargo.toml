@@ -95,11 +95,14 @@ mempool_blocking = ["esplora_blocking"]
 features = ["all"]
 
 [patch.crates-io]
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
-bp-std = { git = "https://github.com/BP-WG/bp-std.git", branch = "master" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std.git", branch = "master"}
-psbt = { git = "https://github.com/BP-WG/bp-std.git", branch = "master" }
-descriptors = { git = "https://github.com/BP-WG/bp-std.git", branch = "master" }
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces.git", branch = "master" }

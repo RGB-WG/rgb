@@ -20,6 +20,7 @@
 // limitations under the License.
 
 use std::collections::{BTreeSet, HashMap};
+use std::fmt::{self, Display, Formatter};
 use std::iter;
 use std::str::FromStr;
 
@@ -27,13 +28,14 @@ use amplify::Wrapper;
 use bp::dbc::tapret::TapretCommitment;
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
+use bp::{LegacyPk, SigScript, Witness};
 use bpstd::{
-    CompressedPk, Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase,
-    IndexError, IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, TapScript,
-    TapTree, Terminal, XOnlyPk, XpubDerivable, XpubSpec,
+    Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase, IndexError,
+    IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, TapScript, TapTree, Terminal,
+    XOnlyPk, XpubAccount, XpubDerivable,
 };
 use commit_verify::CommitVerify;
-use descriptors::{Descriptor, SpkClass, StdDescr, TrKey, Wpkh};
+use descriptors::{Descriptor, LegacyKeySig, SpkClass, StdDescr, TaprootKeySig, TrKey, Wpkh};
 use indexmap::IndexMap;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
@@ -116,15 +118,32 @@ impl From<RgbKeychain> for Keychain {
     serde(crate = "serde_crate", rename_all = "camelCase")
 )]
 pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
-    pub internal_key: K,
+    pub tr: TrKey<K>,
     // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
     pub tweaks: HashMap<Terminal, TapretCommitment>,
+}
+
+impl<K: DeriveXOnly + Display> Display for TapretKey<K> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "tapret({},tweaks(", self.tr.as_internal_key())?;
+        let mut iter = self.tweaks.iter().peekable();
+        while let Some((term, tweak)) = iter.next() {
+            if term.keychain != RgbKeychain::Tapret.into() {
+                write!(f, "{}/", term.keychain)?;
+            }
+            write!(f, "{}={tweak}", term.index)?;
+            if iter.peek().is_some() {
+                f.write_str(";")?;
+            }
+        }
+        f.write_str("))")
+    }
 }
 
 impl<K: DeriveXOnly> TapretKey<K> {
     pub fn new_unfunded(internal_key: K) -> Self {
         TapretKey {
-            internal_key,
+            tr: TrKey::from(internal_key),
             tweaks: empty!(),
         }
     }
@@ -151,7 +170,7 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
         let keychain = keychain.into();
         let index = index.into();
         let terminal = Terminal::new(keychain, index);
-        let internal_key = self.internal_key.derive(keychain, index);
+        let internal_key = self.tr.as_internal_key().derive(keychain, index);
         if keychain.into_inner() == RgbKeychain::Tapret as u8 {
             if let Some(tweak) = self.tweaks.get(&terminal) {
                 let script_commitment = TapScript::commit(tweak);
@@ -164,9 +183,9 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
 }
 
 impl<K: DeriveXOnly> From<K> for TapretKey<K> {
-    fn from(tr: K) -> Self {
+    fn from(internal_key: K) -> Self {
         TapretKey {
-            internal_key: tr,
+            tr: TrKey::from(internal_key),
             tweaks: none!(),
         }
     }
@@ -175,7 +194,7 @@ impl<K: DeriveXOnly> From<K> for TapretKey<K> {
 impl<K: DeriveXOnly> From<TrKey<K>> for TapretKey<K> {
     fn from(tr: TrKey<K>) -> Self {
         TapretKey {
-            internal_key: tr.into_internal_key(),
+            tr,
             tweaks: none!(),
         }
     }
@@ -186,29 +205,31 @@ impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
 
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where K: 'a {
-        iter::once(&self.internal_key)
+        self.tr.keys()
     }
     fn vars<'a>(&'a self) -> impl Iterator<Item = &'a ()>
     where (): 'a {
-        iter::empty()
+        self.tr.vars()
     }
-    fn xpubs(&self) -> impl Iterator<Item = &XpubSpec> { iter::once(self.internal_key.xpub_spec()) }
+    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> { self.tr.xpubs() }
 
-    fn compr_keyset(&self, _terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
+    fn legacy_keyset(&self, _terminal: Terminal) -> IndexMap<LegacyPk, KeyOrigin> {
         IndexMap::new()
     }
 
     fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
-        let mut map = IndexMap::with_capacity(1);
-        let key = self.internal_key.derive(terminal.keychain, terminal.index);
-        map.insert(
-            key,
-            TapDerivation::with_internal_pk(
-                self.internal_key.xpub_spec().origin().clone(),
-                terminal,
-            ),
-        );
-        map
+        self.tr.xonly_keyset(terminal)
+    }
+
+    fn legacy_witness(
+        &self,
+        _keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
+    ) -> Option<(SigScript, Witness)> {
+        None
+    }
+
+    fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
+        self.tr.taproot_witness(keysigs)
     }
 }
 
@@ -247,6 +268,20 @@ pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
     Wpkh(Wpkh<S::Compr>),
     #[from]
     TapretKey(TapretKey<S::XOnly>),
+}
+
+impl<S: DeriveSet> Display for RgbDescr<S>
+where
+    S::Legacy: Display,
+    S::Compr: Display,
+    S::XOnly: Display,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            RgbDescr::Wpkh(d) => Display::fmt(d, f),
+            RgbDescr::TapretKey(d) => Display::fmt(d, f),
+        }
+    }
 }
 
 impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
@@ -296,7 +331,7 @@ where Self: Derive<DerivedScript>
         iter::empty()
     }
 
-    fn xpubs(&self) -> impl Iterator<Item = &XpubSpec> {
+    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> {
         match self {
             RgbDescr::Wpkh(d) => d.xpubs().collect::<Vec<_>>(),
             RgbDescr::TapretKey(d) => d.xpubs().collect::<Vec<_>>(),
@@ -304,10 +339,10 @@ where Self: Derive<DerivedScript>
         .into_iter()
     }
 
-    fn compr_keyset(&self, terminal: Terminal) -> IndexMap<CompressedPk, KeyOrigin> {
+    fn legacy_keyset(&self, terminal: Terminal) -> IndexMap<LegacyPk, KeyOrigin> {
         match self {
-            RgbDescr::Wpkh(d) => d.compr_keyset(terminal),
-            RgbDescr::TapretKey(d) => d.compr_keyset(terminal),
+            RgbDescr::Wpkh(d) => d.legacy_keyset(terminal),
+            RgbDescr::TapretKey(d) => d.legacy_keyset(terminal),
         }
     }
 
@@ -315,6 +350,23 @@ where Self: Derive<DerivedScript>
         match self {
             RgbDescr::Wpkh(d) => d.xonly_keyset(terminal),
             RgbDescr::TapretKey(d) => d.xonly_keyset(terminal),
+        }
+    }
+
+    fn legacy_witness(
+        &self,
+        keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
+    ) -> Option<(SigScript, Witness)> {
+        match self {
+            RgbDescr::Wpkh(d) => d.legacy_witness(keysigs),
+            RgbDescr::TapretKey(d) => d.legacy_witness(keysigs),
+        }
+    }
+
+    fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
+        match self {
+            RgbDescr::Wpkh(d) => d.taproot_witness(keysigs),
+            RgbDescr::TapretKey(d) => d.taproot_witness(keysigs),
         }
     }
 }

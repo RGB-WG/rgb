@@ -117,7 +117,7 @@ impl RgbPsbt for Psbt {
             (Some(tapret), Some(opret)) => AnchorSet::Double { tapret, opret },
         };
         // TODO: Use signed transaction here!
-        let witness = PubWitness::with(self.to_unsigned_tx().finalize());
+        let witness = PubWitness::with(self.to_unsigned_tx().into());
         Ok(Fascia {
             witness: XPubWitness::Bitcoin(witness),
             anchor,
