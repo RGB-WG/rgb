@@ -48,7 +48,7 @@ impl RgbResolver for Client {
         let txid = match network {
             Network::Mainnet => "33e794d097969002ee05d336686fc03c9e15a597c1b9827669460fac98799036",
             Network::Testnet3 => "5e6560fd518aadbed67ee4a55bdc09f19e619544f5511e9343ebba66d2f62653",
-            Network::Testnet4 => "5e6560fd518aadbed67ee4a55bdc09f19e619544f5511e9343ebba66d2f62653",
+            Network::Testnet4 => "7aa0a7ae1e223414cb807e40cd57e667b718e42aaf9306db9102fe28912b7b4e",
             Network::Signet => "8153034f45e695453250a8fb7225a5e545144071d8ed7b0d3211efa1f3c92ad8",
             Network::Regtest => "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
         };

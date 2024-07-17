@@ -1387,8 +1387,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed6b72d48f84e84792305e277f3266f06ef201b741a70a5d35b8b761ea786744"
+source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=master#05166e951f9b4b0663114d1e248f840ffbfe8f23"
 dependencies = [
  "aluvm",
  "amplify",
