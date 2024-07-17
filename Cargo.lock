@@ -345,7 +345,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/BP-WG/bp-core?branch=signer#4bad1a1a46463e14c6b762384c04f1d9b8c19f5f"
+source = "git+https://github.com/BP-WG/bp-core?branch=signer#ecc7f690f95ee68ab4b7926012306e1b0e89a83e"
 dependencies = [
  "amplify",
  "chrono",
@@ -393,7 +393,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/BP-WG/bp-std?branch=signer#bae92ecc987937702d7e1153b07e1bafe614320d"
+source = "git+https://github.com/BP-WG/bp-std?branch=signer#beac2ca11e56364fa12e604562aa6e41ac5f9f34"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -415,7 +415,7 @@ dependencies = [
  "byteorder",
  "libc",
  "log",
- "rustls",
+ "rustls 0.23.11",
  "serde",
  "serde_json",
  "sha2",
@@ -441,7 +441,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/BP-WG/bp-std?branch=signer#bae92ecc987937702d7e1153b07e1bafe614320d"
+source = "git+https://github.com/BP-WG/bp-std?branch=signer#beac2ca11e56364fa12e604562aa6e41ac5f9f34"
 dependencies = [
  "amplify",
  "bech32",
@@ -470,7 +470,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/BP-WG/bp-std?branch=signer#bae92ecc987937702d7e1153b07e1bafe614320d"
+source = "git+https://github.com/BP-WG/bp-std?branch=signer#beac2ca11e56364fa12e604562aa6e41ac5f9f34"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -485,7 +485,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.6.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=signer#48f0c01862ef32a8aa212bf81398610f50adf292"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=signer#36aa426b374182c0f20a0a275de899d88e64c516"
 dependencies = [
  "amplify",
  "base64",
@@ -769,7 +769,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/BP-WG/bp-std?branch=signer#bae92ecc987937702d7e1153b07e1bafe614320d"
+source = "git+https://github.com/BP-WG/bp-std?branch=signer#beac2ca11e56364fa12e604562aa6e41ac5f9f34"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1270,7 +1270,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/BP-WG/bp-std?branch=signer#bae92ecc987937702d7e1153b07e1bafe614320d"
+source = "git+https://github.com/BP-WG/bp-std?branch=signer#beac2ca11e56364fa12e604562aa6e41ac5f9f34"
 dependencies = [
  "amplify",
  "base64",
@@ -1557,6 +1557,20 @@ dependencies = [
 
 [[package]]
 name = "rustls"
+version = "0.22.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf4ef73721ac7bcd79b2b315da7779d8fc09718c6b3d2d1b2d94850eb8c18432"
+dependencies = [
+ "log",
+ "ring",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "rustls"
 version = "0.23.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4828ea528154ae444e5a642dbb7d5623354030dc9822b83fd9bb79683c7399d0"
@@ -1564,7 +1578,6 @@ dependencies = [
  "aws-lc-rs",
  "log",
  "once_cell",
- "ring",
  "rustls-pki-types",
  "rustls-webpki",
  "subtle",
@@ -2039,16 +2052,17 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "ureq"
-version = "2.10.0"
+version = "2.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72139d247e5f97a3eff96229a7ae85ead5328a39efe76f8bf5a06313d505b6ea"
+checksum = "d11a831e3c0b56e438a28308e7c810799e3c118417f342d30ecec080105395cd"
 dependencies = [
  "base64",
  "flate2",
  "log",
  "once_cell",
- "rustls",
+ "rustls 0.22.4",
  "rustls-pki-types",
+ "rustls-webpki",
  "serde",
  "serde_json",
  "socks",

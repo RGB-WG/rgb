@@ -20,6 +20,7 @@
 // limitations under the License.
 
 use std::collections::{BTreeSet, HashMap};
+use std::fmt::{self, Display, Formatter};
 use std::iter;
 use std::str::FromStr;
 
@@ -120,6 +121,23 @@ pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
     pub tr: TrKey<K>,
     // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
     pub tweaks: HashMap<Terminal, TapretCommitment>,
+}
+
+impl<K: DeriveXOnly + Display> Display for TapretKey<K> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "tapret({},tweaks(", self.tr.as_internal_key())?;
+        let mut iter = self.tweaks.iter().peekable();
+        while let Some((term, tweak)) = iter.next() {
+            if term.keychain != RgbKeychain::Tapret.into() {
+                write!(f, "{}/", term.keychain)?;
+            }
+            write!(f, "{}={tweak}", term.index)?;
+            if iter.peek().is_some() {
+                f.write_str(";")?;
+            }
+        }
+        f.write_str("))")
+    }
 }
 
 impl<K: DeriveXOnly> TapretKey<K> {
@@ -250,6 +268,20 @@ pub enum RgbDescr<S: DeriveSet = XpubDerivable> {
     Wpkh(Wpkh<S::Compr>),
     #[from]
     TapretKey(TapretKey<S::XOnly>),
+}
+
+impl<S: DeriveSet> Display for RgbDescr<S>
+where
+    S::Legacy: Display,
+    S::Compr: Display,
+    S::XOnly: Display,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            RgbDescr::Wpkh(d) => Display::fmt(d, f),
+            RgbDescr::TapretKey(d) => Display::fmt(d, f),
+        }
+    }
 }
 
 impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
