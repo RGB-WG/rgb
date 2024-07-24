@@ -96,7 +96,7 @@ impl AnyResolver {
             consignment
                 .bundles
                 .iter()
-                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx().cloned()))
+                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx.clone()))
                 .filter_map(|tx| match tx {
                     XChain::Bitcoin(tx) => Some(tx),
                     XChain::Liquid(_) | XChain::Other(_) => None,
@@ -114,7 +114,7 @@ impl ResolveHeight for AnyResolver {
 
         if self.terminal_txes.contains_key(&txid) {
             return Ok(WitnessAnchor {
-                witness_ord: WitnessOrd::OffChain,
+                witness_ord: WitnessOrd::offchain(0),
                 witness_id,
             });
         }

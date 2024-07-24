@@ -111,7 +111,7 @@ where Self::Descr: DescriptorRgb<K>
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
         let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, params)?;
         // ... here we pass PSBT around signers, if necessary
-        let transfer = self.transfer(stock, invoice, &mut psbt)?;
+        let transfer = self.transfer(stock, invoice, &mut psbt, 2)?;
         Ok((psbt, meta, transfer))
     }
 
@@ -278,6 +278,7 @@ where Self::Descr: DescriptorRgb<K>
         stock: &mut Stock<S, H, P>,
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
+        priority: u32,
     ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
@@ -311,7 +312,9 @@ where Self::Descr: DescriptorRgb<K>
             Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
         };
 
-        stock.consume_fascia(fascia).map_err(|e| e.to_string())?;
+        stock
+            .consume_fascia(fascia, priority)
+            .map_err(|e| e.to_string())?;
         let transfer = stock
             .transfer(contract_id, beneficiary2, beneficiary1)
             .map_err(|e| e.to_string())?;

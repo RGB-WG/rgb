@@ -159,6 +159,6 @@ where W::Descr: DescriptorRgb<K>
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
     ) -> Result<Transfer, CompletionError> {
-        self.wallet.transfer(&mut self.stock, invoice, psbt)
+        self.wallet.transfer(&mut self.stock, invoice, psbt, 2)
     }
 }

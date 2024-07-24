@@ -70,7 +70,7 @@ impl RgbResolver for Client {
 
     fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
         let mut witness_anchor = WitnessAnchor {
-            witness_ord: WitnessOrd::OffChain,
+            witness_ord: WitnessOrd::offchain(1),
             witness_id: XWitnessId::Bitcoin(txid),
         };
 

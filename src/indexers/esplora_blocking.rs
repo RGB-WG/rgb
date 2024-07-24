@@ -46,7 +46,7 @@ impl RgbResolver for BlockingClient {
             Some((h, t)) => {
                 WitnessOrd::OnChain(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
             }
-            None => WitnessOrd::OffChain,
+            None => WitnessOrd::offchain(1),
         };
         Ok(WitnessAnchor {
             witness_ord: ord,
