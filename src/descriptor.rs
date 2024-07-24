@@ -153,14 +153,7 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
     #[inline]
     fn default_keychain(&self) -> Keychain { RgbKeychain::Rgb.into() }
 
-    fn keychains(&self) -> BTreeSet<Keychain> {
-        bset![
-            RgbKeychain::External.into(),
-            RgbKeychain::Internal.into(),
-            RgbKeychain::Rgb.into(),
-            RgbKeychain::Tapret.into(),
-        ]
-    }
+    fn keychains(&self) -> BTreeSet<Keychain> { self.tr.keychains() }
 
     fn derive(
         &self,
