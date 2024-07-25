@@ -34,7 +34,7 @@ bp-esplora = { version = "0.11.0-beta.6", default-features = false, features = [
 descriptors = "0.11.0-beta.6"
 psbt = { version = "0.11.0-beta.6", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.0-beta.6.1" }
-rgb-std = { version = "0.11.0-beta.6", features = ["fs"] }
+rgb-std = { version = "0.11.0-beta.6" }
 rgb-psbt = { version = "0.11.0-beta.6", path = "psbt" }
 rgb-interfaces = "0.11.0-beta.6"
 indexmap = "2.0.2"
@@ -84,7 +84,7 @@ log = { workspace = true, optional = true }
 [features]
 default = ["esplora_blocking", "mempool_blocking"]
 all = ["esplora_blocking", "electrum_blocking", "mempool_blocking", "serde", "log", "fs", "cli"]
-fs = ["serde", "bp-wallet/fs"]
+fs = ["serde", "bp-wallet/fs", "rgb-std/fs"]
 cli = ["fs", "bp-wallet/cli"]
 esplora_blocking = ["bp-esplora"]
 electrum_blocking = ["bp-electrum"]
