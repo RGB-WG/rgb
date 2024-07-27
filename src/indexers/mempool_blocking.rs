@@ -22,7 +22,7 @@
 use bp::Tx;
 use bpstd::{Network, Txid};
 use esplora::{BlockingClient, Config, Error};
-use rgbstd::WitnessAnchor;
+use rgbstd::vm::WitnessAnchor;
 
 use super::RgbResolver;
 

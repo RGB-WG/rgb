@@ -26,7 +26,8 @@ use std::iter;
 use bp::ConsensusDecode;
 use bpstd::{Network, Tx, Txid};
 use electrum::{Client, ElectrumApi, Error, Param};
-use rgbstd::{WitnessAnchor, WitnessOrd, WitnessPos, XWitnessId};
+use rgbstd::vm::WitnessAnchor;
+use rgbstd::{WitnessOrd, WitnessPos, XWitnessId};
 
 use super::RgbResolver;
 

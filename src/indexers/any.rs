@@ -26,9 +26,10 @@ use std::collections::HashMap;
 use bp::Tx;
 use bpstd::Network;
 use rgbstd::containers::Consignment;
-use rgbstd::resolvers::ResolveHeight;
+use rgbstd::resolvers::ResolveWitnessAnchor;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::{WitnessAnchor, XWitnessId, XWitnessTx};
+use rgbstd::vm::WitnessAnchor;
+use rgbstd::{XWitnessId, XWitnessTx};
 
 use crate::{Txid, WitnessOrd, XChain};
 
@@ -96,7 +97,7 @@ impl AnyResolver {
             consignment
                 .bundles
                 .iter()
-                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx.clone()))
+                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx().cloned()))
                 .filter_map(|tx| match tx {
                     XChain::Bitcoin(tx) => Some(tx),
                     XChain::Liquid(_) | XChain::Other(_) => None,
@@ -106,8 +107,8 @@ impl AnyResolver {
     }
 }
 
-impl ResolveHeight for AnyResolver {
-    fn resolve_height(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, String> {
+impl ResolveWitnessAnchor for AnyResolver {
+    fn resolve_witness_anchor(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, String> {
         let XWitnessId::Bitcoin(txid) = witness_id else {
             return Err(format!("{} is not supported as layer 1 network", witness_id.layer1()));
         };

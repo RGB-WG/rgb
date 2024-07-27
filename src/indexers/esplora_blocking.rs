@@ -22,7 +22,8 @@
 use bp::Tx;
 use bpstd::{Network, Txid};
 use esplora::{BlockingClient, Error};
-use rgbstd::{WitnessAnchor, WitnessOrd, WitnessPos};
+use rgbstd::vm::WitnessAnchor;
+use rgbstd::{WitnessOrd, WitnessPos};
 
 use super::RgbResolver;
 use crate::XWitnessId;

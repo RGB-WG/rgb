@@ -131,7 +131,7 @@ where W::Descr: DescriptorRgb<K>
             .contract_iface(contract_id, iref)
             .map_err(|e| e.to_string())?;
         Ok(contract
-            .fungible_ops::<AmountChange>(state_name, wallet.filter(), wallet.filter())
+            .fungible_ops::<AmountChange>(state_name, wallet.filter())
             .map_err(|e| e.to_string())?)
     }
 
