@@ -1013,6 +1013,10 @@ impl Exec for RgbArgs {
                 // TODO: Add sigs debugging
 
                 // State
+                fs::write(
+                    format!("{root_dir}/state/witnesses.yaml"),
+                    serde_yaml::to_string(stock.as_state_provider().debug_witnesses())?,
+                )?;
                 for (id, state) in stock.as_state_provider().debug_contracts() {
                     fs::write(
                         format!("{root_dir}/state/{id:-}.yaml"),
