@@ -47,7 +47,8 @@ impl RgbResolver for BlockingClient {
             Some((h, t)) => {
                 WitnessOrd::OnChain(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
             }
-            None => WitnessOrd::offchain(1),
+            // TODO: Figure out how to detect mempool transactions
+            None => WitnessOrd::Archived,
         };
         Ok(WitnessAnchor {
             witness_ord: ord,

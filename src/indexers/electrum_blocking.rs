@@ -71,7 +71,7 @@ impl RgbResolver for Client {
 
     fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
         let mut witness_anchor = WitnessAnchor {
-            witness_ord: WitnessOrd::offchain(1),
+            witness_ord: WitnessOrd::Archived,
             witness_id: XWitnessId::Bitcoin(txid),
         };
 
@@ -104,6 +104,10 @@ impl RgbResolver for Client {
                 .and_then(|x| u32::try_from(x).ok())
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
         );
+        if confirmations == 0 {
+            witness_anchor.witness_ord = WitnessOrd::OffChain { priority: 1 };
+            return Ok(witness_anchor);
+        }
         let block_time = check!(
             tx_details
                 .get("blocktime")
