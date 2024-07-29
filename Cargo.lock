@@ -521,9 +521,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cc"
-version = "1.1.6"
+version = "1.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2aba8f4e9906c7ce3c73463f62a7f0c65183ada1a2d47e397cc8810827f9694f"
+checksum = "26a5c3fd7bfa1ce3897a3a3501d362b2d87b7f2583ebcb4a949ec25911025cbc"
 dependencies = [
  "jobserver",
  "libc",
@@ -1123,7 +1123,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -1366,7 +1366,7 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=mining#5a824a3c973c28285d116049a43c15bb26d9c7e6"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=mining#fa31db7d22d06b6fa5152b51666edc3eb3135447"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1387,7 +1387,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=mining#a3630d2ea460eb74ab7c64965d6d37a6b73f3f2a"
+source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=mining#ccf17daed04a94888341a89a578d5f1085e6133c"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1403,7 +1403,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=mining#120e01957af037fa95e1fa611ee90235b48e6645"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=mining#a2ff52cb393ee67f4a8d9d7226d6ae788a5e657a"
 dependencies = [
  "amplify",
  "baid64",
@@ -1464,7 +1464,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=mining#120e01957af037fa95e1fa611ee90235b48e6645"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=mining#a2ff52cb393ee67f4a8d9d7226d6ae788a5e657a"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1684,11 +1684,12 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.120"
+version = "1.0.121"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
+checksum = "4ab380d7d9f22ef3f21ad3e6c1ebe8e4fc7a2000ccba2e4d71fc96f15b2cb609"
 dependencies = [
  "itoa",
+ "memchr",
  "ryu",
  "serde",
 ]
