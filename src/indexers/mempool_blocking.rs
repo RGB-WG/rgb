@@ -22,7 +22,7 @@
 use bp::Tx;
 use bpstd::{Network, Txid};
 use esplora::{BlockingClient, Config, Error};
-use rgbstd::vm::WitnessAnchor;
+use rgbstd::vm::WitnessOrd;
 
 use super::RgbResolver;
 
@@ -60,11 +60,11 @@ impl RgbResolver for MemPoolClient {
         self.inner.check(network, expected_block_hash)
     }
 
-    fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
-        self.inner.resolve_height(txid)
+    fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String> {
+        self.inner.resolve_pub_witness_ord(txid)
     }
 
-    fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>> {
+    fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String> {
         self.inner.resolve_pub_witness(txid)
     }
 }

@@ -26,10 +26,10 @@ use std::iter;
 use bp::ConsensusDecode;
 use bpstd::{Network, Tx, Txid};
 use electrum::{Client, ElectrumApi, Error, Param};
-use rgbstd::vm::WitnessAnchor;
-use rgbstd::{WitnessOrd, WitnessPos, XWitnessId};
+use rgbstd::vm::WitnessPos;
 
 use super::RgbResolver;
+use crate::vm::WitnessOrd;
 
 macro_rules! check {
     ($e:expr) => {
@@ -69,11 +69,8 @@ impl RgbResolver for Client {
         Ok(())
     }
 
-    fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
-        let mut witness_anchor = WitnessAnchor {
-            witness_ord: WitnessOrd::Archived,
-            witness_id: XWitnessId::Bitcoin(txid),
-        };
+    fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String> {
+        let mut witness_ord = WitnessOrd::Archived;
 
         // We get the height of the tip of blockchain
         let header = check!(self.block_headers_subscribe());
@@ -88,7 +85,7 @@ impl RgbResolver for Client {
                 if e.to_string()
                     .contains("No such mempool or blockchain transaction") =>
             {
-                return Ok(witness_anchor);
+                return Ok(witness_ord);
             }
             Err(e) => return Err(e.to_string()),
             Ok(v) => v,
@@ -96,7 +93,7 @@ impl RgbResolver for Client {
         let forward = iter::from_fn(|| self.block_headers_pop().ok().flatten()).count() as isize;
 
         let Some(confirmations) = tx_details.get("confirmations") else {
-            return Ok(witness_anchor);
+            return Ok(witness_ord);
         };
         let confirmations = check!(
             confirmations
@@ -105,8 +102,8 @@ impl RgbResolver for Client {
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
         );
         if confirmations == 0 {
-            witness_anchor.witness_ord = WitnessOrd::OffChain { priority: 1 };
-            return Ok(witness_anchor);
+            witness_ord = WitnessOrd::Tentative;
+            return Ok(witness_ord);
         }
         let block_time = check!(
             tx_details
@@ -133,20 +130,25 @@ impl RgbResolver for Client {
             WitnessPos::new(tx_height, block_time)
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
         );
-        witness_anchor.witness_ord = WitnessOrd::OnChain(pos);
+        witness_ord = WitnessOrd::Mined(pos);
 
-        Ok(witness_anchor)
+        Ok(witness_ord)
     }
 
-    fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>> {
-        let raw_tx = self.transaction_get_raw(&txid).map_err(|e| {
-            let e = e.to_string();
-            if e.contains("No such mempool or blockchain transaction") {
-                return None;
-            }
-            Some(e)
-        })?;
-        Tx::consensus_deserialize(raw_tx)
-            .map_err(|e| Some(format!("cannot deserialize raw TX - {e}")))
+    fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String> {
+        self.transaction_get_raw(&txid)
+            .map_err(|e| e.to_string())
+            .and_then(|raw_tx| {
+                Tx::consensus_deserialize(raw_tx)
+                    .map_err(|e| format!("cannot deserialize raw TX - {e}"))
+            })
+            .map(Some)
+            .or_else(|e| {
+                if e.contains("No such mempool or blockchain transaction") {
+                    Ok(None)
+                } else {
+                    Err(e)
+                }
+            })
     }
 }

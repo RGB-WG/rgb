@@ -22,11 +22,10 @@
 use bp::Tx;
 use bpstd::{Network, Txid};
 use esplora::{BlockingClient, Error};
-use rgbstd::vm::WitnessAnchor;
-use rgbstd::{WitnessOrd, WitnessPos};
+use rgbstd::vm::WitnessPos;
 
 use super::RgbResolver;
-use crate::XWitnessId;
+use crate::vm::WitnessOrd;
 
 impl RgbResolver for BlockingClient {
     fn check(&self, _network: Network, expected_block_hash: String) -> Result<(), String> {
@@ -38,30 +37,25 @@ impl RgbResolver for BlockingClient {
         Ok(())
     }
 
-    fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String> {
+    fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String> {
         let status = self.tx_status(&txid)?;
         let ord = match status
             .block_height
             .and_then(|h| status.block_time.map(|t| (h, t)))
         {
             Some((h, t)) => {
-                WitnessOrd::OnChain(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
+                WitnessOrd::Mined(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
             }
             // TODO: Figure out how to detect mempool transactions
             None => WitnessOrd::Archived,
         };
-        Ok(WitnessAnchor {
-            witness_ord: ord,
-            witness_id: XWitnessId::Bitcoin(txid),
-        })
+        Ok(ord)
     }
 
-    fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>> {
-        self.tx(&txid)
-            .map_err(|e| match e {
-                Error::TransactionNotFound(_) => None,
-                e => Some(e.to_string()),
-            })?
-            .ok_or(None)
+    fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String> {
+        self.tx(&txid).or_else(|e| match e {
+            Error::TransactionNotFound(_) => Ok(None),
+            e => Err(e.to_string()),
+        })
     }
 }
