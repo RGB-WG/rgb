@@ -68,9 +68,9 @@ dependencies = [
 
 [[package]]
 name = "amplify_derive"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "759dcbfaf94d838367a86d493ec34ccc8aa6fe365cb7880d6bf89006de24d9c1"
+checksum = "2a6309e6b8d89b36b9f959b7a8fa093583b94922a0f6438a24fb08936de4d428"
 dependencies = [
  "amplify_syn",
  "proc-macro2",
@@ -1390,7 +1390,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=iface-generics#e7b8efc89657f26a44bf0eb1649dee4db094ba6d"
+source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=iface-generics#afe224febcff9180394fffc1c172f1cfa2f5b9ad"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1406,7 +1406,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=multiwitness#220c593a798395696a57f8e8d14aef309490701f"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#214345807c23b6d000dd65085193d8251accbb9e"
 dependencies = [
  "amplify",
  "baid64",
@@ -1467,7 +1467,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=multiwitness#220c593a798395696a57f8e8d14aef309490701f"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#214345807c23b6d000dd65085193d8251accbb9e"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1687,9 +1687,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.121"
+version = "1.0.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ab380d7d9f22ef3f21ad3e6c1ebe8e4fc7a2000ccba2e4d71fc96f15b2cb609"
+checksum = "784b6203951c57ff748476b126ccb5e8e2959a5c19e5c617ab1956be3dbc68da"
 dependencies = [
  "itoa",
  "memchr",

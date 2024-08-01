@@ -102,6 +102,6 @@ psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "contract-state2" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "multiwitness" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "multiwitness" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces.git", branch = "iface-generics" }
