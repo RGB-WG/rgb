@@ -40,9 +40,9 @@ dependencies = [
 
 [[package]]
 name = "amplify"
-version = "4.6.0"
+version = "4.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e711289a6cb28171b4f0e6c8019c69ff9476050508dc082167575d458ff74d0"
+checksum = "8865957597bdcba8da49806e1280867df9621e88404edc1d156fc98fe8ae86c8"
 dependencies = [
  "amplify_apfloat",
  "amplify_derive",
@@ -57,9 +57,9 @@ dependencies = [
 
 [[package]]
 name = "amplify_apfloat"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72e23f5ede99065fa6957a633498d2728d51016d61dae23b69c866112b7c61ee"
+checksum = "695e433882668b55b3d7fb0ba22bf9be66a91abe30d7ca1f1a774f8b90b4db4c"
 dependencies = [
  "amplify_num",
  "bitflags 2.6.0",
@@ -80,9 +80,9 @@ dependencies = [
 
 [[package]]
 name = "amplify_num"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04c009c5c4de814911b177e2ea59e4930bb918978ed3cce4900d846a6ceb0838"
+checksum = "99bcb75a2982047f733547042fc3968c0f460dfcf7d90b90dea3b2744580e9ad"
 dependencies = [
  "serde",
  "wasm-bindgen",
@@ -1369,7 +1369,7 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=contract-state2#1a7ec624e0b2a5b238babbd912e179fd449ad4fa"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=contract-state2#8a26d3721428b7697e209b59527587c86bb11936"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1390,7 +1390,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=iface-generics#afe224febcff9180394fffc1c172f1cfa2f5b9ad"
+source = "git+https://github.com/RGB-WG/rgb-interfaces.git?branch=iface-generics#68196f0adc7715d23a4601f761acdac30ef9b7ec"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1406,7 +1406,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#214345807c23b6d000dd65085193d8251accbb9e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#3aaafcbe1f07088fb052dffcad76593b499013c5"
 dependencies = [
  "amplify",
  "baid64",
@@ -1467,7 +1467,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#214345807c23b6d000dd65085193d8251accbb9e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#3aaafcbe1f07088fb052dffcad76593b499013c5"
 dependencies = [
  "aluvm",
  "amplify",
