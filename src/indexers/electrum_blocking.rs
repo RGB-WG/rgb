@@ -70,8 +70,6 @@ impl RgbResolver for Client {
     }
 
     fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String> {
-        let mut witness_ord = WitnessOrd::Archived;
-
         // We get the height of the tip of blockchain
         let header = check!(self.block_headers_subscribe());
 
@@ -85,7 +83,7 @@ impl RgbResolver for Client {
                 if e.to_string()
                     .contains("No such mempool or blockchain transaction") =>
             {
-                return Ok(witness_ord);
+                return Ok(WitnessOrd::Archived);
             }
             Err(e) => return Err(e.to_string()),
             Ok(v) => v,
@@ -93,7 +91,7 @@ impl RgbResolver for Client {
         let forward = iter::from_fn(|| self.block_headers_pop().ok().flatten()).count() as isize;
 
         let Some(confirmations) = tx_details.get("confirmations") else {
-            return Ok(witness_ord);
+            return Ok(WitnessOrd::Tentative);
         };
         let confirmations = check!(
             confirmations
@@ -102,8 +100,7 @@ impl RgbResolver for Client {
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
         );
         if confirmations == 0 {
-            witness_ord = WitnessOrd::Tentative;
-            return Ok(witness_ord);
+            return Ok(WitnessOrd::Tentative);
         }
         let block_time = check!(
             tx_details
@@ -130,9 +127,8 @@ impl RgbResolver for Client {
             WitnessPos::new(tx_height, block_time)
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
         );
-        witness_ord = WitnessOrd::Mined(pos);
 
-        Ok(witness_ord)
+        Ok(WitnessOrd::Mined(pos))
     }
 
     fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String> {
