@@ -26,17 +26,18 @@ use std::collections::HashMap;
 use bp::Tx;
 use bpstd::Network;
 use rgbstd::containers::Consignment;
-use rgbstd::resolvers::ResolveWitnessAnchor;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::vm::WitnessAnchor;
-use rgbstd::{XWitnessId, XWitnessTx};
+use rgbstd::XWitnessId;
 
-use crate::{Txid, WitnessOrd, XChain};
+use crate::vm::{WitnessOrd, XWitnessTx};
+use crate::{Txid, XChain};
 
+// We need to repeat methods of `WitnessResolve` trait here to avoid making
+// wrappers around resolver types. TODO: Use wrappers instead
 pub trait RgbResolver {
     fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String>;
-    fn resolve_height(&mut self, txid: Txid) -> Result<WitnessAnchor, String>;
-    fn resolve_pub_witness(&self, txid: Txid) -> Result<Tx, Option<String>>;
+    fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String>;
+    fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String>;
 }
 
 /// Type that contains any of the [`Resolver`] types defined by the library
@@ -107,23 +108,6 @@ impl AnyResolver {
     }
 }
 
-impl ResolveWitnessAnchor for AnyResolver {
-    fn resolve_witness_anchor(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, String> {
-        let XWitnessId::Bitcoin(txid) = witness_id else {
-            return Err(format!("{} is not supported as layer 1 network", witness_id.layer1()));
-        };
-
-        if self.terminal_txes.contains_key(&txid) {
-            return Ok(WitnessAnchor {
-                witness_ord: WitnessOrd::offchain(0),
-                witness_id,
-            });
-        }
-
-        self.inner.resolve_height(txid)
-    }
-}
-
 impl ResolveWitness for AnyResolver {
     fn resolve_pub_witness(
         &self,
@@ -142,10 +126,28 @@ impl ResolveWitness for AnyResolver {
 
         self.inner
             .resolve_pub_witness(txid)
-            .map(XWitnessTx::Bitcoin)
-            .map_err(|e| match e {
-                None => WitnessResolverError::Unknown(witness_id),
-                Some(e) => WitnessResolverError::Other(witness_id, e),
-            })
+            .map_err(|e| WitnessResolverError::Other(witness_id, e))
+            .and_then(|r| r.ok_or(WitnessResolverError::Unknown(witness_id)))
+            .map(XChain::Bitcoin)
+    }
+
+    fn resolve_pub_witness_ord(
+        &self,
+        witness_id: XWitnessId,
+    ) -> Result<WitnessOrd, WitnessResolverError> {
+        let XWitnessId::Bitcoin(txid) = witness_id else {
+            return Err(WitnessResolverError::Other(
+                witness_id,
+                format!("{} is not supported as layer 1 network", witness_id.layer1()),
+            ));
+        };
+
+        if self.terminal_txes.contains_key(&txid) {
+            return Ok(WitnessOrd::Tentative);
+        }
+
+        self.inner
+            .resolve_pub_witness_ord(txid)
+            .map_err(|e| WitnessResolverError::Other(witness_id, e))
     }
 }

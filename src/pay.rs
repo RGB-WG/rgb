@@ -35,11 +35,12 @@ use rgbstd::containers::Transfer;
 use rgbstd::interface::OutpointFilter;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
-use rgbstd::resolvers::ResolveWitnessAnchor;
-use rgbstd::{ContractId, DataState, WitnessOrd, XChain, XOutpoint};
+use rgbstd::validation::ResolveWitness;
+use rgbstd::{ContractId, DataState, XChain, XOutpoint};
 
 use crate::invoice::NonFungible;
-use crate::vm::WitnessAnchor;
+use crate::validation::WitnessResolverError;
+use crate::vm::{WitnessOrd, XWitnessTx};
 use crate::wrapper::WalletWrapper;
 use crate::{
     CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid, XWitnessId,
@@ -106,6 +107,8 @@ where Self::Descr: DescriptorRgb<K>
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
     fn txids(&self) -> impl Iterator<Item = Txid>;
 
+    // TODO: Add method `color` to add RGB information to an already existing PSBT
+
     #[allow(clippy::result_large_err)]
     fn pay<S: StashProvider, H: StateProvider, P: IndexProvider>(
         &mut self,
@@ -115,7 +118,7 @@ where Self::Descr: DescriptorRgb<K>
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
         let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, params)?;
         // ... here we pass PSBT around signers, if necessary
-        let transfer = self.transfer(stock, invoice, &mut psbt, 2)?;
+        let transfer = self.transfer(stock, invoice, &mut psbt)?;
         Ok((psbt, meta, transfer))
     }
 
@@ -274,7 +277,6 @@ where Self::Descr: DescriptorRgb<K>
         stock: &mut Stock<S, H, P>,
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
-        priority: u32,
     ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
@@ -309,22 +311,28 @@ where Self::Descr: DescriptorRgb<K>
         };
 
         struct FasciaResolver {
-            priority: u32,
+            witness_id: XWitnessId,
         }
-        impl ResolveWitnessAnchor for FasciaResolver {
-            fn resolve_witness_anchor(
-                &mut self,
+        impl ResolveWitness for FasciaResolver {
+            fn resolve_pub_witness(
+                &self,
+                _: XWitnessId,
+            ) -> Result<XWitnessTx, WitnessResolverError> {
+                unreachable!()
+            }
+            fn resolve_pub_witness_ord(
+                &self,
                 witness_id: XWitnessId,
-            ) -> Result<WitnessAnchor, String> {
-                Ok(WitnessAnchor {
-                    witness_ord: WitnessOrd::offchain(self.priority),
-                    witness_id,
-                })
+            ) -> Result<WitnessOrd, WitnessResolverError> {
+                assert_eq!(witness_id, self.witness_id);
+                Ok(WitnessOrd::Tentative)
             }
         }
 
         stock
-            .consume_fascia(fascia, FasciaResolver { priority })
+            .consume_fascia(fascia, FasciaResolver {
+                witness_id: XChain::Bitcoin(witness_txid),
+            })
             .map_err(|e| e.to_string())?;
         let transfer = stock
             .transfer(contract_id, beneficiary2, beneficiary1)

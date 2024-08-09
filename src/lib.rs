@@ -37,8 +37,6 @@ pub use errors::{CompletionError, CompositionError, HistoryError, PayError, Wall
 pub use pay::{TransferParams, WalletProvider};
 pub use rgbstd::*;
 pub mod resolvers {
-    pub use rgbstd::resolvers::*;
-
     #[cfg(any(feature = "electrum_blocking", feature = "esplora_blocking"))]
     pub use super::indexers::*;
     pub use super::indexers::{AnyResolver, RgbResolver};

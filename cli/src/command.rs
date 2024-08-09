@@ -32,8 +32,8 @@ use bpwallet::Wallet;
 use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb::containers::{
-    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Terminal,
-    Transfer, UniversalFile,
+    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Transfer,
+    UniversalFile,
 };
 use rgb::interface::{AmountChange, IfaceId, OutpointFilter};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
@@ -44,9 +44,11 @@ use rgb::vm::RgbIsa;
 use rgb::{
     BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbDescr,
     RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
-    XOutpoint, XOutputSeal,
+    XOutpoint, XOutputSeal, XWitnessId,
 };
 use rgbstd::containers::ConsignmentExt;
+use rgbstd::persistence::MemContract;
+use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -437,7 +439,7 @@ impl Exec for RgbArgs {
                     UniversalFile::Contract(contract) => {
                         let id = contract.consignment_id();
                         eprintln!("Importing consignment {id}:");
-                        let mut resolver = self.resolver()?;
+                        let resolver = self.resolver()?;
                         eprint!("- validating the contract {} ... ", contract.contract_id());
                         let contract = contract
                             .validate(&resolver, self.general.network.is_testnet())
@@ -446,7 +448,7 @@ impl Exec for RgbArgs {
                                 status.to_string()
                             })?;
                         eprintln!("success");
-                        stock.import_contract(contract, &mut resolver)?;
+                        stock.import_contract(contract, &resolver)?;
                         eprintln!("Consignment is imported");
                     }
                     UniversalFile::Transfer(_) => {
@@ -541,43 +543,63 @@ impl Exec for RgbArgs {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                         for allocation in allocations {
+                            let witness = allocation
+                                .witness
+                                .as_ref()
+                                .map(XWitnessId::to_string)
+                                .unwrap_or(s!("~"));
                             println!(
                                 "    value={}, utxo={}, witness={} {}",
                                 allocation.state.value(),
                                 allocation.seal,
-                                allocation.witness,
+                                witness,
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
                         for allocation in allocations {
+                            let witness = allocation
+                                .witness
+                                .as_ref()
+                                .map(XWitnessId::to_string)
+                                .unwrap_or(s!("~"));
                             println!(
                                 "   data={}, utxo={}, witness={} {}",
                                 allocation.state,
                                 allocation.seal,
-                                allocation.witness,
+                                witness,
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
                         for allocation in allocations {
+                            let witness = allocation
+                                .witness
+                                .as_ref()
+                                .map(XWitnessId::to_string)
+                                .unwrap_or(s!("~"));
                             println!(
                                 "   file={}, utxo={}, witness={} {}",
                                 allocation.state,
                                 allocation.seal,
-                                allocation.witness,
+                                witness,
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
                         for allocation in allocations {
+                            let witness = allocation
+                                .witness
+                                .as_ref()
+                                .map(XWitnessId::to_string)
+                                .unwrap_or(s!("~"));
                             println!(
                                 "   utxo={}, witness={} {}",
                                 allocation.seal,
-                                allocation.witness,
+                                witness,
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
@@ -713,8 +735,8 @@ impl Exec for RgbArgs {
 
                 let contract = builder.issue_contract()?;
                 let id = contract.contract_id();
-                let mut resolver = self.resolver()?;
-                stock.import_contract(contract, &mut resolver)?;
+                let resolver = self.resolver()?;
+                stock.import_contract(contract, &resolver)?;
                 eprintln!(
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
                      to export the contract."
@@ -849,7 +871,7 @@ impl Exec for RgbArgs {
                 pub struct ConsignmentInspection {
                     version: ContainerVer,
                     transfer: bool,
-                    terminals: SmallOrdMap<BundleId, Terminal>,
+                    terminals: SmallOrdMap<BundleId, XChain<SecretSeal>>,
                     supplements: TinyOrdSet<Supplement>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
@@ -877,7 +899,7 @@ impl Exec for RgbArgs {
                     ];
                     for lib in consignment.scripts {
                         let mut buf = Vec::new();
-                        lib.print_disassemble::<RgbIsa>(&mut buf)?;
+                        lib.print_disassemble::<RgbIsa<MemContract>>(&mut buf)?;
                         map.insert(format!("{}.aluasm", lib.id().to_baid64_mnemonic()), unsafe {
                             String::from_utf8_unchecked(buf)
                         });
@@ -1071,7 +1093,7 @@ impl Exec for RgbArgs {
                 let valid = transfer
                     .validate(&resolver, self.general.network.is_testnet())
                     .map_err(|(status, _)| status)?;
-                stock.accept_transfer(valid, &mut resolver)?;
+                stock.accept_transfer(valid, &resolver)?;
                 eprintln!("Transfer accepted into the stash");
             }
         }
