@@ -74,7 +74,6 @@ descriptors = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
-rgb-interfaces = { workspace = true }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde_crate = { workspace = true, optional = true }
@@ -102,7 +101,7 @@ descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "txid" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "txid" }
-rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces.git", branch = "master" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "mining" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "mining" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "mining" }
+rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces.git", branch = "mining" }

@@ -32,14 +32,18 @@ use psrgbt::{
     TxParams,
 };
 use rgbstd::containers::Transfer;
-use rgbstd::interface::{OutpointFilter, WitnessFilter};
+use rgbstd::interface::OutpointFilter;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
-use rgbstd::{ContractId, DataState, XChain, XOutpoint};
+use rgbstd::resolvers::ResolveWitnessAnchor;
+use rgbstd::{ContractId, DataState, WitnessOrd, XChain, XOutpoint};
 
 use crate::invoice::NonFungible;
+use crate::vm::WitnessAnchor;
 use crate::wrapper::WalletWrapper;
-use crate::{CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid};
+use crate::{
+    CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid, XWitnessId,
+};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct TransferParams {
@@ -95,7 +99,7 @@ where W::Descr: DescriptorRgb<K>
 pub trait WalletProvider<K>: PsbtConstructor
 where Self::Descr: DescriptorRgb<K>
 {
-    type Filter<'a>: Copy + WitnessFilter + OutpointFilter
+    type Filter<'a>: Copy + OutpointFilter
     where Self: 'a;
     fn filter(&self) -> Self::Filter<'_>;
     fn descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R) -> R;
@@ -111,7 +115,7 @@ where Self::Descr: DescriptorRgb<K>
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
         let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, params)?;
         // ... here we pass PSBT around signers, if necessary
-        let transfer = self.transfer(stock, invoice, &mut psbt)?;
+        let transfer = self.transfer(stock, invoice, &mut psbt, 2)?;
         Ok((psbt, meta, transfer))
     }
 
@@ -127,9 +131,6 @@ where Self::Descr: DescriptorRgb<K>
 
         let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
         let iface = stock.iface(iface_name.clone()).map_err(|e| e.to_string())?;
-        let contract = stock
-            .contract_iface(contract_id, iface_name)
-            .map_err(|e| e.to_string())?;
         let operation = invoice
             .operation
             .as_ref()
@@ -148,14 +149,17 @@ where Self::Descr: DescriptorRgb<K>
             .cloned()
             .ok_or(CompositionError::NoAssignment)?;
 
+        let filter = ContractOutpointsFilter {
+            contract_id,
+            stock,
+            wallet: self,
+            _phantom: PhantomData,
+        };
+        let contract = stock
+            .contract_iface(contract_id, iface_name)
+            .map_err(|e| e.to_string())?;
         let prev_outputs = match invoice.owned_state {
             InvoiceState::Amount(amount) => {
-                let filter = ContractOutpointsFilter {
-                    contract_id,
-                    stock,
-                    wallet: self,
-                    _phantom: PhantomData,
-                };
                 let state: BTreeMap<_, Vec<Amount>> = contract
                     .fungible(assignment_name, &filter)?
                     .fold(bmap![], |mut set, a| {
@@ -183,17 +187,9 @@ where Self::Descr: DescriptorRgb<K>
                     .collect::<BTreeSet<_>>()
             }
             InvoiceState::Data(NonFungible::RGB21(allocation)) => {
-                let filter = ContractOutpointsFilter {
-                    contract_id,
-                    stock,
-                    wallet: self,
-                    _phantom: PhantomData,
-                };
-                let state = contract.data(assignment_name, &filter)?.collect::<Vec<_>>();
-
                 let data_state = DataState::from(allocation);
-                state
-                    .into_iter()
+                contract
+                    .data(assignment_name, &filter)?
                     .filter(|x| x.state == data_state)
                     .map(|x| x.seal)
                     .collect::<BTreeSet<_>>()
@@ -278,6 +274,7 @@ where Self::Descr: DescriptorRgb<K>
         stock: &mut Stock<S, H, P>,
         invoice: &RgbInvoice,
         psbt: &mut Psbt,
+        priority: u32,
     ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
@@ -311,7 +308,24 @@ where Self::Descr: DescriptorRgb<K>
             Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
         };
 
-        stock.consume_fascia(fascia).map_err(|e| e.to_string())?;
+        struct FasciaResolver {
+            priority: u32,
+        }
+        impl ResolveWitnessAnchor for FasciaResolver {
+            fn resolve_witness_anchor(
+                &mut self,
+                witness_id: XWitnessId,
+            ) -> Result<WitnessAnchor, String> {
+                Ok(WitnessAnchor {
+                    witness_ord: WitnessOrd::offchain(self.priority),
+                    witness_id,
+                })
+            }
+        }
+
+        stock
+            .consume_fascia(fascia, FasciaResolver { priority })
+            .map_err(|e| e.to_string())?;
         let transfer = stock
             .transfer(contract_id, beneficiary2, beneficiary1)
             .map_err(|e| e.to_string())?;

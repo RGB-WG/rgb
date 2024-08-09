@@ -22,7 +22,8 @@
 use bp::Tx;
 use bpstd::{Network, Txid};
 use esplora::{BlockingClient, Error};
-use rgbstd::{WitnessAnchor, WitnessOrd, WitnessPos};
+use rgbstd::vm::WitnessAnchor;
+use rgbstd::{WitnessOrd, WitnessPos};
 
 use super::RgbResolver;
 use crate::XWitnessId;
@@ -46,7 +47,8 @@ impl RgbResolver for BlockingClient {
             Some((h, t)) => {
                 WitnessOrd::OnChain(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
             }
-            None => WitnessOrd::OffChain,
+            // TODO: Figure out how to detect mempool transactions
+            None => WitnessOrd::Archived,
         };
         Ok(WitnessAnchor {
             witness_ord: ord,

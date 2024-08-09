@@ -46,6 +46,7 @@ use rgb::{
     RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
     XOutpoint, XOutputSeal,
 };
+use rgbstd::containers::ConsignmentExt;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -345,7 +346,7 @@ impl Exec for RgbArgs {
                 standard: Some(IfaceStandard::Rgb20),
             } => {
                 let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb20>()? {
+                for info in stock.contracts_by::<Rgb20<_>>()? {
                     print!("{info}");
                 }
             }
@@ -353,7 +354,7 @@ impl Exec for RgbArgs {
                 standard: Some(IfaceStandard::Rgb21),
             } => {
                 let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb21>()? {
+                for info in stock.contracts_by::<Rgb21<_>>()? {
                     print!("{info}");
                 }
             }
@@ -361,7 +362,7 @@ impl Exec for RgbArgs {
                 standard: Some(IfaceStandard::Rgb25),
             } => {
                 let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb25>()? {
+                for info in stock.contracts_by::<Rgb25<_>>()? {
                     print!("{info}");
                 }
             }
@@ -488,7 +489,8 @@ impl Exec for RgbArgs {
 
                 let contract = stock.contract_iface(*contract_id, tn!(iface.to_owned()))?;
 
-                let filter = match self.rgb_wallet_from_stock(&config, stock) {
+                // TODO: Remove clone
+                let filter = match self.rgb_wallet_from_stock(&config, stock.clone()) {
                     Ok(wallet) if *all => Filter::WalletAll(wallet),
                     Ok(wallet) => Filter::Wallet(wallet),
                     Err(_) => {
@@ -1011,10 +1013,14 @@ impl Exec for RgbArgs {
                 // TODO: Add sigs debugging
 
                 // State
-                for (id, history) in stock.as_state_provider().debug_history() {
+                fs::write(
+                    format!("{root_dir}/state/witnesses.yaml"),
+                    serde_yaml::to_string(stock.as_state_provider().debug_witnesses())?,
+                )?;
+                for (id, state) in stock.as_state_provider().debug_contracts() {
                     fs::write(
                         format!("{root_dir}/state/{id:-}.yaml"),
-                        serde_yaml::to_string(history)?,
+                        serde_yaml::to_string(state)?,
                     )?;
                 }
 

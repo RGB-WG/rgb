@@ -26,9 +26,10 @@ use std::collections::HashMap;
 use bp::Tx;
 use bpstd::Network;
 use rgbstd::containers::Consignment;
-use rgbstd::resolvers::ResolveHeight;
+use rgbstd::resolvers::ResolveWitnessAnchor;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::{WitnessAnchor, XWitnessId, XWitnessTx};
+use rgbstd::vm::WitnessAnchor;
+use rgbstd::{XWitnessId, XWitnessTx};
 
 use crate::{Txid, WitnessOrd, XChain};
 
@@ -106,15 +107,15 @@ impl AnyResolver {
     }
 }
 
-impl ResolveHeight for AnyResolver {
-    fn resolve_height(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, String> {
+impl ResolveWitnessAnchor for AnyResolver {
+    fn resolve_witness_anchor(&mut self, witness_id: XWitnessId) -> Result<WitnessAnchor, String> {
         let XWitnessId::Bitcoin(txid) = witness_id else {
             return Err(format!("{} is not supported as layer 1 network", witness_id.layer1()));
         };
 
         if self.terminal_txes.contains_key(&txid) {
             return Ok(WitnessAnchor {
-                witness_ord: WitnessOrd::OffChain,
+                witness_ord: WitnessOrd::offchain(0),
                 witness_id,
             });
         }

@@ -20,9 +20,9 @@
 // limitations under the License.
 
 use bpwallet::{Save, Wallet};
-use rgbstd::interface::{OutpointFilter, WitnessFilter};
+use rgbstd::interface::OutpointFilter;
 
-use crate::{AssignmentWitness, DescriptorRgb, WalletProvider, XChain, XOutpoint, XWitnessId};
+use crate::{DescriptorRgb, WalletProvider, XChain, XOutpoint};
 
 pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>)
 where Wallet<K, D>: Save;
@@ -42,16 +42,5 @@ where Wallet<K, D>: Save
         self.0
             .outpoints()
             .any(|outpoint| XChain::Bitcoin(outpoint) == *output)
-    }
-}
-
-impl<'a, K, D: DescriptorRgb<K>> WitnessFilter for WalletWrapper<'a, K, D>
-where Wallet<K, D>: Save
-{
-    fn include_witness(&self, witness: impl Into<AssignmentWitness>) -> bool {
-        let witness = witness.into();
-        self.0
-            .txids()
-            .any(|txid| AssignmentWitness::Present(XWitnessId::Bitcoin(txid)) == witness)
     }
 }

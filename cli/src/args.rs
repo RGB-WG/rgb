@@ -23,6 +23,7 @@
 
 use std::fs;
 use std::io::ErrorKind;
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 use bpstd::{Wpkh, XpubDerivable};
@@ -63,13 +64,27 @@ impl DescriptorOpts for DescrRgbOpts {
 
 /// Command-line arguments
 #[derive(Parser)]
-#[derive(Wrapper, WrapperMut, Clone, Eq, PartialEq, Debug, From)]
-#[wrapper(Deref)]
-#[wrapper_mut(DerefMut)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 #[command(author, version, about)]
 pub struct RgbArgs {
     #[clap(flatten)]
     pub inner: BpArgs<Command, DescrRgbOpts>,
+
+    /// Specify blockchain height starting from which witness transactions
+    /// should be checked for re-orgs
+    #[clap(short = 'h', long, requires = "sync")]
+    pub from_height: Option<u32>,
+}
+
+impl Deref for RgbArgs {
+    type Target = BpArgs<Command, DescrRgbOpts>;
+    #[inline]
+    fn deref(&self) -> &Self::Target { &self.inner }
+}
+
+impl DerefMut for RgbArgs {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.inner }
 }
 
 impl Default for RgbArgs {
@@ -87,7 +102,7 @@ impl RgbArgs {
             eprint!("Loading stock from `{}` ... ", stock_path.display());
         }
 
-        let stock = Stock::load(stock_path.clone()).map_err(WalletError::from).or_else(|err| {
+        let mut stock = Stock::load(stock_path.clone()).map_err(WalletError::from).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
@@ -100,6 +115,22 @@ impl RgbArgs {
             eprintln!("stock file is damaged, failing");
             Err(err)
         })?;
+
+        if self.sync {
+            let resolver = self.resolver()?;
+            let from_height = self.from_height.unwrap_or(1);
+            eprint!("Updating witness information starting from height {from_height} ... ");
+            let res = stock.update_witnesses(resolver, from_height)?;
+            eprint!("{} transactions were checked and updated", res.succeeded);
+            if res.failed.is_empty() {
+                eprintln!();
+            } else {
+                eprintln!(", {} resolution failures:", res.failed.len());
+                for (witness_id, failure) in res.failed {
+                    eprintln!(" - {witness_id}: {failure}");
+                }
+            }
+        }
 
         if self.verbose > 1 {
             eprintln!("success");
@@ -118,8 +149,7 @@ impl RgbArgs {
         &self,
         config: &Config,
     ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
-        let stock_path = self.general.base_dir();
-        let stock = self.load_stock(stock_path)?;
+        let stock = self.rgb_stock()?;
         self.rgb_wallet_from_stock(config, stock)
     }
 
