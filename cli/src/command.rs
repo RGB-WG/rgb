@@ -346,7 +346,7 @@ impl Exec for RgbArgs {
                 standard: Some(IfaceStandard::Rgb20),
             } => {
                 let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb20<_>>()? {
+                for info in stock.contracts_by::<Rgb20>()? {
                     print!("{info}");
                 }
             }
@@ -354,7 +354,7 @@ impl Exec for RgbArgs {
                 standard: Some(IfaceStandard::Rgb21),
             } => {
                 let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb21<_>>()? {
+                for info in stock.contracts_by::<Rgb21>()? {
                     print!("{info}");
                 }
             }
@@ -362,7 +362,7 @@ impl Exec for RgbArgs {
                 standard: Some(IfaceStandard::Rgb25),
             } => {
                 let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb25<_>>()? {
+                for info in stock.contracts_by::<Rgb25>()? {
                     print!("{info}");
                 }
             }
