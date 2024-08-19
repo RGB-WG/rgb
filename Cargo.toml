@@ -10,35 +10,35 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-beta.6"
+version = "0.11.0-beta.7"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
-homepage = "https://lnp-bp.org"
+homepage = "https://rgb.tech"
 repository = "https://github.com/RGB-WG/rgb"
-rust-version = "1.75.0"
+rust-version = "1.76.0"
 edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.6.2"
+amplify = "4.7.0"
 baid64 = "0.2.2"
-strict_encoding = "2.7.0-beta.4"
-strict_types = "2.7.0-beta.4"
-commit_verify = "0.11.0-beta.6"
-bp-core = "0.11.0-beta.6"
-bp-seals = "0.11.0-beta.6"
-bp-std = "0.11.0-beta.6"
-bp-electrum = "0.11.0-beta.6"
-bp-esplora = { version = "0.11.0-beta.6", default-features = false, features = ["blocking"] }
-descriptors = "0.11.0-beta.6"
-psbt = { version = "0.11.0-beta.6", features = ["client-side-validation"] }
-bp-wallet = { version = "0.11.0-beta.6.1" }
-rgb-std = { version = "0.11.0-beta.6" }
-rgb-psbt = { version = "0.11.0-beta.6", path = "psbt" }
-rgb-interfaces = "0.11.0-beta.6"
-indexmap = "2.0.2"
-chrono = "0.4.31"
+strict_encoding = "2.7.0-rc.1"
+strict_types = "2.7.0-rc.1"
+commit_verify = "0.11.0-beta.7"
+bp-core = "0.11.0-beta.7"
+bp-seals = "0.11.0-beta.7"
+bp-std = "0.11.0-beta.7"
+bp-electrum = "0.11.0-beta.7"
+bp-esplora = { version = "0.11.0-beta.7", default-features = false, features = ["blocking"] }
+descriptors = "0.11.0-beta.7"
+psbt = { version = "0.11.0-beta.7", features = ["client-side-validation"] }
+bp-wallet = { version = "0.11.0-beta.7" }
+rgb-std = { version = "0.11.0-beta.7" }
+rgb-psbt = { version = "0.11.0-beta.7", path = "psbt" }
+rgb-interfaces = "0.11.0-beta.7"
+indexmap = "2.4.0"
+chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
@@ -92,16 +92,3 @@ mempool_blocking = ["esplora_blocking"]
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "master" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
-rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces.git", branch = "master" }
