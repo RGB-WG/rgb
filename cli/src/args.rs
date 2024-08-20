@@ -94,7 +94,7 @@ impl Default for RgbArgs {
 impl RgbArgs {
     pub(crate) fn load_stock(
         &self,
-        stock_path: impl ToOwned<Owned=PathBuf>,
+        stock_path: impl ToOwned<Owned = PathBuf>,
     ) -> Result<Stock, WalletError> {
         let stock_path = stock_path.to_owned();
 
@@ -173,7 +173,7 @@ impl RgbArgs {
                 _ => Err(s!(" - error: no transaction resolver is specified; use either \
                              --esplora --mempool or --electrum argument")),
             }
-                .map_err(WalletError::Resolver)?;
+            .map_err(WalletError::Resolver)?;
         resolver.check(self.general.network)?;
         Ok(resolver)
     }
