@@ -384,11 +384,7 @@ impl Exec for RgbArgs {
                             (op.payers.first(), op.payers.len().saturating_sub(1))
                         }
                     };
-                    let more = if more > 0 {
-                        format!(" (+{more})")
-                    } else {
-                        s!("")
-                    };
+                    let more = if more > 0 { format!(" (+{more})") } else { s!("") };
                     let cparty = cparty
                         .map(XOutputSeal::to_string)
                         .unwrap_or_else(|| s!("none"));

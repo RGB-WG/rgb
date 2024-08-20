@@ -221,8 +221,8 @@ impl RgbExt for Psbt {
                     .proprietary
                     .keys()
                     .filter(|prop_key| {
-                        prop_key.identifier == PSBT_RGB_PREFIX &&
-                            prop_key.subtype == PSBT_IN_RGB_CONSUMED_BY
+                        prop_key.identifier == PSBT_RGB_PREFIX
+                            && prop_key.subtype == PSBT_IN_RGB_CONSUMED_BY
                     })
                     .map(|prop_key| prop_key.data.as_slice())
                     .map(ContractId::copy_from_slice)
@@ -416,11 +416,7 @@ pub trait RgbOutExt {
 impl RgbOutExt for psbt::Output {
     fn rgb_velocity_hint(&self) -> Option<VelocityHint> {
         let data = self.proprietary.get(&PropKey::rgb_out_velocity_hint())?;
-        if data.len() != 1 {
-            None
-        } else {
-            data.first().map(VelocityHint::with_value)
-        }
+        if data.len() != 1 { None } else { data.first().map(VelocityHint::with_value) }
     }
 
     fn set_rgb_velocity_hint(&mut self, hint: VelocityHint) -> bool {
