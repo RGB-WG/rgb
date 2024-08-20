@@ -29,13 +29,13 @@ rgb-std = { workspace = true, features = ["serde"] }
 rgb-interfaces = { workspace = true }
 rgb-runtime = { version = "0.11.0-beta.6", path = "..", features = ["electrum_blocking", "esplora_blocking", "log", "serde", "fs", "cli"] }
 log = { workspace = true }
-env_logger = "0.11.3"
-clap = { version = "4.4.8", features = ["derive", "env"] }
+env_logger = "0.11.5"
+clap = { version = "4.5.16", features = ["derive", "env"] }
 shellexpand = "3.1.0"
 serde_crate = { workspace = true }
 serde_yaml = { workspace = true }
-serde_json = "1.0.108"
-toml = "0.8.8"
+serde_json = "1.0.125"
+toml = "0.8.19"
 
 [features]
 default = []
