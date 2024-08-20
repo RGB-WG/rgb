@@ -192,10 +192,11 @@ pub trait RgbExt {
                 let known_transitions = known_transitions.remove(&method).unwrap_or_default();
                 bundles.push(TransitionBundle {
                     close_method: method,
-                    input_map: InputMap::from(Confined::from_collection_unsafe(
-                        input_map.into_inner(),
-                    )),
-                    known_transitions: Confined::try_from(known_transitions.into_inner())
+                    input_map: InputMap::from(
+                        Confined::try_from(input_map.release())
+                            .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
+                    ),
+                    known_transitions: Confined::try_from(known_transitions.release())
                         .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
                 });
             }
@@ -296,8 +297,8 @@ impl RgbExt for Psbt {
 
         // Since we update transition it's ok to ignore the fact that it previously
         // existed
-        let _ = self
-            .push_proprietary(PropKey::rgb_transition(opid), serialized_transition.into_inner());
+        let _ =
+            self.push_proprietary(PropKey::rgb_transition(opid), serialized_transition.release());
         let _ = self.push_proprietary(PropKey::rgb_closing_methods(opid), vec![method as u8]);
         Ok(prev_transition.is_none())
     }

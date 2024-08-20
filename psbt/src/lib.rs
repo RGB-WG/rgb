@@ -75,7 +75,7 @@ impl RgbPsbt for Psbt {
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError> {
         for info in batch {
             let contract_id = info.transition.contract_id;
-            let mut inputs = info.inputs.into_inner();
+            let mut inputs = info.inputs.release();
             for input in self.inputs_mut() {
                 if inputs.remove(&XChain::Bitcoin(input.prevout().outpoint())) {
                     input

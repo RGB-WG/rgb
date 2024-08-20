@@ -124,6 +124,7 @@ pub enum HistoryError {
     NoDefaultAssignment,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Display, Error, From)]
 pub enum PayError {
     #[from]
