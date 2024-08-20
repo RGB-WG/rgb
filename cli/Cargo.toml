@@ -4,7 +4,7 @@ version = { workspace = true }
 description = "Command-line wallet for RGB smart contracts on Bitcoin"
 keywords = { workspace = true }
 categories = { workspace = true }
-readme = "../README.md"
+readme = "README.md"
 authors = { workspace = true }
 repository = { workspace = true }
 homepage = { workspace = true }
