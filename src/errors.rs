@@ -25,6 +25,7 @@ use std::convert::Infallible;
 use std::io;
 
 use amplify::IoError;
+use bpstd::Psbt;
 use psrgbt::{CommitError, ConstructionError, EmbedError, TapretKeyError};
 use rgbstd::containers::LoadError;
 use rgbstd::interface::{BuilderError, ContractError};
@@ -124,13 +125,13 @@ pub enum HistoryError {
 }
 
 #[derive(Debug, Display, Error, From)]
-#[display(inner)]
 pub enum PayError {
     #[from]
+    #[display(inner)]
     Composition(CompositionError),
 
-    #[from]
-    Completion(CompletionError),
+    #[display("{0}")]
+    Completion(CompletionError, Psbt),
 }
 
 #[derive(Debug, Display, Error, From)]
