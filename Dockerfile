@@ -9,7 +9,7 @@ ARG SRC_DIR=/usr/local/src/rgb
 ARG BUILDER_DIR=/srv/rgb
 
 # Base image
-FROM rust:1.66.0-slim-bullseye as chef
+FROM rust:1.76.0-slim-bookworm as chef
 
 ARG SRC_DIR
 ARG BUILDER_DIR

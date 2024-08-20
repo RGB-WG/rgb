@@ -118,7 +118,10 @@ where Self::Descr: DescriptorRgb<K>
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
         let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, params)?;
         // ... here we pass PSBT around signers, if necessary
-        let transfer = self.transfer(stock, invoice, &mut psbt)?;
+        let transfer = match self.transfer(stock, invoice, &mut psbt) {
+            Ok(transfer) => transfer,
+            Err(e) => return Err(PayError::Completion(e, psbt)),
+        };
         Ok((psbt, meta, transfer))
     }
 
@@ -345,7 +348,9 @@ where Self::Descr: DescriptorRgb<K>
 impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D>
 where Wallet<K, D>: Save
 {
-    type Filter<'a> = WalletWrapper<'a, K, D> where Self: 'a;
+    type Filter<'a> = WalletWrapper<'a, K, D>
+    where
+        Self: 'a;
     fn filter(&self) -> Self::Filter<'_> { WalletWrapper(self) }
     fn descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
         self.descriptor_mut(f)

@@ -72,7 +72,7 @@ pub struct RgbArgs {
 
     /// Specify blockchain height starting from which witness transactions
     /// should be checked for re-orgs
-    #[clap(short = 'h', long, requires = "sync")]
+    #[clap(short = 'H', long, requires = "sync")]
     pub from_height: Option<u32>,
 }
 
@@ -110,7 +110,7 @@ impl RgbArgs {
                 fs::create_dir_all(&stock_path)?;
                 let stock = Stock::new(stock_path.to_owned());
                 stock.store()?;
-                return Ok(stock)
+                return Ok(stock);
             }
             eprintln!("stock file is damaged, failing");
             Err(err)
