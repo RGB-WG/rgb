@@ -80,6 +80,14 @@ serde_crate = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+rand = { version = "0.8.4", optional = true }
+getrandom = { version = "0.2", features = ["js"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
+
 [features]
 default = ["esplora_blocking", "mempool_blocking"]
 all = ["esplora_blocking", "electrum_blocking", "mempool_blocking", "serde", "log", "fs", "cli"]

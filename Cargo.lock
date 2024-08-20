@@ -1460,13 +1460,17 @@ dependencies = [
  "chrono",
  "commit_verify",
  "descriptors",
+ "getrandom",
  "indexmap 2.4.0",
  "log",
+ "rand",
  "rgb-psbt",
  "rgb-std",
  "serde",
  "serde_yaml",
  "strict_types",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
 ]
 
 [[package]]
