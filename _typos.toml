@@ -1,0 +1,13 @@
+[files]
+# exclude the directory "stl/"
+extend-exclude = ["stl/"]
+
+[default.extend-words]
+# Don't correct the name "Jon Atack".
+Atack = "Atack"
+
+[default]
+extend-ignore-re = [
+    # Don't correct URIs
+    "([a-z]+:)*[$!0-9A-Za-z-]+",
+]
