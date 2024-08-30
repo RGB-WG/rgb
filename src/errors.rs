@@ -26,11 +26,12 @@ use std::io;
 
 use amplify::IoError;
 use bpstd::Psbt;
+use nonasync::persistence::PersistenceError;
 use psrgbt::{CommitError, ConstructionError, EmbedError, TapretKeyError};
 use rgbstd::containers::LoadError;
 use rgbstd::interface::{BuilderError, ContractError};
 use rgbstd::persistence::{
-    ComposeError, ConsignError, ContractIfaceError, FasciaError, StockError, StockErrorAll,
+    ComposeError, ConsignError, ContractIfaceError, FasciaError, Stock, StockError, StockErrorAll,
     StockErrorMem,
 };
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
@@ -53,9 +54,9 @@ pub enum WalletError {
     #[from]
     StockLoad(LoadError),
 
-    #[cfg(feature = "fs")]
-    #[from]
-    WalletLoad(bpwallet::fs::LoadError),
+    WalletPersist(PersistenceError),
+
+    StockPersist(PersistenceError),
 
     #[cfg(feature = "cli")]
     #[from]
@@ -111,6 +112,10 @@ pub enum WalletError {
 
 impl From<Infallible> for WalletError {
     fn from(_: Infallible) -> Self { unreachable!() }
+}
+
+impl From<(Stock, WalletError)> for WalletError {
+    fn from((_, e): (Stock, WalletError)) -> Self { e }
 }
 
 #[derive(Debug, Display, Error, From)]

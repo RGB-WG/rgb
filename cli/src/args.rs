@@ -32,6 +32,7 @@ use bpwallet::Wallet;
 use rgb::persistence::Stock;
 use rgb::resolvers::AnyResolver;
 use rgb::{RgbDescr, RgbWallet, TapretKey, WalletError};
+use rgbstd::persistence::fs::FsBinStore;
 use strict_types::encoding::{DecodeError, DeserializeError};
 
 use crate::Command;
@@ -102,14 +103,16 @@ impl RgbArgs {
             eprint!("Loading stock from `{}` ... ", stock_path.display());
         }
 
-        let mut stock = Stock::load(stock_path.clone()).map_err(WalletError::from).or_else(|err| {
+        let provider = FsBinStore::new(stock_path.clone());
+        let mut stock = Stock::load(provider, true).map_err(WalletError::WalletPersist).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
                 }
                 fs::create_dir_all(&stock_path)?;
-                let stock = Stock::new(stock_path.to_owned());
-                stock.store()?;
+                let provider = FsBinStore::new(stock_path);
+                let mut stock = Stock::in_memory();
+                stock.make_persistent(provider, true).map_err(WalletError::StockPersist)?;
                 return Ok(stock);
             }
             eprintln!("stock file is damaged, failing");
@@ -151,14 +154,18 @@ impl RgbArgs {
     ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock = self.rgb_stock()?;
         self.rgb_wallet_from_stock(config, stock)
+            .map_err(|(_, err)| err)
     }
 
     pub fn rgb_wallet_from_stock(
         &self,
         config: &Config,
         stock: Stock,
-    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
-        let wallet = self.inner.bp_wallet::<RgbDescr>(config)?;
+    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, (Stock, WalletError)> {
+        let wallet = match self.inner.bp_wallet::<RgbDescr>(config) {
+            Ok(wallet) => wallet,
+            Err(e) => return Err((stock, e.into())),
+        };
         let wallet = RgbWallet::new(stock, wallet);
 
         Ok(wallet)

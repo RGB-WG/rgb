@@ -47,7 +47,7 @@ use rgb::{
     XOutpoint, XOutputSeal, XWitnessId,
 };
 use rgbstd::containers::ConsignmentExt;
-use rgbstd::persistence::MemContract;
+use rgbstd::persistence::{MemContract, Stock};
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
@@ -485,17 +485,36 @@ impl Exec for RgbArgs {
                 let stock_path = self.general.base_dir();
                 let stock = self.load_stock(stock_path)?;
 
-                let contract = stock.contract_iface(*contract_id, tn!(iface.to_owned()))?;
+                enum StockOrWallet {
+                    Stock(Stock),
+                    Wallet(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
+                }
+                impl StockOrWallet {
+                    fn stock(&self) -> &Stock {
+                        match self {
+                            StockOrWallet::Stock(stock) => stock,
+                            StockOrWallet::Wallet(wallet) => wallet.stock(),
+                        }
+                    }
+                }
 
-                // TODO: Remove clone
-                let filter = match self.rgb_wallet_from_stock(&config, stock.clone()) {
-                    Ok(wallet) if *all => Filter::WalletAll(wallet),
-                    Ok(wallet) => Filter::Wallet(wallet),
-                    Err(_) => {
+                let stock_wallet = match self.rgb_wallet_from_stock(&config, stock) {
+                    Ok(wallet) => StockOrWallet::Wallet(wallet),
+                    Err((stock, _)) => StockOrWallet::Stock(stock),
+                };
+
+                let filter = match stock_wallet {
+                    StockOrWallet::Wallet(ref wallet) if *all => Filter::WalletAll(wallet),
+                    StockOrWallet::Wallet(ref wallet) => Filter::Wallet(wallet),
+                    StockOrWallet::Stock(_) => {
                         println!("no wallets found");
                         Filter::NoWallet
                     }
                 };
+
+                let contract = stock_wallet
+                    .stock()
+                    .contract_iface(*contract_id, tn!(iface.to_owned()))?;
 
                 println!("\nGlobal:");
                 for global in &contract.iface.global_state {
@@ -506,12 +525,12 @@ impl Exec for RgbArgs {
                     }
                 }
 
-                enum Filter {
-                    Wallet(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
-                    WalletAll(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
+                enum Filter<'w> {
+                    Wallet(&'w RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    WalletAll(&'w RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
-                impl OutpointFilter for Filter {
+                impl<'w> OutpointFilter for Filter<'w> {
                     fn include_outpoint(&self, outpoint: impl Into<XOutpoint>) -> bool {
                         match self {
                             Filter::Wallet(wallet) => {
@@ -521,7 +540,7 @@ impl Exec for RgbArgs {
                         }
                     }
                 }
-                impl Filter {
+                impl<'w> Filter<'w> {
                     fn comment(&self, outpoint: XOutpoint) -> &'static str {
                         match self {
                             Filter::Wallet(wallet) | Filter::WalletAll(wallet)
