@@ -36,6 +36,7 @@ jobs:
         feature:
           - fs
           - cli
+          - log
           - esplora_blocking
           - electrum_blocking
           - mempool_blocking
