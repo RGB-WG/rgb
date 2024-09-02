@@ -76,9 +76,9 @@ impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvide
         FsBinStore: PersistenceProvider<H>,
         FsBinStore: PersistenceProvider<P>,
     {
-        let provider = FsBinStore::new(stock_path);
+        let provider = FsBinStore::new(stock_path)?;
         let stock = Stock::load(provider, autosave).map_err(WalletError::StockPersist)?;
-        let provider = FsTextStore::new(wallet_path);
+        let provider = FsTextStore::new(wallet_path)?;
         let wallet = Wallet::load(provider, autosave).map_err(WalletError::WalletPersist)?;
         Ok(Self {
             wallet,

@@ -103,14 +103,14 @@ impl RgbArgs {
             eprint!("Loading stock from `{}` ... ", stock_path.display());
         }
 
-        let provider = FsBinStore::new(stock_path.clone());
+        let provider = FsBinStore::new(stock_path.clone())?;
         let mut stock = Stock::load(provider, true).map_err(WalletError::WalletPersist).or_else(|err| {
             if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
                 }
                 fs::create_dir_all(&stock_path)?;
-                let provider = FsBinStore::new(stock_path);
+                let provider = FsBinStore::new(stock_path)?;
                 let mut stock = Stock::in_memory();
                 stock.make_persistent(provider, true).map_err(WalletError::StockPersist)?;
                 return Ok(stock);
