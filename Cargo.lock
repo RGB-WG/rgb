@@ -476,8 +476,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced31423a2325a666532e92c1ca7ceff986eda9f147a241ba812e5ed2fee0eaf"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=master#13d59a775d3928be929569a4cc7d24dd0f59c25d"
 dependencies = [
  "amplify",
  "base64",
@@ -1369,8 +1368,7 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "243f1dcdf028b1cbadc9ed27866619feed0608eba0c84f59b344026648312731"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=master#4f67584ef950a8097cc2c41f8caedb26bdd9996c"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1410,8 +1408,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d43cd206275a055440a8c496cb7b5040842d6a0e354d00df268bc635ee07b871"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=master#070bfcdc8135134069080a66662ea60ba7021a96"
 dependencies = [
  "amplify",
  "baid64",
@@ -1476,8 +1473,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c66b8810d29c080f3ee5046bd9dda7b42ab2321e09dd914bc9a4702b4731f15c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=master#070bfcdc8135134069080a66662ea60ba7021a96"
 dependencies = [
  "aluvm",
  "amplify",
