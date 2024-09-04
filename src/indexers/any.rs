@@ -34,7 +34,7 @@ use crate::{Txid, XChain};
 
 // We need to repeat methods of `WitnessResolve` trait here to avoid making
 // wrappers around resolver types. TODO: Use wrappers instead
-pub trait RgbResolver {
+pub trait RgbResolver: Send {
     fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String>;
     fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String>;
     fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String>;
