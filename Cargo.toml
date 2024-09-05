@@ -10,7 +10,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-beta.7"
+version = "0.11.0-beta.8"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -24,20 +24,20 @@ license = "Apache-2.0"
 amplify = "4.7.0"
 nonasync = { version = "0.1.0", features = ["log"] }
 baid64 = "0.2.2"
-strict_encoding = "2.7.0-rc.1"
-strict_types = "2.7.0-rc.1"
-commit_verify = "0.11.0-beta.7"
-bp-core = "0.11.0-beta.7"
-bp-seals = "0.11.0-beta.7"
-bp-std = "0.11.0-beta.7"
-bp-electrum = "0.11.0-beta.7"
-bp-esplora = { version = "0.11.0-beta.7", default-features = false, features = ["blocking"] }
-descriptors = "0.11.0-beta.7"
-psbt = { version = "0.11.0-beta.7", features = ["client-side-validation"] }
-bp-wallet = { version = "0.11.0-beta.7" }
-rgb-std = { version = "0.11.0-beta.7" }
-rgb-psbt = { version = "0.11.0-beta.7", path = "psbt" }
-rgb-interfaces = "0.11.0-beta.7"
+strict_encoding = "2.7.0"
+strict_types = "2.7.0"
+commit_verify = "0.11.0-beta.8"
+bp-core = "0.11.0-beta.8"
+bp-seals = "0.11.0-beta.8"
+bp-std = "0.11.0-beta.8"
+bp-electrum = "0.11.0-beta.8"
+bp-esplora = { version = "0.11.0-beta.8", default-features = false, features = ["blocking"] }
+descriptors = "0.11.0-beta.8"
+psbt = { version = "0.11.0-beta.8", features = ["client-side-validation"] }
+bp-wallet = { version = "0.11.0-beta.8" }
+rgb-std = { version = "0.11.0-beta.8" }
+rgb-psbt = { version = "0.11.0-beta.8", path = "psbt" }
+rgb-interfaces = "0.11.0-beta.8"
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -102,15 +102,3 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-nonasync = { git = "https://github.com/rust-amplify/amplify-nonasync" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "master" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "master" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
