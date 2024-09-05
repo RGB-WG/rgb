@@ -22,18 +22,19 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 #[cfg(feature = "fs")]
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use bpstd::XpubDerivable;
 #[cfg(feature = "fs")]
-use bpwallet::fs::Warning;
+use bpwallet::fs::FsTextStore;
 #[cfg(feature = "fs")]
-use bpwallet::{Wallet, WalletDescr};
+use bpwallet::Wallet;
+use nonasync::persistence::PersistenceProvider;
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
 use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef};
 #[cfg(feature = "fs")]
-use rgbstd::persistence::fs::FsStored;
+use rgbstd::persistence::fs::FsBinStore;
 use rgbstd::persistence::{
     IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider, Stock,
 };
@@ -55,8 +56,6 @@ pub struct RgbWallet<
 {
     stock: Stock<S, H, P>,
     wallet: W,
-    #[cfg(feature = "fs")]
-    warnings: Vec<Warning>,
     #[getter(skip)]
     _phantom: PhantomData<K>,
 }
@@ -64,24 +63,26 @@ pub struct RgbWallet<
 #[cfg(feature = "fs")]
 impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
     RgbWallet<Wallet<K, D>, K, S, H, P>
-where
-    S: FsStored,
-    H: FsStored,
-    P: FsStored,
-    for<'de> WalletDescr<K, D>: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> D: serde::Serialize + serde::Deserialize<'de>,
 {
     #[allow(clippy::result_large_err)]
     pub fn load(
-        stock_path: impl ToOwned<Owned = PathBuf>,
-        wallet_path: impl AsRef<Path>,
-    ) -> Result<Self, WalletError> {
-        let stock = Stock::load(stock_path)?;
-        let (wallet, warnings) = Wallet::load(wallet_path.as_ref(), true)?;
+        stock_path: PathBuf,
+        wallet_path: PathBuf,
+        autosave: bool,
+    ) -> Result<Self, WalletError>
+    where
+        D: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        FsBinStore: PersistenceProvider<S>,
+        FsBinStore: PersistenceProvider<H>,
+        FsBinStore: PersistenceProvider<P>,
+    {
+        let provider = FsBinStore::new(stock_path)?;
+        let stock = Stock::load(provider, autosave).map_err(WalletError::StockPersist)?;
+        let provider = FsTextStore::new(wallet_path)?;
+        let wallet = Wallet::load(provider, autosave).map_err(WalletError::WalletPersist)?;
         Ok(Self {
             wallet,
             stock,
-            warnings,
             _phantom: PhantomData,
         })
     }
@@ -95,8 +96,6 @@ where W::Descr: DescriptorRgb<K>
         Self {
             stock,
             wallet,
-            #[cfg(feature = "fs")]
-            warnings: none!(),
             _phantom: PhantomData,
         }
     }

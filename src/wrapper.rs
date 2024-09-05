@@ -19,24 +19,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bpwallet::{Save, Wallet};
+use bpwallet::Wallet;
 use rgbstd::interface::OutpointFilter;
 
 use crate::{DescriptorRgb, WalletProvider, XChain, XOutpoint};
 
-pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>)
-where Wallet<K, D>: Save;
+pub struct WalletWrapper<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
 
-impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> where Wallet<K, D>: Save {}
-impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D>
-where Wallet<K, D>: Save
-{
+impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWrapper<'a, K, D> {}
+impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWrapper<'a, K, D> {
     fn clone(&self) -> Self { *self }
 }
 
-impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D>
-where Wallet<K, D>: Save
-{
+impl<'a, K, D: DescriptorRgb<K>> OutpointFilter for WalletWrapper<'a, K, D> {
     fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
         let output = output.into();
         self.0

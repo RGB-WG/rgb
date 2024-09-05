@@ -26,7 +26,7 @@ use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
-use bpwallet::{Save, Wallet, WalletDescr};
+use bpwallet::{Wallet, WalletDescr};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
     TxParams,
@@ -103,7 +103,10 @@ where Self::Descr: DescriptorRgb<K>
     type Filter<'a>: Copy + OutpointFilter
     where Self: 'a;
     fn filter(&self) -> Self::Filter<'_>;
-    fn descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R) -> R;
+    fn with_descriptor_mut<R>(
+        &mut self,
+        f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R,
+    ) -> R;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
     fn txids(&self) -> impl Iterator<Item = Txid>;
 
@@ -292,7 +295,9 @@ where Self::Descr: DescriptorRgb<K>
                 .terminal_derivation()
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
-            self.descriptor_mut(|descr| descr.add_tapret_tweak(terminal, tapret_commitment))?;
+            self.with_descriptor_mut(|descr| {
+                descr.with_descriptor_mut(|d| d.add_tapret_tweak(terminal, tapret_commitment))
+            })?;
         }
 
         let witness_txid = psbt.txid();
@@ -345,14 +350,12 @@ where Self::Descr: DescriptorRgb<K>
     }
 }
 
-impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D>
-where Wallet<K, D>: Save
-{
+impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
     type Filter<'a> = WalletWrapper<'a, K, D>
     where
         Self: 'a;
     fn filter(&self) -> Self::Filter<'_> { WalletWrapper(self) }
-    fn descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
+    fn with_descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
         self.descriptor_mut(f)
     }
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
