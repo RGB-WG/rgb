@@ -313,9 +313,9 @@ where Self::Descr: DescriptorRgb<K>
                     pay2vout.method,
                     Outpoint::new(witness_txid, vout),
                 ));
-                (vec![], vec![seal])
+                (None, vec![seal])
             }
-            Beneficiary::BlindedSeal(seal) => (vec![XChain::Bitcoin(seal)], vec![]),
+            Beneficiary::BlindedSeal(seal) => (Some(XChain::Bitcoin(seal)), vec![]),
         };
 
         struct FasciaResolver {

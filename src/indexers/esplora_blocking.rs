@@ -38,6 +38,9 @@ impl RgbResolver for BlockingClient {
     }
 
     fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String> {
+        if self.tx(&txid)?.is_none() {
+            return Ok(WitnessOrd::Archived);
+        }
         let status = self.tx_status(&txid)?;
         let ord = match status
             .block_height
@@ -46,8 +49,7 @@ impl RgbResolver for BlockingClient {
             Some((h, t)) => {
                 WitnessOrd::Mined(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
             }
-            // TODO: Figure out how to detect mempool transactions
-            None => WitnessOrd::Archived,
+            None => WitnessOrd::Tentative,
         };
         Ok(ord)
     }

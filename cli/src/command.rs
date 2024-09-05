@@ -862,21 +862,18 @@ impl Exec for RgbArgs {
                 // TODO: Support lock time and RBFs
                 let params = TransferParams::with(*fee, *sats);
 
-                let (psbt, _, transfer) =
+                let (mut psbt, _, transfer) =
                     wallet.pay(invoice, params).map_err(|err| err.to_string())?;
 
                 transfer.save_file(out_file)?;
 
-                let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
+                psbt.version = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };
                 match psbt_file {
                     Some(file_name) => {
                         let mut psbt_file = File::create(file_name)?;
-                        psbt.encode(ver, &mut psbt_file)?;
+                        psbt.encode(psbt.version, &mut psbt_file)?;
                     }
-                    None => match ver {
-                        PsbtVer::V0 => println!("{psbt}"),
-                        PsbtVer::V2 => println!("{psbt:#}"),
-                    },
+                    None => println!("{psbt}"),
                 }
             }
             Command::Inspect { file, dir, path } => {
