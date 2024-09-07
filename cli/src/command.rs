@@ -38,6 +38,7 @@ use rgb::containers::{
 use rgb::interface::{AmountChange, IfaceId, OutpointFilter};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::StashReadProvider;
+use rgb::resolvers::ContractIssueResolver;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
@@ -753,8 +754,7 @@ impl Exec for RgbArgs {
 
                 let contract = builder.issue_contract()?;
                 let id = contract.contract_id();
-                let resolver = self.resolver()?;
-                stock.import_contract(contract, &resolver)?;
+                stock.import_contract(contract, &ContractIssueResolver)?;
                 eprintln!(
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
                      to export the contract."
