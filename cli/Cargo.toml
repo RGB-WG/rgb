@@ -26,8 +26,8 @@ bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true, features = ["cli"] }
 psbt = { workspace = true }
 rgb-std = { workspace = true, features = ["serde"] }
-rgb-interfaces = { workspace = true }
-rgb-runtime = { version = "0.11.0-beta.7", path = "..", features = ["electrum_blocking", "esplora_blocking", "log", "serde", "fs", "cli"] }
+rgb-interfaces = { version = "0.11.0-beta.8", features = ["fs"] }
+rgb-runtime = { version = "0.11.0-beta.8", path = "..", features = ["electrum_blocking", "esplora_blocking", "log", "serde", "fs", "cli"] }
 log = { workspace = true }
 env_logger = "0.11.5"
 clap = { version = "4.5.17", features = ["derive", "env"] }

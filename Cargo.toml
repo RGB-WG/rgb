@@ -22,7 +22,7 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.7.0"
-nonasync = { version = "0.1.0", features = ["log"] }
+nonasync = { version = "0.1.2", features = ["log"] }
 baid64 = "0.2.2"
 strict_encoding = "2.7.0"
 strict_types = "2.7.0"
@@ -37,7 +37,6 @@ psbt = { version = "0.11.0-beta.8", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.0-beta.8" }
 rgb-std = { version = "0.11.0-beta.8" }
 rgb-psbt = { version = "0.11.0-beta.8", path = "psbt" }
-rgb-interfaces = "0.11.0-beta.8"
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -102,3 +101,6 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "develop" }

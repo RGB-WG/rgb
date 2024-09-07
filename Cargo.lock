@@ -476,8 +476,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1b3cda17bafd67254e6f0be1b401a31d942dc54be138d5cc7976bb58291dff0"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=develop#1aba927f1398ca8312a4c48a632849d4ae987626"
 dependencies = [
  "amplify",
  "base64",
