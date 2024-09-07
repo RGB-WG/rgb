@@ -1199,9 +1199,9 @@ dependencies = [
 
 [[package]]
 name = "nonasync"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94a84b7c873630913f738950f17412b9d5b24cad6866b98b802253f8cbbefabb"
+checksum = "4b1005555d351f593bf72ffc3a89a0d42e243df004d2c4ded17699f10b562b98"
 dependencies = [
  "amplify",
  "log",

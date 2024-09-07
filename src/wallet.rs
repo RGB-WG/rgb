@@ -29,7 +29,7 @@ use bpstd::XpubDerivable;
 use bpwallet::fs::FsTextStore;
 #[cfg(feature = "fs")]
 use bpwallet::Wallet;
-use nonasync::persistence::PersistenceProvider;
+use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
 use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef};
@@ -76,9 +76,11 @@ impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvide
         FsBinStore: PersistenceProvider<H>,
         FsBinStore: PersistenceProvider<P>,
     {
-        let provider = FsBinStore::new(stock_path)?;
+        let provider = FsBinStore::new(stock_path)
+            .map_err(|e| WalletError::StockPersist(PersistenceError::with(e)))?;
         let stock = Stock::load(provider, autosave).map_err(WalletError::StockPersist)?;
-        let provider = FsTextStore::new(wallet_path)?;
+        let provider = FsTextStore::new(wallet_path)
+            .map_err(|e| WalletError::WalletPersist(PersistenceError::with(e)))?;
         let wallet = Wallet::load(provider, autosave).map_err(WalletError::WalletPersist)?;
         Ok(Self {
             wallet,

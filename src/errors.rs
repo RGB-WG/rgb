@@ -34,7 +34,7 @@ use rgbstd::persistence::{
     ComposeError, ConsignError, ContractIfaceError, FasciaError, Stock, StockError, StockErrorAll,
     StockErrorMem,
 };
-use strict_types::encoding::{DeserializeError, Ident, SerializeError};
+use strict_types::encoding::Ident;
 
 use crate::{validation, TapTweakAlreadyAssigned};
 
@@ -43,13 +43,7 @@ use crate::{validation, TapTweakAlreadyAssigned};
 pub enum WalletError {
     #[from]
     #[from(io::Error)]
-    Io(IoError),
-
-    #[from]
-    Serialize(SerializeError),
-
-    #[from]
-    Deserialize(DeserializeError),
+    File(IoError),
 
     #[from]
     StockLoad(LoadError),
