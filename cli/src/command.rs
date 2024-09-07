@@ -175,8 +175,9 @@ pub enum Command {
         value: u64,
     },
 
-    /// Prepare PSBT file for transferring RGB assets. In the most of cases you
-    /// need to use `transfer` command instead of `prepare` and `consign`.
+    /// Prepare PSBT file for transferring RGB assets
+    ///
+    /// In the most of cases you need to use `transfer` command instead of `prepare` and `consign`.
     #[display("prepare")]
     Prepare {
         /// Encode PSBT as V2
@@ -198,8 +199,9 @@ pub enum Command {
         psbt: Option<PathBuf>,
     },
 
-    /// Prepare consignment for transferring RGB assets. In the most of the
-    /// cases you need to use `transfer` command instead of `prepare` and
+    /// Prepare consignment for transferring RGB assets
+    ///
+    /// In the most of the cases you need to use `transfer` command instead of `prepare` and
     /// `consign`.
     #[display("prepare")]
     Consign {
@@ -299,6 +301,7 @@ pub enum Command {
 #[display(lowercase)]
 #[clap(hide = true)]
 pub enum DebugCommand {
+    /// List known tapret tweaks for a wallet
     Taprets,
 }
 
