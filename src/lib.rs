@@ -40,6 +40,22 @@ pub mod resolvers {
     #[cfg(any(feature = "electrum_blocking", feature = "esplora_blocking"))]
     pub use super::indexers::*;
     pub use super::indexers::{AnyResolver, RgbResolver};
+    use super::validation::{ResolveWitness, WitnessResolverError};
+    use super::vm::{WitnessOrd, XWitnessTx};
+    use super::XWitnessId;
+
+    pub struct ContractIssueResolver;
+    impl ResolveWitness for ContractIssueResolver {
+        fn resolve_pub_witness(&self, _: XWitnessId) -> Result<XWitnessTx, WitnessResolverError> {
+            panic!("contract issue resolver must not be used for an already-existing contracts")
+        }
+        fn resolve_pub_witness_ord(
+            &self,
+            _: XWitnessId,
+        ) -> Result<WitnessOrd, WitnessResolverError> {
+            panic!("contract issue resolver must not be used for an already-existing contracts")
+        }
+    }
 }
 pub use wallet::RgbWallet;
 pub use wrapper::WalletWrapper;
