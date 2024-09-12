@@ -23,6 +23,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest, macos-13, macos-latest, windows-latest ]
     steps:
+      - uses: ilammy/setup-nasm@v1
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Test ${{matrix.os}}
