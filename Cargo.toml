@@ -31,7 +31,7 @@ bp-core = "0.11.0-beta.8"
 bp-seals = "0.11.0-beta.8"
 bp-std = "0.11.0-beta.8"
 bp-electrum = "0.11.0-beta.8"
-bp-esplora = { version = "0.11.0-beta.8", default-features = false, features = ["blocking"] }
+bp-esplora = { version = "0.11.0-beta.8", default-features = false, git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
 descriptors = "0.11.0-beta.8"
 psbt = { version = "0.11.0-beta.8", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.0-beta.8" }
@@ -91,11 +91,12 @@ getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-test = "0.3"
 
 [features]
-default = ["esplora_blocking", "mempool_blocking"]
+default = []
 all = ["esplora_blocking", "electrum_blocking", "mempool_blocking", "serde", "log", "fs", "cli"]
 fs = ["serde", "bp-wallet/fs", "rgb-std/fs"]
 cli = ["fs", "bp-wallet/cli"]
-esplora_blocking = ["bp-esplora"]
+esplora_blocking = ["bp-esplora", "bp-esplora/blocking"]
+esplora_blocking-wasm = ["bp-esplora", "bp-esplora/blocking-wasm"]
 electrum_blocking = ["bp-electrum"]
 mempool_blocking = ["esplora_blocking"]
 serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-psbt/serde"]
