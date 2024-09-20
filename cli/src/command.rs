@@ -21,6 +21,7 @@
 
 use std::fs;
 use std::fs::File;
+use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -46,6 +47,7 @@ use rgb::{
     RgbDescr, RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider,
     XChain, XOutpoint, XWitnessId,
 };
+use rgbstd::persistence::StockError;
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
@@ -123,7 +125,7 @@ pub enum Command {
         contract_id: ContractId,
 
         /// Interface to interpret the state data
-        iface: String,
+        iface: Option<String>,
     },
 
     /// Print operation history for a default fungible token under a given
@@ -355,37 +357,10 @@ impl Exec for RgbArgs {
                 let wallet = self.rgb_wallet(&config)?;
                 let iface: TypeName = match iface {
                     Some(iface) => tn!(iface.clone()),
-                    None => {
-                        let stock = wallet.stock();
-                        let info = stock.contract_info(*contract_id)?;
-                        let schema = stock.schema(info.schema_id)?;
-                        match schema.iimpls.len() {
-                            0 => {
-                                eprintln!(
-                                    "contract doesn't implement any interface and thus can't be \
-                                     read\n"
-                                );
-                                return Ok(());
-                            }
-                            1 => schema
-                                .iimpls
-                                .first_key_value()
-                                .expect("one interface is present")
-                                .0
-                                .clone(),
-                            _ => {
-                                eprintln!(
-                                    "contract implements multiple interface, please select one of \
-                                     them to read the contract:"
-                                );
-                                for iface in schema.iimpls.keys() {
-                                    eprintln!("{iface}");
-                                }
-                                eprintln!();
-                                return Ok(());
-                            }
-                        }
-                    }
+                    None => match contract_default_iface_name(*contract_id, wallet.stock())? {
+                        ControlFlow::Continue(name) => name,
+                        ControlFlow::Break(_) => return Ok(()),
+                    },
                 };
                 let history = wallet.history(*contract_id, iface)?;
                 if *details {
@@ -533,6 +508,14 @@ impl Exec for RgbArgs {
                         }
                     }
                 }
+
+                let iface: TypeName = match iface {
+                    Some(iface) => tn!(iface.clone()),
+                    None => match contract_default_iface_name(*contract_id, &stock)? {
+                        ControlFlow::Continue(name) => name,
+                        ControlFlow::Break(_) => return Ok(()),
+                    },
+                };
 
                 let stock_wallet = match self.rgb_wallet_from_stock(&config, stock) {
                     Ok(wallet) => StockOrWallet::Wallet(wallet),
@@ -1148,8 +1131,38 @@ impl Exec for RgbArgs {
                 eprintln!("Transfer accepted into the stash");
             }
         }
-        println!();
-
         Ok(())
     }
+}
+
+fn contract_default_iface_name(
+    contract_id: ContractId,
+    stock: &Stock,
+) -> Result<ControlFlow<(), TypeName>, StockError> {
+    let info = stock.contract_info(contract_id)?;
+    let schema = stock.schema(info.schema_id)?;
+    Ok(match schema.iimpls.len() {
+        0 => {
+            eprintln!("contract doesn't implement any interface and thus can't be read");
+            ControlFlow::Break(())
+        }
+        1 => ControlFlow::Continue(
+            schema
+                .iimpls
+                .first_key_value()
+                .expect("one interface is present")
+                .0
+                .clone(),
+        ),
+        _ => {
+            eprintln!(
+                "contract implements multiple interface, please select one of them to read the \
+                 contract:"
+            );
+            for iface in schema.iimpls.keys() {
+                eprintln!("{iface}");
+            }
+            ControlFlow::Break(())
+        }
+    })
 }

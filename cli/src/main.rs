@@ -63,5 +63,7 @@ fn run() -> Result<(), WalletError> {
 
     let conf = Config::load(&args.conf_path("rgb"));
     debug!("Executing command: {:?}", args.command);
-    args.exec(conf, "rgb")
+    args.exec(conf, "rgb")?;
+    println!();
+    Ok(())
 }
