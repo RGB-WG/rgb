@@ -127,8 +127,8 @@ pub enum Command {
 
     /// Print operation history for a default fungible token under a given
     /// interface
-    #[display("history-fungible")]
-    HistoryFungible {
+    #[display("history")]
+    History {
         /// Print detailed information
         #[clap(long)]
         details: bool,
@@ -137,7 +137,7 @@ pub enum Command {
         contract_id: ContractId,
 
         /// Interface to interpret the state data
-        iface: String,
+        iface: Option<String>,
     },
 
     /// Display all known UTXOs belonging to this wallet
@@ -343,13 +343,46 @@ impl Exec for RgbArgs {
                 }
             }
 
-            Command::HistoryFungible {
+            Command::History {
                 contract_id,
                 iface,
                 details,
             } => {
                 let wallet = self.rgb_wallet(&config)?;
-                let iface: TypeName = tn!(iface.clone());
+                let iface: TypeName = match iface {
+                    Some(iface) => tn!(iface.clone()),
+                    None => {
+                        let stock = wallet.stock();
+                        let info = stock.contract_info(*contract_id)?;
+                        let schema = stock.schema(info.schema_id)?;
+                        match schema.iimpls.len() {
+                            0 => {
+                                eprintln!(
+                                    "contract doesn't implement any interface and thus can't be \
+                                     read\n"
+                                );
+                                return Ok(());
+                            }
+                            1 => schema
+                                .iimpls
+                                .first_key_value()
+                                .expect("one interface is present")
+                                .0
+                                .clone(),
+                            _ => {
+                                eprintln!(
+                                    "contract implements multiple interface, please select one of \
+                                     them to read the contract:"
+                                );
+                                for iface in schema.iimpls.keys() {
+                                    eprintln!("{iface}");
+                                }
+                                eprintln!();
+                                return Ok(());
+                            }
+                        }
+                    }
+                };
                 let history = wallet.history(*contract_id, iface)?;
                 if *details {
                     println!("Operation\tValue\tState\tSeal\tWitness\tOpIds");
