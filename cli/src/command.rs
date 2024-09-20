@@ -41,7 +41,7 @@ use rgb::persistence::{MemContract, StashReadProvider, Stock};
 use rgb::resolvers::ContractIssueResolver;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
-use rgb::vm::RgbIsa;
+use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
     BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId, OutputSeal,
     RgbDescr, RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider,
@@ -364,7 +364,8 @@ impl Exec for RgbArgs {
                         ControlFlow::Break(_) => return Ok(()),
                     },
                 };
-                let history = wallet.history(*contract_id, iface)?;
+                let mut history = wallet.history(*contract_id, iface)?;
+                history.sort_by_key(|op| op.witness.map(|w| w.ord).unwrap_or(WitnessOrd::Archived));
                 if *details {
                     println!("Operation\tValue\tState\tSeal\tWitness\tOpIds");
                 } else {
@@ -379,11 +380,11 @@ impl Exec for RgbArgs {
                     witness,
                 } in history
                 {
-                    print!("{direction:<9}\t");
+                    print!("{:9}\t", direction.to_string());
                     if let AllocatedState::Amount(amount) = state {
-                        print!("{:>9}", amount.value());
+                        print!("{: >9}", amount.value());
                     } else {
-                        print!("{state}");
+                        print!("{state:>9}");
                     }
                     if *details {
                         print!("\t{ty}");
@@ -582,7 +583,9 @@ impl Exec for RgbArgs {
                             Filter::WalletAll(rgb) if rgb.wallet().is_unspent(outpoint) => {
                                 "-- unspent"
                             }
-                            Filter::WalletAll(_) => "-- spent",
+                            Filter::WalletAll(rgb) if rgb.wallet().has_outpoint(outpoint) => {
+                                "-- spent"
+                            }
                             _ => "-- third-party",
                         }
                     }
