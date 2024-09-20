@@ -38,13 +38,12 @@ use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::validation::ResolveWitness;
 use rgbstd::{ContractId, DataState, XChain, XOutpoint};
 
-use crate::filters::WalletOutpointsFilter;
 use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
 use crate::vm::{WitnessOrd, XWitnessTx};
 use crate::{
     CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid,
-    WitnessOutpointsFilter, XWitnessId,
+    WalletOutpointsFilter, WalletUnspentFilter, WalletWitnessFilter, XWitnessId,
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -91,7 +90,7 @@ where W::Descr: DescriptorRgb<K>
 {
     fn should_include(&self, output: impl Into<XOutpoint>, id: Option<XWitnessId>) -> bool {
         let output = output.into();
-        if !self.wallet.filter().should_include(output, id) {
+        if !self.wallet.filter_unspent().should_include(output, id) {
             return false;
         }
         matches!(self.stock.contract_assignments_for(self.contract_id, [output]), Ok(list) if !list.is_empty())
@@ -101,13 +100,15 @@ where W::Descr: DescriptorRgb<K>
 pub trait WalletProvider<K>: PsbtConstructor
 where Self::Descr: DescriptorRgb<K>
 {
-    fn filter(&self) -> impl AssignmentsFilter + Clone;
+    fn filter_outpoints(&self) -> impl AssignmentsFilter + Clone;
+    fn filter_unspent(&self) -> impl AssignmentsFilter + Clone;
     fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone;
     fn with_descriptor_mut<R>(
         &mut self,
         f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R,
     ) -> R;
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
+    fn utxos(&self) -> impl Iterator<Item = Outpoint>;
+    fn txos(&self) -> impl Iterator<Item = Outpoint>;
     fn txids(&self) -> impl Iterator<Item = Txid>;
     fn history(&self) -> impl Iterator<Item = TxRow<impl Layer2Tx>> + '_;
 
@@ -352,12 +353,14 @@ where Self::Descr: DescriptorRgb<K>
 }
 
 impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
-    fn filter(&self) -> impl AssignmentsFilter + Clone { WalletOutpointsFilter(self) }
-    fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone { WitnessOutpointsFilter(self) }
+    fn filter_outpoints(&self) -> impl AssignmentsFilter + Clone { WalletOutpointsFilter(self) }
+    fn filter_unspent(&self) -> impl AssignmentsFilter + Clone { WalletUnspentFilter(self) }
+    fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone { WalletWitnessFilter(self) }
     fn with_descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
         self.descriptor_mut(f)
     }
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
+    fn txos(&self) -> impl Iterator<Item = Outpoint> { self.txos().map(|txo| txo.outpoint) }
     fn txids(&self) -> impl Iterator<Item = Txid> { self.transactions().keys().copied() }
 
     fn history(&self) -> impl Iterator<Item = TxRow<impl Layer2Tx>> + '_ { self.history() }

@@ -57,5 +57,5 @@ pub mod resolvers {
         }
     }
 }
-pub use filters::{WalletOutpointsFilter, WitnessOutpointsFilter};
+pub use filters::{WalletOutpointsFilter, WalletUnspentFilter, WalletWitnessFilter};
 pub use wallet::RgbWallet;

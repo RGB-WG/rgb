@@ -119,7 +119,7 @@ pub enum Command {
     /// Reports information about state of a contract
     #[display("state")]
     State {
-        /// Show all state - not just the one owned by the wallet
+        /// Show all state, including already spent and not owned by the wallet
         #[clap(short, long)]
         all: bool,
 
@@ -379,9 +379,9 @@ impl Exec for RgbArgs {
                     witness,
                 } in history
                 {
-                    print!("{direction: <9}\t");
+                    print!("{direction:<9}\t");
                     if let AllocatedState::Amount(amount) = state {
-                        print!("{: >9}", amount.value());
+                        print!("{:>9}", amount.value());
                     } else {
                         print!("{state}");
                     }
@@ -563,22 +563,27 @@ impl Exec for RgbArgs {
                         id: Option<XWitnessId>,
                     ) -> bool {
                         match self {
-                            Filter::Wallet(wallet) => {
-                                wallet.wallet().filter().should_include(outpoint, id)
-                            }
+                            Filter::Wallet(wallet) => wallet
+                                .wallet()
+                                .filter_unspent()
+                                .should_include(outpoint, id),
                             _ => true,
                         }
                     }
                 }
                 impl<'w> Filter<'w> {
                     fn comment(&self, outpoint: XOutpoint) -> &'static str {
+                        let outpoint = outpoint
+                            .into_bp()
+                            .into_bitcoin()
+                            .expect("liquid is not yet supported");
                         match self {
-                            Filter::Wallet(wallet) | Filter::WalletAll(wallet)
-                                if wallet.wallet().filter().should_include(outpoint, None) =>
-                            {
-                                ""
+                            Filter::Wallet(rgb) if rgb.wallet().is_unspent(outpoint) => "",
+                            Filter::WalletAll(rgb) if rgb.wallet().is_unspent(outpoint) => {
+                                "-- unspent"
                             }
-                            _ => "-- owner unknown",
+                            Filter::WalletAll(_) => "-- spent",
+                            _ => "-- third-party",
                         }
                     }
                 }

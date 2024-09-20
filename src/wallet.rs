@@ -115,7 +115,7 @@ where W::Descr: DescriptorRgb<K>
     ) -> Result<Vec<ContractOp>, StockError<S, H, P, ContractIfaceError>> {
         let contract = self.stock.contract_iface(contract_id, iface.into())?;
         let wallet = &self.wallet;
-        Ok(contract.history(wallet.filter(), wallet.filter_witnesses()))
+        Ok(contract.history(wallet.filter_outpoints(), wallet.filter_witnesses()))
     }
 
     #[allow(clippy::result_large_err)]
