@@ -29,25 +29,22 @@ use baid64::DisplayBaid64;
 use bpstd::{Sats, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
-use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb::containers::{
-    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Transfer,
-    UniversalFile,
+    BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
+    Supplement, Transfer, UniversalFile,
 };
-use rgb::interface::{AmountChange, IfaceId, OutpointFilter};
+use rgb::interface::{AssignmentsFilter, ContractOp, IfaceId};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgb::persistence::StashReadProvider;
+use rgb::persistence::{MemContract, StashReadProvider, Stock};
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::RgbIsa;
 use rgb::{
-    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbDescr,
-    RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
-    XOutpoint, XOutputSeal, XWitnessId,
+    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId, OutputSeal,
+    RgbDescr, RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider,
+    XChain, XOutpoint, XWitnessId,
 };
-use rgbstd::containers::ConsignmentExt;
-use rgbstd::persistence::{MemContract, Stock};
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
@@ -74,10 +71,7 @@ pub enum Command {
 
     /// Prints out list of known RGB contracts
     #[display("contracts")]
-    Contracts {
-        /// Select only contracts using specific interface standard
-        standard: Option<IfaceStandard>,
-    },
+    Contracts,
 
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc
     #[display("import")]
@@ -135,6 +129,10 @@ pub enum Command {
     /// interface
     #[display("history-fungible")]
     HistoryFungible {
+        /// Print detailed information
+        #[clap(long)]
+        details: bool,
+
         /// Contract identifier
         contract_id: ContractId,
 
@@ -338,57 +336,58 @@ impl Exec for RgbArgs {
                     print!("{info}");
                 }
             }
-            Command::Contracts { standard: None } => {
+            Command::Contracts => {
                 let stock = self.rgb_stock()?;
                 for info in stock.contracts()? {
                     print!("{info}");
                 }
             }
-            Command::Contracts {
-                standard: Some(IfaceStandard::Rgb20),
-            } => {
-                let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb20>()? {
-                    print!("{info}");
-                }
-            }
-            Command::Contracts {
-                standard: Some(IfaceStandard::Rgb21),
-            } => {
-                let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb21>()? {
-                    print!("{info}");
-                }
-            }
-            Command::Contracts {
-                standard: Some(IfaceStandard::Rgb25),
-            } => {
-                let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb25>()? {
-                    print!("{info}");
-                }
-            }
 
-            Command::HistoryFungible { contract_id, iface } => {
+            Command::HistoryFungible {
+                contract_id,
+                iface,
+                details,
+            } => {
                 let wallet = self.rgb_wallet(&config)?;
                 let iface: TypeName = tn!(iface.clone());
-                let history = wallet.fungible_history(*contract_id, iface)?;
-                println!("Amount\tCounterparty\tWitness Id");
-                for (id, op) in history {
-                    let (cparty, more) = match op.state_change {
-                        AmountChange::Dec(_) => {
-                            (op.beneficiaries.first(), op.beneficiaries.len().saturating_sub(1))
-                        }
-                        AmountChange::Zero => continue,
-                        AmountChange::Inc(_) => {
-                            (op.payers.first(), op.payers.len().saturating_sub(1))
-                        }
-                    };
-                    let more = if more > 0 { format!(" (+{more})") } else { s!("") };
-                    let cparty = cparty
-                        .map(XOutputSeal::to_string)
-                        .unwrap_or_else(|| s!("none"));
-                    println!("{}\t{}{}\t{}", op.state_change, cparty, more, id);
+                let history = wallet.history(*contract_id, iface)?;
+                if *details {
+                    println!("Operation\tValue\tState\tSeal\tWitness\tOpIds");
+                } else {
+                    println!("Operation\tValue\tSeal\tWitness");
+                }
+                for ContractOp {
+                    direction,
+                    ty,
+                    opids,
+                    state,
+                    to,
+                    witness,
+                } in history
+                {
+                    print!("{direction}\t{state}");
+                    if *details {
+                        print!("\t{ty}");
+                    }
+                    print!(
+                        "\t{}\t{}",
+                        to.first().expect("at least one receiver is always present"),
+                        witness
+                            .map(|info| format!("{} ({})", info.id, info.ord))
+                            .unwrap_or_else(|| s!("~"))
+                    );
+                    if *details {
+                        println!(
+                            "{}",
+                            opids
+                                .iter()
+                                .map(OpId::to_string)
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    } else {
+                        println!();
+                    }
                 }
             }
 
@@ -530,11 +529,15 @@ impl Exec for RgbArgs {
                     WalletAll(&'w RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
-                impl<'w> OutpointFilter for Filter<'w> {
-                    fn include_outpoint(&self, outpoint: impl Into<XOutpoint>) -> bool {
+                impl<'w> AssignmentsFilter for Filter<'w> {
+                    fn should_include(
+                        &self,
+                        outpoint: impl Into<XOutpoint>,
+                        id: Option<XWitnessId>,
+                    ) -> bool {
                         match self {
                             Filter::Wallet(wallet) => {
-                                wallet.wallet().filter().include_outpoint(outpoint)
+                                wallet.wallet().filter().should_include(outpoint, id)
                             }
                             _ => true,
                         }
@@ -544,7 +547,7 @@ impl Exec for RgbArgs {
                     fn comment(&self, outpoint: XOutpoint) -> &'static str {
                         match self {
                             Filter::Wallet(wallet) | Filter::WalletAll(wallet)
-                                if wallet.wallet().filter().include_outpoint(outpoint) =>
+                                if wallet.wallet().filter().should_include(outpoint, None) =>
                             {
                                 ""
                             }

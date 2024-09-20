@@ -1127,7 +1127,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -1414,29 +1414,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "rgb-interfaces"
-version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37dea80df39205f6c1d0fc4a6d2ea0401d5e6b9b28ed852b707cb01517b3c991"
-dependencies = [
- "aluvm",
- "amplify",
- "bp-core",
- "chrono",
- "getrandom",
- "rgb-std",
- "serde_json",
- "sha2",
- "strict_encoding",
- "strict_types",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d42e9d284f857f3dccce63521789f3da75568f55488d255ebacc8fe343012a5d"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=fix/rgb-252#0a0ed6697f16c45a35b111f1bc88a429cb90ab94"
 dependencies = [
  "amplify",
  "baid64",
@@ -1502,8 +1482,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "763a97b5e58521f41837b1a92f480041fd72a0659f22cb132354d2bbcba25b25"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=fix/rgb-252#0a0ed6697f16c45a35b111f1bc88a429cb90ab94"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1539,7 +1518,6 @@ dependencies = [
  "env_logger",
  "log",
  "psbt",
- "rgb-interfaces",
  "rgb-runtime",
  "rgb-std",
  "serde",

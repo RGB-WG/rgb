@@ -19,7 +19,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::marker::PhantomData;
 #[cfg(feature = "fs")]
 use std::path::PathBuf;
@@ -33,16 +32,17 @@ use bpwallet::Wallet;
 use nonasync::persistence::PersistenceProvider;
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
-use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef};
+use rgbstd::interface::{ContractOp, IfaceRef};
 #[cfg(feature = "fs")]
 use rgbstd::persistence::fs::FsBinStore;
 use rgbstd::persistence::{
-    IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider, Stock,
+    ContractIfaceError, IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider,
+    Stock, StockError,
 };
 
 use super::{
-    CompletionError, CompositionError, ContractId, DescriptorRgb, HistoryError, PayError,
-    TransferParams, WalletError, WalletProvider, XWitnessId,
+    CompletionError, CompositionError, ContractId, DescriptorRgb, PayError, TransferParams,
+    WalletError, WalletProvider,
 };
 use crate::invoice::RgbInvoice;
 
@@ -105,34 +105,14 @@ where W::Descr: DescriptorRgb<K>
 
     pub fn wallet_mut(&mut self) -> &mut W { &mut self.wallet }
 
-    #[allow(clippy::result_large_err)]
-    pub fn fungible_history(
+    pub fn history(
         &self,
         contract_id: ContractId,
         iface: impl Into<IfaceRef>,
-    ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, WalletError> {
+    ) -> Result<Vec<ContractOp>, StockError<S, H, P, ContractIfaceError>> {
+        let contract = self.stock.contract_iface(contract_id, iface.into())?;
         let wallet = &self.wallet;
-        let iref = iface.into();
-        let iface = self.stock.iface(iref.clone()).map_err(|e| e.to_string())?;
-        let default_op = iface
-            .default_operation
-            .as_ref()
-            .ok_or(HistoryError::NoDefaultOp)?;
-        let state_name = iface
-            .transitions
-            .get(default_op)
-            .ok_or(HistoryError::DefaultOpNotTransition)?
-            .default_assignment
-            .as_ref()
-            .ok_or(HistoryError::NoDefaultAssignment)?
-            .clone();
-        let contract = self
-            .stock
-            .contract_iface(contract_id, iref)
-            .map_err(|e| e.to_string())?;
-        Ok(contract
-            .fungible_ops::<AmountChange>(state_name, wallet.filter())
-            .map_err(|e| e.to_string())?)
+        Ok(contract.history(wallet.filter(), wallet.filter_witnesses()))
     }
 
     #[allow(clippy::result_large_err)]

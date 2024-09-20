@@ -37,7 +37,6 @@ psbt = { version = "0.11.0-beta.8", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.0-beta.8" }
 rgb-std = { version = "0.11.0-beta.8" }
 rgb-psbt = { version = "0.11.0-beta.8", path = "psbt" }
-rgb-interfaces = "0.11.0-beta.8"
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -103,3 +102,6 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "fix/rgb-252" }
