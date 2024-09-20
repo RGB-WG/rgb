@@ -367,9 +367,9 @@ impl Exec for RgbArgs {
                 let mut history = wallet.history(*contract_id, iface)?;
                 history.sort_by_key(|op| op.witness.map(|w| w.ord).unwrap_or(WitnessOrd::Archived));
                 if *details {
-                    println!("Operation\tValue\tState\tSeal\tWitness\tOpIds");
+                    println!("Operation\tValue    \tState\t{:78}\tWitness", "Seal");
                 } else {
-                    println!("Operation\tValue\tSeal\tWitness");
+                    println!("Operation\tValue    \t{:78}\tWitness", "Seal");
                 }
                 for ContractOp {
                     direction,
@@ -389,7 +389,7 @@ impl Exec for RgbArgs {
                     if *details {
                         print!("\t{ty}");
                     }
-                    print!(
+                    println!(
                         "\t{}\t{}",
                         to.first().expect("at least one receiver is always present"),
                         witness
@@ -398,15 +398,13 @@ impl Exec for RgbArgs {
                     );
                     if *details {
                         println!(
-                            "\t{}",
+                            "\topid={}",
                             opids
                                 .iter()
                                 .map(OpId::to_string)
                                 .collect::<Vec<_>>()
-                                .join(", ")
+                                .join("\n\topid=")
                         )
-                    } else {
-                        println!();
                     }
                 }
             }
@@ -603,11 +601,12 @@ impl Exec for RgbArgs {
                         .unwrap_or_else(|| s!("~"))
                 }
                 for owned in &contract.iface.assignments {
+                    println!("  State      \t{:78}\tWitness", "Seal");
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "    value={}, utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
                                 allocation.state.value(),
                                 allocation.seal,
                                 witness(&allocation, &contract),
@@ -618,7 +617,7 @@ impl Exec for RgbArgs {
                     if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "   data={}, utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
                                 allocation.state,
                                 allocation.seal,
                                 witness(&allocation, &contract),
@@ -629,7 +628,7 @@ impl Exec for RgbArgs {
                     if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "   file={}, utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
                                 allocation.state,
                                 allocation.seal,
                                 witness(&allocation, &contract),
@@ -640,7 +639,8 @@ impl Exec for RgbArgs {
                     if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
                         for allocation in allocations {
                             println!(
-                                "   utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
+                                "right",
                                 allocation.seal,
                                 witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
