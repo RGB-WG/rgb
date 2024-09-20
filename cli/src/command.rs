@@ -47,7 +47,7 @@ use rgb::{
     RgbDescr, RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider,
     XChain, XOutpoint, XWitnessId,
 };
-use rgbstd::interface::ContractIface;
+use rgbstd::interface::{AllocatedState, ContractIface};
 use rgbstd::persistence::{MemContractState, StockError};
 use rgbstd::{KnownState, OutputAssignment};
 use seals::SecretSeal;
@@ -379,7 +379,12 @@ impl Exec for RgbArgs {
                     witness,
                 } in history
                 {
-                    print!("{direction}\t{state}");
+                    print!("{direction: <9}\t");
+                    if let AllocatedState::Amount(amount) = state {
+                        print!("{: >9}", amount.value());
+                    } else {
+                        print!("{state}");
+                    }
                     if *details {
                         print!("\t{ty}");
                     }
@@ -392,7 +397,7 @@ impl Exec for RgbArgs {
                     );
                     if *details {
                         println!(
-                            "{}",
+                            "\t{}",
                             opids
                                 .iter()
                                 .map(OpId::to_string)
