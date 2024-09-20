@@ -47,7 +47,9 @@ use rgb::{
     RgbDescr, RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider,
     XChain, XOutpoint, XWitnessId,
 };
-use rgbstd::persistence::StockError;
+use rgbstd::interface::ContractIface;
+use rgbstd::persistence::{MemContractState, StockError};
+use rgbstd::{KnownState, OutputAssignment};
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
@@ -577,67 +579,57 @@ impl Exec for RgbArgs {
                 }
 
                 println!("\nOwned:");
+                fn witness<S: KnownState>(
+                    allocation: &OutputAssignment<S>,
+                    contract: &ContractIface<MemContract<&MemContractState>>,
+                ) -> String {
+                    allocation
+                        .witness
+                        .and_then(|w| contract.witness_info(w))
+                        .map(|info| format!("{} ({})", info.id, info.ord))
+                        .unwrap_or_else(|| s!("~"))
+                }
                 for owned in &contract.iface.assignments {
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
                                 "    value={}, utxo={}, witness={} {}",
                                 allocation.state.value(),
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
                                 "   data={}, utxo={}, witness={} {}",
                                 allocation.state,
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
                                 "   file={}, utxo={}, witness={} {}",
                                 allocation.state,
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
                                 "   utxo={}, witness={} {}",
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
