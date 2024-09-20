@@ -26,24 +26,25 @@ use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
-use bpwallet::{Wallet, WalletDescr};
+use bpwallet::{Layer2Tx, TxRow, Wallet, WalletDescr};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
     TxParams,
 };
 use rgbstd::containers::Transfer;
-use rgbstd::interface::OutpointFilter;
+use rgbstd::interface::AssignmentsFilter;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::validation::ResolveWitness;
 use rgbstd::{ContractId, DataState, XChain, XOutpoint};
 
+use crate::filters::WalletOutpointsFilter;
 use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
 use crate::vm::{WitnessOrd, XWitnessTx};
-use crate::wrapper::WalletWrapper;
 use crate::{
-    CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid, XWitnessId,
+    CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid,
+    WitnessOutpointsFilter, XWitnessId,
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -85,12 +86,12 @@ impl<
     S: StashProvider,
     H: StateProvider,
     P: IndexProvider,
-> OutpointFilter for ContractOutpointsFilter<'stock, 'wallet, W, K, S, H, P>
+> AssignmentsFilter for ContractOutpointsFilter<'stock, 'wallet, W, K, S, H, P>
 where W::Descr: DescriptorRgb<K>
 {
-    fn include_outpoint(&self, output: impl Into<XOutpoint>) -> bool {
+    fn should_include(&self, output: impl Into<XOutpoint>, id: Option<XWitnessId>) -> bool {
         let output = output.into();
-        if !self.wallet.filter().include_outpoint(output) {
+        if !self.wallet.filter().should_include(output, id) {
             return false;
         }
         matches!(self.stock.contract_assignments_for(self.contract_id, [output]), Ok(list) if !list.is_empty())
@@ -100,15 +101,15 @@ where W::Descr: DescriptorRgb<K>
 pub trait WalletProvider<K>: PsbtConstructor
 where Self::Descr: DescriptorRgb<K>
 {
-    type Filter<'a>: Copy + OutpointFilter
-    where Self: 'a;
-    fn filter(&self) -> Self::Filter<'_>;
+    fn filter(&self) -> impl AssignmentsFilter + Clone;
+    fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone;
     fn with_descriptor_mut<R>(
         &mut self,
         f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R,
     ) -> R;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
     fn txids(&self) -> impl Iterator<Item = Txid>;
+    fn history(&self) -> impl Iterator<Item = TxRow<impl Layer2Tx>> + '_;
 
     // TODO: Add method `color` to add RGB information to an already existing PSBT
 
@@ -351,13 +352,13 @@ where Self::Descr: DescriptorRgb<K>
 }
 
 impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
-    type Filter<'a> = WalletWrapper<'a, K, D>
-    where
-        Self: 'a;
-    fn filter(&self) -> Self::Filter<'_> { WalletWrapper(self) }
+    fn filter(&self) -> impl AssignmentsFilter + Clone { WalletOutpointsFilter(self) }
+    fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone { WitnessOutpointsFilter(self) }
     fn with_descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
         self.descriptor_mut(f)
     }
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }
     fn txids(&self) -> impl Iterator<Item = Txid> { self.transactions().keys().copied() }
+
+    fn history(&self) -> impl Iterator<Item = TxRow<impl Layer2Tx>> + '_ { self.history() }
 }
