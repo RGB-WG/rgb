@@ -27,13 +27,13 @@ extern crate serde_crate as serde;
 
 mod descriptor;
 mod indexers;
-mod wrapper;
+mod filters;
 pub mod pay;
 mod errors;
 mod wallet;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
-pub use errors::{CompletionError, CompositionError, HistoryError, PayError, WalletError};
+pub use errors::{CompletionError, CompositionError, PayError, WalletError};
 pub use pay::{TransferParams, WalletProvider};
 pub use rgbstd::*;
 pub mod resolvers {
@@ -57,5 +57,5 @@ pub mod resolvers {
         }
     }
 }
+pub use filters::{WalletOutpointsFilter, WitnessOutpointsFilter};
 pub use wallet::RgbWallet;
-pub use wrapper::WalletWrapper;

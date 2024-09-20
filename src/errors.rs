@@ -54,13 +54,10 @@ pub enum WalletError {
 
     #[cfg(feature = "cli")]
     #[from]
-    WalletExect(bpwallet::cli::ExecError),
+    WalletExec(bpwallet::cli::ExecError),
 
     #[from]
     Builder(BuilderError),
-
-    #[from]
-    History(HistoryError),
 
     #[from]
     Contract(ContractError),
@@ -110,17 +107,6 @@ impl From<Infallible> for WalletError {
 
 impl From<(Stock, WalletError)> for WalletError {
     fn from((_, e): (Stock, WalletError)) -> Self { e }
-}
-
-#[derive(Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum HistoryError {
-    /// interface doesn't define default operation
-    NoDefaultOp,
-    /// default operation defined by the interface is not a state transition
-    DefaultOpNotTransition,
-    /// interface doesn't define default fungible state
-    NoDefaultAssignment,
 }
 
 #[allow(clippy::large_enum_variant)]
