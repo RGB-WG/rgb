@@ -62,6 +62,8 @@ pub enum WalletError {
     #[from]
     Contract(ContractError),
 
+    Invoicing(String),
+
     #[from]
     PsbtDecode(psrgbt::DecodeError),
 

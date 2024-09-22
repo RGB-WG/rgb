@@ -43,12 +43,13 @@ use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
-    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId, OutputSeal,
-    RgbDescr, RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider,
-    XChain, XOutpoint, XWitnessId,
+    Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
+    OutputSeal, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex, TransferParams,
+    WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
 };
-use rgbstd::interface::{AllocatedState, ContractIface};
+use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
+use rgbstd::stl::rgb_contract_stl;
 use rgbstd::{KnownState, OutputAssignment};
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
@@ -120,7 +121,7 @@ pub enum Command {
     #[display("state")]
     State {
         /// Show all state, including already spent and not owned by the wallet
-        #[clap(short, long)]
+        #[arg(short, long)]
         all: bool,
 
         /// Contract identifier
@@ -135,7 +136,7 @@ pub enum Command {
     #[display("history")]
     History {
         /// Print detailed information
-        #[clap(long)]
+        #[arg(long)]
         details: bool,
 
         /// Contract identifier
@@ -165,17 +166,31 @@ pub enum Command {
     #[display("invoice")]
     Invoice {
         /// Force address-based invoice
-        #[clap(short, long)]
+        #[arg(short, long)]
         address_based: bool,
+
+        /// Interface to interpret the state data
+        #[arg(short, long)]
+        iface: Option<String>,
+
+        /// Operation to use for the invoice
+        ///
+        /// If no operation is provided, the interface default operation is used.
+        #[arg(short, long)]
+        operation: Option<String>,
+
+        /// State name to use for the invoice
+        ///
+        /// If no state name is provided, the interface default state name for the operation is
+        /// used.
+        #[arg(short, long, requires = "operation")]
+        state: Option<String>,
 
         /// Contract identifier
         contract_id: ContractId,
 
-        /// Interface to interpret the state data
-        iface: Option<String>,
-
         /// Value (for fungible token) or token ID (for NFT) to transfer
-        value: u64,
+        value: Option<u64>,
     },
 
     /// Prepare PSBT file for transferring RGB assets
@@ -189,7 +204,7 @@ pub enum Command {
 
         /// Amount of satoshis which should be paid to the address-based
         /// beneficiary
-        #[clap(long, default_value = "2000")]
+        #[arg(long, default_value = "2000")]
         sats: Sats,
 
         /// Invoice data
@@ -222,19 +237,19 @@ pub enum Command {
     #[display("transfer")]
     Transfer {
         /// Encode PSBT as V2
-        #[clap(short = '2')]
+        #[arg(short = '2')]
         v2: bool,
 
         /// Amount of satoshis which should be paid to the address-based
         /// beneficiary
-        #[clap(long, default_value = "2000")]
+        #[arg(long, default_value = "2000")]
         sats: Sats,
 
         /// Invoice data
         invoice: RgbInvoice,
 
         /// Fee for bitcoin transaction, in satoshis
-        #[clap(short, long, default_value = "400")]
+        #[arg(short, long, default_value = "400")]
         fee: Sats,
 
         /// File for generated transfer consignment
@@ -781,17 +796,13 @@ impl Exec for RgbArgs {
             }
             Command::Invoice {
                 address_based,
+                operation,
+                state,
                 contract_id,
                 iface,
                 value,
             } => {
                 let mut wallet = self.rgb_wallet(&config)?;
-
-                let iface = match contract_default_iface_name(*contract_id, wallet.stock(), iface)?
-                {
-                    ControlFlow::Continue(name) => name,
-                    ControlFlow::Break(_) => return Ok(()),
-                };
 
                 let outpoint = wallet
                     .wallet()
@@ -828,11 +839,113 @@ impl Exec for RgbArgs {
                         Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
                     }
                 };
-                let invoice = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
+
+                let iface = match contract_default_iface_name(*contract_id, wallet.stock(), iface)?
+                {
+                    ControlFlow::Continue(name) => wallet.stock().iface(name)?,
+                    ControlFlow::Break(_) => return Ok(()),
+                };
+                let iface_name = &iface.name;
+                let Some(op_name) = operation
+                    .clone()
+                    .map(FieldName::try_from)
+                    .transpose()
+                    .map_err(|e| WalletError::Invoicing(format!("invalid operation name - {e}")))?
+                    .or(iface.default_operation.clone())
+                else {
+                    return Err(WalletError::Invoicing(format!(
+                        "interface {iface_name} doesn't have default operation"
+                    )));
+                };
+                let Some(iface_op) = iface.transitions.get(&op_name) else {
+                    return Err(WalletError::Invoicing(format!(
+                        "interface {iface_name} doesn't have operation {op_name}"
+                    )));
+                };
+                let state_name = state
+                    .clone()
+                    .map(FieldName::try_from)
+                    .transpose()
+                    .map_err(|e| WalletError::Invoicing(format!("invalid state name - {e}")))?
+                    .or_else(|| iface_op.default_assignment.clone())
+                    .ok_or_else(|| {
+                        WalletError::Invoicing(format!(
+                            "interface {iface_name} doesn't have a default state for the \
+                             operation {op_name}"
+                        ))
+                    })?;
+                let Some(assign_iface) = iface.assignments.get(&state_name) else {
+                    return Err(WalletError::Invoicing(format!(
+                        "interface {iface_name} doesn't have state {state_name} in operation \
+                         {op_name}"
+                    )));
+                };
+
+                let mut builder = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
                     .set_contract(*contract_id)
-                    .set_interface(iface)
-                    .set_amount_raw(*value)
-                    .finish();
+                    .set_interface(iface_name.clone());
+
+                if operation.is_some() {
+                    builder = builder.set_operation(op_name);
+                    if let Some(state) = state {
+                        builder = builder.set_operation(fname!(state.clone()));
+                    }
+                }
+
+                match (assign_iface.owned_state, value) {
+                    (
+                        OwnedIface::Rights
+                        | OwnedIface::Amount
+                        | OwnedIface::AnyData
+                        | OwnedIface::Data(_),
+                        None,
+                    ) => {
+                        // There is no state which has to be added to the invoice
+                    }
+                    (OwnedIface::Rights, Some(_)) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} defines a right and it \
+                             can't has a value"
+                        )));
+                    }
+                    (OwnedIface::Amount, Some(amount)) => {
+                        builder = builder.set_amount_raw(*amount);
+                    }
+                    (OwnedIface::Data(sem_id), Some(_))
+                        if sem_id
+                            != rgb_contract_stl()
+                                .types
+                                .get(&tn!("Allocation"))
+                                .expect("STL is broken")
+                                .sem_id_named(&tn!("Allocation")) =>
+                    {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} has a type which can't \
+                             be used with a non-fungible state allocation"
+                        )));
+                    }
+                    (OwnedIface::AnyData | OwnedIface::Data(_), Some(value)) => {
+                        builder = builder.set_allocation_raw(Allocation::with(
+                            TokenIndex::from(*value as u32),
+                            // TODO: Support fractional NFT invoicing
+                            0,
+                        ))
+                    }
+
+                    (OwnedIface::Any, _) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} can be of any type; \
+                             adding it to the invoice is impossible"
+                        )));
+                    }
+                    (OwnedIface::AnyAttach, _) => {
+                        return Err(WalletError::Invoicing(s!(
+                            "invoicing with attachments is not yet supported"
+                        )));
+                    }
+                }
+
+                let invoice = builder.finish();
                 println!("{invoice}");
             }
             Command::Prepare {
