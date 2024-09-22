@@ -172,9 +172,9 @@ pub enum Command {
         contract_id: ContractId,
 
         /// Interface to interpret the state data
-        iface: String,
+        iface: Option<String>,
 
-        /// Value to transfer
+        /// Value (for fungible token) or token ID (for NFT) to transfer
         value: u64,
     },
 
@@ -357,12 +357,10 @@ impl Exec for RgbArgs {
                 details,
             } => {
                 let wallet = self.rgb_wallet(&config)?;
-                let iface: TypeName = match iface {
-                    Some(iface) => tn!(iface.clone()),
-                    None => match contract_default_iface_name(*contract_id, wallet.stock())? {
-                        ControlFlow::Continue(name) => name,
-                        ControlFlow::Break(_) => return Ok(()),
-                    },
+                let iface = match contract_default_iface_name(*contract_id, wallet.stock(), iface)?
+                {
+                    ControlFlow::Continue(name) => name,
+                    ControlFlow::Break(_) => return Ok(()),
                 };
                 let mut history = wallet.history(*contract_id, iface)?;
                 history.sort_by_key(|op| op.witness.map(|w| w.ord).unwrap_or(WitnessOrd::Archived));
@@ -515,12 +513,9 @@ impl Exec for RgbArgs {
                     }
                 }
 
-                let iface: TypeName = match iface {
-                    Some(iface) => tn!(iface.clone()),
-                    None => match contract_default_iface_name(*contract_id, &stock)? {
-                        ControlFlow::Continue(name) => name,
-                        ControlFlow::Break(_) => return Ok(()),
-                    },
+                let iface = match contract_default_iface_name(*contract_id, &stock, iface)? {
+                    ControlFlow::Continue(name) => name,
+                    ControlFlow::Break(_) => return Ok(()),
                 };
 
                 let stock_wallet = match self.rgb_wallet_from_stock(&config, stock) {
@@ -791,7 +786,12 @@ impl Exec for RgbArgs {
                 value,
             } => {
                 let mut wallet = self.rgb_wallet(&config)?;
-                let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
+
+                let iface = match contract_default_iface_name(*contract_id, wallet.stock(), iface)?
+                {
+                    ControlFlow::Continue(name) => name,
+                    ControlFlow::Break(_) => return Ok(()),
+                };
 
                 let outpoint = wallet
                     .wallet()
@@ -1143,7 +1143,11 @@ impl Exec for RgbArgs {
 fn contract_default_iface_name(
     contract_id: ContractId,
     stock: &Stock,
+    iface: &Option<String>,
 ) -> Result<ControlFlow<(), TypeName>, StockError> {
+    if let Some(iface) = iface {
+        return Ok(ControlFlow::Continue(tn!(iface.clone())));
+    };
     let info = stock.contract_info(contract_id)?;
     let schema = stock.schema(info.schema_id)?;
     Ok(match schema.iimpls.len() {
