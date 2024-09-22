@@ -44,8 +44,8 @@ use rgb::validation::Validity;
 use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
     Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
-    OutputSeal, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex, TransferParams,
-    WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
+    OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
+    TransferParams, WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
 };
 use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
@@ -189,8 +189,17 @@ pub enum Command {
         /// Contract identifier
         contract_id: ContractId,
 
-        /// Value (for fungible token) or token ID (for NFT) to transfer
-        value: Option<u64>,
+        /// Amount of tokens (in the smallest unit) to transfer
+        #[arg(short, long)]
+        amount: Option<u64>,
+
+        /// Token index for NFT transfer
+        #[arg(long)]
+        token_index: Option<TokenIndex>,
+
+        /// Fraction of an NFT token to transfer
+        #[arg(long, requires = "token_index")]
+        token_fraction: Option<OwnedFraction>,
     },
 
     /// Prepare PSBT file for transferring RGB assets
@@ -800,7 +809,9 @@ impl Exec for RgbArgs {
                 state,
                 contract_id,
                 iface,
-                value,
+                amount,
+                token_index,
+                token_fraction,
             } => {
                 let mut wallet = self.rgb_wallet(&config)?;
 
@@ -892,26 +903,42 @@ impl Exec for RgbArgs {
                     }
                 }
 
-                match (assign_iface.owned_state, value) {
+                match (assign_iface.owned_state, amount, token_index.map(|i| (i, token_fraction))) {
                     (
                         OwnedIface::Rights
                         | OwnedIface::Amount
                         | OwnedIface::AnyData
                         | OwnedIface::Data(_),
                         None,
+                        None,
                     ) => {
                         // There is no state which has to be added to the invoice
                     }
-                    (OwnedIface::Rights, Some(_)) => {
+                    (OwnedIface::Rights, Some(_), None | Some(_))
+                    | (OwnedIface::Rights, None, Some(_)) => {
                         return Err(WalletError::Invoicing(format!(
                             "state {state_name} in interface {iface_name} defines a right and it \
-                             can't has a value"
+                             can't has a value or a token information"
                         )));
                     }
-                    (OwnedIface::Amount, Some(amount)) => {
+                    (OwnedIface::Amount, _, Some(_)) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} defines a fungible \
+                             state, while a non-fungible token index is provided for the invoice. \
+                             Please use only --amount argument"
+                        )));
+                    }
+                    (OwnedIface::Amount, Some(amount), None) => {
                         builder = builder.set_amount_raw(*amount);
                     }
-                    (OwnedIface::Data(sem_id), Some(_))
+                    (OwnedIface::Data(_) | OwnedIface::AnyData, Some(_), _) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} defines a non-fungible \
+                             state, while a fungible amount is provided for the invoice. Please \
+                             use only --token-index and --token-fraction arguments"
+                        )));
+                    }
+                    (OwnedIface::Data(sem_id), None, Some(_))
                         if sem_id
                             != rgb_contract_stl()
                                 .types
@@ -924,21 +951,20 @@ impl Exec for RgbArgs {
                              be used with a non-fungible state allocation"
                         )));
                     }
-                    (OwnedIface::AnyData | OwnedIface::Data(_), Some(value)) => {
+                    (OwnedIface::AnyData | OwnedIface::Data(_), None, Some((index, fraction))) => {
                         builder = builder.set_allocation_raw(Allocation::with(
-                            TokenIndex::from(*value as u32),
-                            // TODO: Support fractional NFT invoicing
-                            0,
+                            index,
+                            fraction.unwrap_or(OwnedFraction::from(0)),
                         ))
                     }
 
-                    (OwnedIface::Any, _) => {
+                    (OwnedIface::Any, _, _) => {
                         return Err(WalletError::Invoicing(format!(
                             "state {state_name} in interface {iface_name} can be of any type; \
                              adding it to the invoice is impossible"
                         )));
                     }
-                    (OwnedIface::AnyAttach, _) => {
+                    (OwnedIface::AnyAttach, _, _) => {
                         return Err(WalletError::Invoicing(s!(
                             "invoicing with attachments is not yet supported"
                         )));
