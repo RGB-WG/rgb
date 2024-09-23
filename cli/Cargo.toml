@@ -24,6 +24,7 @@ commit_verify = { workspace = true }
 bp-seals = { workspace = true }
 bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true, features = ["cli"] }
+nonasync = { workspace = true }
 psbt = { workspace = true }
 rgb-std = { workspace = true, features = ["serde"] }
 rgb-interfaces = { workspace = true }

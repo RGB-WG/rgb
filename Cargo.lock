@@ -1538,6 +1538,7 @@ dependencies = [
  "commit_verify",
  "env_logger",
  "log",
+ "nonasync",
  "psbt",
  "rgb-interfaces",
  "rgb-runtime",

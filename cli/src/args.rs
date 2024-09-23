@@ -29,6 +29,7 @@ use std::path::PathBuf;
 use bpstd::{Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
+use nonasync::persistence::PersistenceError;
 use rgb::persistence::Stock;
 use rgb::resolvers::AnyResolver;
 use rgb::{RgbDescr, RgbWallet, TapretKey, WalletError};
@@ -104,20 +105,30 @@ impl RgbArgs {
         }
 
         let provider = FsBinStore::new(stock_path.clone())?;
-        let mut stock = Stock::load(provider, true).map_err(WalletError::WalletPersist).or_else(|err| {
-            if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
-                if self.verbose > 1 {
-                    eprint!("stock file is absent, creating a new one ... ");
+        let mut stock = Stock::load(provider, true)
+            .map_err(WalletError::WalletPersist)
+            .or_else(|err| {
+                if let WalletError::WalletPersist(PersistenceError(ref err)) = err {
+                    if let Some(DeserializeError::Decode(DecodeError::Io(io_err))) =
+                        err.downcast_ref::<DeserializeError>()
+                    {
+                        if io_err.kind() == ErrorKind::NotFound {
+                            if self.verbose > 1 {
+                                eprint!("stock file is absent, creating a new one ... ");
+                            }
+                            fs::create_dir_all(&stock_path)?;
+                            let provider = FsBinStore::new(stock_path)?;
+                            let mut stock = Stock::in_memory();
+                            stock
+                                .make_persistent(provider, true)
+                                .map_err(WalletError::StockPersist)?;
+                            return Ok(stock);
+                        }
+                    }
                 }
-                fs::create_dir_all(&stock_path)?;
-                let provider = FsBinStore::new(stock_path)?;
-                let mut stock = Stock::in_memory();
-                stock.make_persistent(provider, true).map_err(WalletError::StockPersist)?;
-                return Ok(stock);
-            }
-            eprintln!("stock file is damaged, failing");
-            Err(err)
-        })?;
+                eprintln!("stock file is damaged, failing");
+                Err(err)
+            })?;
 
         if self.sync {
             let resolver = self.resolver()?;
