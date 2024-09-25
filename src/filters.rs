@@ -20,21 +20,23 @@
 // limitations under the License.
 
 use bp::Bp;
-use bpwallet::Wallet;
+use bpwallet::{Layer2, Wallet};
 use rgbstd::interface::AssignmentsFilter;
 
 use crate::{DescriptorRgb, XChain, XOutpoint, XWitnessId};
 
-pub struct WalletOutpointsFilter<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
+pub struct WalletOutpointsFilter<'a, K, D: DescriptorRgb<K>, L2: Layer2>(pub &'a Wallet<K, D, L2>);
 
 // We need manual derivation to ensure we can be copied and cloned even if descriptor is not
 // copyable/clonable.
-impl<'a, K, D: DescriptorRgb<K>> Copy for WalletOutpointsFilter<'a, K, D> {}
-impl<'a, K, D: DescriptorRgb<K>> Clone for WalletOutpointsFilter<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> Copy for WalletOutpointsFilter<'a, K, D, L2> {}
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> Clone for WalletOutpointsFilter<'a, K, D, L2> {
     fn clone(&self) -> Self { *self }
 }
 
-impl<'a, K, D: DescriptorRgb<K>> AssignmentsFilter for WalletOutpointsFilter<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> AssignmentsFilter
+    for WalletOutpointsFilter<'a, K, D, L2>
+{
     fn should_include(&self, output: impl Into<XOutpoint>, _: Option<XWitnessId>) -> bool {
         match output.into().into_bp() {
             Bp::Bitcoin(outpoint) => self.0.has_outpoint(outpoint),
@@ -43,16 +45,18 @@ impl<'a, K, D: DescriptorRgb<K>> AssignmentsFilter for WalletOutpointsFilter<'a,
     }
 }
 
-pub struct WalletUnspentFilter<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
+pub struct WalletUnspentFilter<'a, K, D: DescriptorRgb<K>, L2: Layer2>(pub &'a Wallet<K, D, L2>);
 
 // We need manual derivation to ensure we can be copied and cloned even if descriptor is not
 // copyable/clonable.
-impl<'a, K, D: DescriptorRgb<K>> Copy for WalletUnspentFilter<'a, K, D> {}
-impl<'a, K, D: DescriptorRgb<K>> Clone for WalletUnspentFilter<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> Copy for WalletUnspentFilter<'a, K, D, L2> {}
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> Clone for WalletUnspentFilter<'a, K, D, L2> {
     fn clone(&self) -> Self { *self }
 }
 
-impl<'a, K, D: DescriptorRgb<K>> AssignmentsFilter for WalletUnspentFilter<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> AssignmentsFilter
+    for WalletUnspentFilter<'a, K, D, L2>
+{
     fn should_include(&self, output: impl Into<XOutpoint>, _: Option<XWitnessId>) -> bool {
         match output.into().into_bp() {
             Bp::Bitcoin(outpoint) => self.0.is_unspent(outpoint),
@@ -61,16 +65,18 @@ impl<'a, K, D: DescriptorRgb<K>> AssignmentsFilter for WalletUnspentFilter<'a, K
     }
 }
 
-pub struct WalletWitnessFilter<'a, K, D: DescriptorRgb<K>>(pub &'a Wallet<K, D>);
+pub struct WalletWitnessFilter<'a, K, D: DescriptorRgb<K>, L2: Layer2>(pub &'a Wallet<K, D, L2>);
 
 // We need manual derivation to ensure we can be copied and cloned even if descriptor is not
 // copyable/clonable.
-impl<'a, K, D: DescriptorRgb<K>> Copy for WalletWitnessFilter<'a, K, D> {}
-impl<'a, K, D: DescriptorRgb<K>> Clone for WalletWitnessFilter<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> Copy for WalletWitnessFilter<'a, K, D, L2> {}
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> Clone for WalletWitnessFilter<'a, K, D, L2> {
     fn clone(&self) -> Self { *self }
 }
 
-impl<'a, K, D: DescriptorRgb<K>> AssignmentsFilter for WalletWitnessFilter<'a, K, D> {
+impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> AssignmentsFilter
+    for WalletWitnessFilter<'a, K, D, L2>
+{
     fn should_include(&self, _: impl Into<XOutpoint>, witness_id: Option<XWitnessId>) -> bool {
         self.0
             .history()

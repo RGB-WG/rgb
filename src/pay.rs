@@ -26,7 +26,7 @@ use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
-use bpwallet::{Layer2Tx, TxRow, Wallet, WalletDescr};
+use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
     TxParams,
@@ -64,28 +64,31 @@ impl TransferParams {
 struct ContractOutpointsFilter<
     'stock,
     'wallet,
-    W: WalletProvider<K> + ?Sized,
+    W: WalletProvider<K, L2> + ?Sized,
     K,
     S: StashProvider,
     H: StateProvider,
     P: IndexProvider,
+    L2: Layer2 = NoLayer2,
 > where W::Descr: DescriptorRgb<K>
 {
     contract_id: ContractId,
     stock: &'stock Stock<S, H, P>,
     wallet: &'wallet W,
-    _phantom: PhantomData<K>,
+    _key_phantom: PhantomData<K>,
+    _layer2_phantom: PhantomData<L2>,
 }
 
 impl<
     'stock,
     'wallet,
-    W: WalletProvider<K> + ?Sized,
+    W: WalletProvider<K, L2> + ?Sized,
     K,
     S: StashProvider,
     H: StateProvider,
     P: IndexProvider,
-> AssignmentsFilter for ContractOutpointsFilter<'stock, 'wallet, W, K, S, H, P>
+    L2: Layer2,
+> AssignmentsFilter for ContractOutpointsFilter<'stock, 'wallet, W, K, S, H, P, L2>
 where W::Descr: DescriptorRgb<K>
 {
     fn should_include(&self, output: impl Into<XOutpoint>, id: Option<XWitnessId>) -> bool {
@@ -97,7 +100,7 @@ where W::Descr: DescriptorRgb<K>
     }
 }
 
-pub trait WalletProvider<K>: PsbtConstructor
+pub trait WalletProvider<K, L2: Layer2>: PsbtConstructor
 where Self::Descr: DescriptorRgb<K>
 {
     fn filter_outpoints(&self) -> impl AssignmentsFilter + Clone;
@@ -105,7 +108,7 @@ where Self::Descr: DescriptorRgb<K>
     fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone;
     fn with_descriptor_mut<R>(
         &mut self,
-        f: impl FnOnce(&mut WalletDescr<K, Self::Descr>) -> R,
+        f: impl FnOnce(&mut WalletDescr<K, Self::Descr, L2::Descr>) -> R,
     ) -> R;
     fn utxos(&self) -> impl Iterator<Item = Outpoint>;
     fn txos(&self) -> impl Iterator<Item = Outpoint>;
@@ -164,7 +167,8 @@ where Self::Descr: DescriptorRgb<K>
             contract_id,
             stock,
             wallet: self,
-            _phantom: PhantomData,
+            _key_phantom: PhantomData,
+            _layer2_phantom: PhantomData,
         };
         let contract = stock
             .contract_iface(contract_id, iface_name)
@@ -352,11 +356,14 @@ where Self::Descr: DescriptorRgb<K>
     }
 }
 
-impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
+impl<K, D: DescriptorRgb<K>, L2: Layer2> WalletProvider<K, L2> for Wallet<K, D, L2> {
     fn filter_outpoints(&self) -> impl AssignmentsFilter + Clone { WalletOutpointsFilter(self) }
     fn filter_unspent(&self) -> impl AssignmentsFilter + Clone { WalletUnspentFilter(self) }
     fn filter_witnesses(&self) -> impl AssignmentsFilter + Clone { WalletWitnessFilter(self) }
-    fn with_descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
+    fn with_descriptor_mut<R>(
+        &mut self,
+        f: impl FnOnce(&mut WalletDescr<K, D, L2::Descr>) -> R,
+    ) -> R {
         self.descriptor_mut(f)
     }
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.coins().map(|coin| coin.outpoint) }

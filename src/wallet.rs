@@ -28,6 +28,7 @@ use bpstd::XpubDerivable;
 use bpwallet::fs::FsTextStore;
 #[cfg(feature = "fs")]
 use bpwallet::Wallet;
+use bpwallet::{Layer2, NoLayer2};
 #[cfg(not(target_arch = "wasm32"))]
 use nonasync::persistence::PersistenceProvider;
 use psrgbt::{Psbt, PsbtMeta};
@@ -48,22 +49,25 @@ use crate::invoice::RgbInvoice;
 
 #[derive(Getters)]
 pub struct RgbWallet<
-    W: WalletProvider<K>,
+    W: WalletProvider<K, L2>,
     K = XpubDerivable,
     S: StashProvider = MemStash,
     H: StateProvider = MemState,
     P: IndexProvider = MemIndex,
+    L2: Layer2 = NoLayer2,
 > where W::Descr: DescriptorRgb<K>
 {
     stock: Stock<S, H, P>,
     wallet: W,
     #[getter(skip)]
-    _phantom: PhantomData<K>,
+    _key_phantom: PhantomData<K>,
+    #[getter(skip)]
+    _layer2_phantom: PhantomData<L2>,
 }
 
 #[cfg(feature = "fs")]
-impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
-    RgbWallet<Wallet<K, D>, K, S, H, P>
+impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider, L2: Layer2>
+    RgbWallet<Wallet<K, D, L2>, K, S, H, P, L2>
 {
     #[allow(clippy::result_large_err)]
     pub fn load(
@@ -73,9 +77,13 @@ impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvide
     ) -> Result<Self, WalletError>
     where
         D: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        L2::Descr: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        L2::Data: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        L2::Cache: serde::Serialize + for<'de> serde::Deserialize<'de>,
         FsBinStore: PersistenceProvider<S>,
         FsBinStore: PersistenceProvider<H>,
         FsBinStore: PersistenceProvider<P>,
+        FsTextStore: PersistenceProvider<L2>,
     {
         use nonasync::persistence::PersistenceError;
         let provider = FsBinStore::new(stock_path)
@@ -87,20 +95,22 @@ impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvide
         Ok(Self {
             wallet,
             stock,
-            _phantom: PhantomData,
+            _key_phantom: PhantomData,
+            _layer2_phantom: PhantomData,
         })
     }
 }
 
-impl<K, W: WalletProvider<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
-    RgbWallet<W, K, S, H, P>
+impl<K, W: WalletProvider<K, L2>, S: StashProvider, H: StateProvider, P: IndexProvider, L2: Layer2>
+    RgbWallet<W, K, S, H, P, L2>
 where W::Descr: DescriptorRgb<K>
 {
     pub fn new(stock: Stock<S, H, P>, wallet: W) -> Self {
         Self {
             stock,
             wallet,
-            _phantom: PhantomData,
+            _key_phantom: PhantomData,
+            _layer2_phantom: PhantomData,
         }
     }
 
