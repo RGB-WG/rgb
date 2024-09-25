@@ -36,7 +36,7 @@ use rgbstd::persistence::{
 };
 use strict_types::encoding::{DeserializeError, Ident, SerializeError};
 
-use crate::{validation, TapTweakAlreadyAssigned};
+use crate::{TapTweakAlreadyAssigned, validation};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]

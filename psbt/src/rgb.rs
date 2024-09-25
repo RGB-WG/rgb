@@ -22,7 +22,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use amplify::confinement::{Confined, SmallOrdMap, U24};
-use amplify::{confinement, FromSliceError};
+use amplify::{FromSliceError, confinement};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use commit_verify::mpc;

@@ -25,9 +25,9 @@ use std::collections::HashMap;
 
 use bp::Tx;
 use bpstd::Network;
+use rgbstd::XWitnessId;
 use rgbstd::containers::Consignment;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::XWitnessId;
 
 use crate::vm::{WitnessOrd, XWitnessTx};
 use crate::{Txid, XChain};

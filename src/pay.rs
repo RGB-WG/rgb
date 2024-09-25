@@ -25,7 +25,7 @@ use std::marker::PhantomData;
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
-use bpstd::{psbt, Address};
+use bpstd::{Address, psbt};
 use bpwallet::{Wallet, WalletDescr};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
@@ -351,9 +351,9 @@ where Self::Descr: DescriptorRgb<K>
 }
 
 impl<K, D: DescriptorRgb<K>> WalletProvider<K> for Wallet<K, D> {
-    type Filter<'a> = WalletWrapper<'a, K, D>
-    where
-        Self: 'a;
+    type Filter<'a>
+        = WalletWrapper<'a, K, D>
+    where Self: 'a;
     fn filter(&self) -> Self::Filter<'_> { WalletWrapper(self) }
     fn with_descriptor_mut<R>(&mut self, f: impl FnOnce(&mut WalletDescr<K, D>) -> R) -> R {
         self.descriptor_mut(f)

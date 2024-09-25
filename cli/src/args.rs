@@ -27,8 +27,8 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 use bpstd::{Wpkh, XpubDerivable};
-use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
+use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use nonasync::persistence::PersistenceError;
 use rgb::persistence::Stock;
 use rgb::resolvers::AnyResolver;

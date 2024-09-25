@@ -26,9 +26,9 @@ use std::path::PathBuf;
 
 use bpstd::XpubDerivable;
 #[cfg(feature = "fs")]
-use bpwallet::fs::FsTextStore;
-#[cfg(feature = "fs")]
 use bpwallet::Wallet;
+#[cfg(feature = "fs")]
+use bpwallet::fs::FsTextStore;
 #[cfg(not(target_arch = "wasm32"))]
 use nonasync::persistence::PersistenceProvider;
 use psrgbt::{Psbt, PsbtMeta};
