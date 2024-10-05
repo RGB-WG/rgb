@@ -25,7 +25,8 @@ use std::iter;
 
 use bp::ConsensusDecode;
 use bpstd::{Network, Tx, Txid};
-use electrum::{Client, ElectrumApi, Error, Param};
+use electrum::{Client, ElectrumApi, Param};
+pub use electrum::{Config, ConfigBuilder, Error, Socks5Config};
 use rgbstd::vm::WitnessPos;
 
 use super::RgbResolver;

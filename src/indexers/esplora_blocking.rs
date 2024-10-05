@@ -21,7 +21,8 @@
 
 use bp::Tx;
 use bpstd::{Network, Txid};
-use esplora::{BlockingClient, Error};
+use esplora::BlockingClient;
+pub use esplora::{Builder, Config, Error};
 use rgbstd::vm::WitnessPos;
 
 use super::RgbResolver;

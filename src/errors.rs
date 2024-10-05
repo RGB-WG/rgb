@@ -34,7 +34,7 @@ use rgbstd::persistence::{
     ComposeError, ConsignError, ContractIfaceError, FasciaError, Stock, StockError, StockErrorAll,
     StockErrorMem,
 };
-use strict_types::encoding::{DeserializeError, Ident, SerializeError};
+use strict_types::encoding::Ident;
 
 use crate::{validation, TapTweakAlreadyAssigned};
 
@@ -43,13 +43,7 @@ use crate::{validation, TapTweakAlreadyAssigned};
 pub enum WalletError {
     #[from]
     #[from(io::Error)]
-    Io(IoError),
-
-    #[from]
-    Serialize(SerializeError),
-
-    #[from]
-    Deserialize(DeserializeError),
+    File(IoError),
 
     #[from]
     StockLoad(LoadError),
@@ -60,16 +54,15 @@ pub enum WalletError {
 
     #[cfg(feature = "cli")]
     #[from]
-    WalletExect(bpwallet::cli::ExecError),
+    WalletExec(bpwallet::cli::ExecError),
 
     #[from]
     Builder(BuilderError),
 
     #[from]
-    History(HistoryError),
-
-    #[from]
     Contract(ContractError),
+
+    Invoicing(String),
 
     #[from]
     PsbtDecode(psrgbt::DecodeError),
@@ -116,17 +109,6 @@ impl From<Infallible> for WalletError {
 
 impl From<(Stock, WalletError)> for WalletError {
     fn from((_, e): (Stock, WalletError)) -> Self { e }
-}
-
-#[derive(Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum HistoryError {
-    /// interface doesn't define default operation
-    NoDefaultOp,
-    /// default operation defined by the interface is not a state transition
-    DefaultOpNotTransition,
-    /// interface doesn't define default fungible state
-    NoDefaultAssignment,
 }
 
 #[allow(clippy::large_enum_variant)]
