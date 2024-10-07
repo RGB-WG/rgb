@@ -27,8 +27,8 @@ use std::str::FromStr;
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
 use bpstd::{Sats, XpubDerivable};
-use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
+use bpwallet::cli::{BpCommand, Config, Exec};
 use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
 use psbt::{Psbt, PsbtVer};
 use rgb::containers::{
@@ -50,8 +50,8 @@ use rgbstd::containers::ConsignmentExt;
 use rgbstd::persistence::{MemContract, Stock};
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
-use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
+use strict_types::encoding::{FieldName, TypeName};
 
 use crate::RgbArgs;
 
