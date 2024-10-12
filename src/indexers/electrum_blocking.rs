@@ -22,10 +22,12 @@
 // limitations under the License.
 
 use std::iter;
+use std::num::NonZeroU32;
 
 use bp::ConsensusDecode;
 use bpstd::{Network, Tx, Txid};
-use electrum::{Client, ElectrumApi, Error, Param};
+use electrum::{Client, ElectrumApi, Param};
+pub use electrum::{Config, ConfigBuilder, Error, Socks5Config};
 use rgbstd::vm::WitnessPos;
 
 use super::RgbResolver;
@@ -123,8 +125,10 @@ impl RgbResolver for Client {
         let tx_height = u32::try_from(get_merkle_res.block_height)
             .map_err(|_| s!("impossible height value"))?;
 
+        let height =
+            check!(NonZeroU32::new(tx_height).ok_or(Error::InvalidResponse(tx_details.clone())));
         let pos = check!(
-            WitnessPos::new(tx_height, block_time)
+            WitnessPos::bitcoin(height, block_time)
                 .ok_or(Error::InvalidResponse(tx_details.clone()))
         );
 

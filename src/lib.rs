@@ -27,19 +27,35 @@ extern crate serde_crate as serde;
 
 mod descriptor;
 mod indexers;
-mod wrapper;
+mod filters;
 pub mod pay;
 mod errors;
 mod wallet;
 
 pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
-pub use errors::{CompletionError, CompositionError, HistoryError, PayError, WalletError};
+pub use errors::{CompletionError, CompositionError, PayError, WalletError};
 pub use pay::{TransferParams, WalletProvider};
 pub use rgbstd::*;
 pub mod resolvers {
     #[cfg(any(feature = "electrum_blocking", feature = "esplora_blocking"))]
     pub use super::indexers::*;
     pub use super::indexers::{AnyResolver, RgbResolver};
+    use super::validation::{ResolveWitness, WitnessResolverError};
+    use super::vm::{WitnessOrd, XWitnessTx};
+    use super::XWitnessId;
+
+    pub struct ContractIssueResolver;
+    impl ResolveWitness for ContractIssueResolver {
+        fn resolve_pub_witness(&self, _: XWitnessId) -> Result<XWitnessTx, WitnessResolverError> {
+            panic!("contract issue resolver must not be used for an already-existing contracts")
+        }
+        fn resolve_pub_witness_ord(
+            &self,
+            _: XWitnessId,
+        ) -> Result<WitnessOrd, WitnessResolverError> {
+            panic!("contract issue resolver must not be used for an already-existing contracts")
+        }
+    }
 }
+pub use filters::{WalletOutpointsFilter, WalletUnspentFilter, WalletWitnessFilter};
 pub use wallet::RgbWallet;
-pub use wrapper::WalletWrapper;
