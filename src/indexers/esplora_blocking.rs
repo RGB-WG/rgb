@@ -19,6 +19,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::num::NonZeroU32;
+
 use bp::Tx;
 use bpstd::{Network, Txid};
 use esplora::BlockingClient;
@@ -48,7 +50,10 @@ impl RgbResolver for BlockingClient {
             .and_then(|h| status.block_time.map(|t| (h, t)))
         {
             Some((h, t)) => {
-                WitnessOrd::Mined(WitnessPos::new(h, t as i64).ok_or(Error::InvalidServerData)?)
+                let height = NonZeroU32::new(h).ok_or(Error::InvalidServerData)?;
+                WitnessOrd::Mined(
+                    WitnessPos::bitcoin(height, t as i64).ok_or(Error::InvalidServerData)?,
+                )
             }
             None => WitnessOrd::Tentative,
         };

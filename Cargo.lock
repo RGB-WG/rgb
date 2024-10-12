@@ -329,8 +329,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae3a99a46063d23d20a3177a04923652b245f31c2a04a6d0c47d5a93dc201a80"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#6ae56d5a005f0e0fc761516fb96c2c47bb13de46"
 dependencies = [
  "amplify",
  "chrono",
@@ -344,8 +343,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b8caf04291e2703ce267b1f8baf14f03879a6d1a5afe76e011ada489f172f9"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#6ae56d5a005f0e0fc761516fb96c2c47bb13de46"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -363,8 +361,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11fc4081db2147411381b9650765ce683e5065559f1125508696f79cc4cbfedf"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#6ae56d5a005f0e0fc761516fb96c2c47bb13de46"
 dependencies = [
  "amplify",
  "base85",
@@ -378,8 +375,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d2687829a365ba79a22d91737fa7404fd3e2aaeee6b8f5780fa3e94e6cb36c2"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#eb393cdb1c234cb76c100cea67b87c0cbc85fab8"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -427,8 +423,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f29c4f672b4b82ce7a218b2900254ac8e4b15b0022ed13abffa722571e73d375"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#eb393cdb1c234cb76c100cea67b87c0cbc85fab8"
 dependencies = [
  "amplify",
  "bech32",
@@ -440,8 +435,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d607238c2bf2c34d048d14cd798a6365306e0fb6b02211235f3ccad0bc7fa8f1"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#6ae56d5a005f0e0fc761516fb96c2c47bb13de46"
 dependencies = [
  "amplify",
  "baid64",
@@ -457,8 +451,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c9642f7b303791ba5696ff4be52c8d21ac2d2265bf9552692c8b03c741c11c"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#eb393cdb1c234cb76c100cea67b87c0cbc85fab8"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -761,8 +754,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e15b0f1ea4c1b7f66b86153341f08961122f5bad3fa68546b9ac5b199c99c39"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#eb393cdb1c234cb76c100cea67b87c0cbc85fab8"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1290,8 +1282,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.0-beta.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b5b2f8fb596a1caffa486595c66eae3ebc3fb05c74063348b9a987373ba0cdb"
+source = "git+https://github.com/BP-WG/bp-std?branch=develop#eb393cdb1c234cb76c100cea67b87c0cbc85fab8"
 dependencies = [
  "amplify",
  "base64",
@@ -1387,7 +1378,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.8"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=fix/273#e2a451fa793fe5403b4114b5ed5e9e47c69674cd"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=develop#0450760dbae554de0d7623691aed7630f1b60a60"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1408,7 +1399,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.8"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=fix/rgb-252#94b5ebc6b998b4aa2321513c08b4ff2aebfd2a56"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#796312c89122607ff77dd41c5cffeb34db472d34"
 dependencies = [
  "amplify",
  "baid64",
@@ -1474,7 +1465,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.8"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=fix/rgb-252#94b5ebc6b998b4aa2321513c08b4ff2aebfd2a56"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#796312c89122607ff77dd41c5cffeb34db472d34"
 dependencies = [
  "aluvm",
  "amplify",
