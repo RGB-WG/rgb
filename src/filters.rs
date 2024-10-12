@@ -80,6 +80,6 @@ impl<'a, K, D: DescriptorRgb<K>, L2: Layer2> AssignmentsFilter
     fn should_include(&self, _: impl Into<XOutpoint>, witness_id: Option<XWitnessId>) -> bool {
         self.0
             .history()
-            .any(|row| witness_id == Some(XChain::Bitcoin(row.txid)))
+            .any(|row| !row.our_inputs.is_empty() && witness_id == Some(XChain::Bitcoin(row.txid)))
     }
 }
