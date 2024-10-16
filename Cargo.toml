@@ -26,16 +26,16 @@ nonasync = { version = "0.1.2", features = ["log"] }
 baid64 = "0.2.2"
 strict_encoding = "2.7.0"
 strict_types = "2.7.0"
-commit_verify = "0.11.0-beta.8"
-bp-core = "0.11.0-beta.8"
-bp-seals = "0.11.0-beta.8"
-bp-std = "0.11.0-beta.8"
+commit_verify = "0.11.0-beta.9"
+bp-core = "0.11.0-beta.9"
+bp-seals = "0.11.0-beta.9"
+bp-std = "0.11.0-beta.9"
 bp-electrum = "0.11.0-beta.8.1"
 bp-esplora = { version = "0.11.0-beta.8", default-features = false }
-descriptors = "0.11.0-beta.8"
-psbt = { version = "0.11.0-beta.8", features = ["client-side-validation"] }
+descriptors = "0.11.0-beta.9"
+psbt = { version = "0.11.0-beta.9", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.0-beta.8" }
-rgb-std = { version = "0.11.0-beta.8" }
+rgb-std = { version = "0.11.0-beta.9" }
 rgb-psbt = { version = "0.11.0-beta.8", path = "psbt" }
 indexmap = "2.4.0"
 chrono = "0.4.38"
@@ -104,6 +104,9 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-
 features = ["all"]
 
 [patch.crates-io]
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }
+single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "develop" }
+aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "develop" }
 bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
 bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
 bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
@@ -115,6 +118,6 @@ psbt = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
 bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "develop" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "develop" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "feat/fungible-nonconf" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "feat/fungible-nonconf" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "feat/fungible-nonconf" }

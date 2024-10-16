@@ -19,13 +19,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::marker::PhantomData;
 
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::ExplicitSeal;
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
-use bpstd::{psbt, Address};
+use bpstd::{Address, psbt};
 use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
@@ -33,12 +33,11 @@ use psrgbt::{
 };
 use rgbstd::containers::Transfer;
 use rgbstd::interface::AssignmentsFilter;
-use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
+use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::validation::ResolveWitness;
-use rgbstd::{ContractId, DataState, XChain, XOutpoint};
+use rgbstd::{ContractId, XChain, XOutpoint};
 
-use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
 use crate::vm::{WitnessOrd, XWitnessTx};
 use crate::{
@@ -173,42 +172,11 @@ where Self::Descr: DescriptorRgb<K>
         let contract = stock
             .contract_iface(contract_id, iface_name)
             .map_err(|e| e.to_string())?;
-        let prev_outputs = match invoice.owned_state {
-            InvoiceState::Amount(amount) => {
-                let state: BTreeMap<_, Vec<Amount>> = contract
-                    .fungible(assignment_name, &filter)?
-                    .fold(bmap![], |mut set, a| {
-                        set.entry(a.seal).or_default().push(a.state);
-                        set
-                    });
-                let mut state: Vec<_> = state
-                    .into_iter()
-                    .map(|(seal, vals)| (vals.iter().copied().sum::<Amount>(), seal, vals))
-                    .collect();
-                state.sort_by_key(|(sum, _, _)| *sum);
-                let mut sum = Amount::ZERO;
-                state
-                    .iter()
-                    .rev()
-                    .take_while(|(val, _, _)| {
-                        if sum >= amount {
-                            false
-                        } else {
-                            sum += *val;
-                            true
-                        }
-                    })
-                    .map(|(_, seal, _)| *seal)
-                    .collect::<BTreeSet<_>>()
-            }
-            InvoiceState::Data(NonFungible::RGB21(allocation)) => {
-                let data_state = DataState::from(allocation);
-                contract
-                    .data(assignment_name, &filter)?
-                    .filter(|x| x.state == data_state)
-                    .map(|x| x.seal)
-                    .collect::<BTreeSet<_>>()
-            }
+        let prev_outputs = match &invoice.owned_state {
+            InvoiceState::Specific(state) => contract
+                .assignments_fulfilling(assignment_name, &filter, state, |s| s.state.value.clone())?
+                .map(|a| a.seal)
+                .collect::<BTreeSet<_>>(),
             _ => return Err(CompositionError::Unsupported),
         };
         let beneficiaries = match invoice.beneficiary.into_inner() {
