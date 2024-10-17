@@ -25,9 +25,9 @@ use std::path::PathBuf;
 
 use bpstd::XpubDerivable;
 #[cfg(feature = "fs")]
-use bpwallet::fs::FsTextStore;
-#[cfg(feature = "fs")]
 use bpwallet::Wallet;
+#[cfg(feature = "fs")]
+use bpwallet::fs::FsTextStore;
 use bpwallet::{Layer2, NoLayer2};
 #[cfg(not(target_arch = "wasm32"))]
 use nonasync::persistence::PersistenceProvider;
@@ -140,7 +140,7 @@ where W::Descr: DescriptorRgb<K>
     #[allow(clippy::result_large_err)]
     pub fn construct_psbt(
         &mut self,
-        invoice: &RgbInvoice,
+        invoice: RgbInvoice,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
         self.wallet.construct_psbt_rgb(&self.stock, invoice, params)

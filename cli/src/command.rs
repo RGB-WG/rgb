@@ -25,11 +25,11 @@ use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
+use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet};
 use baid64::DisplayBaid64;
 use bpstd::{Sats, XpubDerivable};
-use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
+use bpwallet::cli::{BpCommand, Config, Exec};
 use psbt::{Psbt, PsbtVer};
 use rgb::containers::{
     BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
@@ -37,24 +37,20 @@ use rgb::containers::{
 };
 use rgb::interface::{AssignmentsFilter, ContractOp, IfaceId};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgb::persistence::{MemContract, StashReadProvider, Stock};
+use rgb::persistence::{MemContract, StashReadProvider, Stock, StockError};
 use rgb::resolvers::ContractIssueResolver;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
-    Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
-    OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
-    TransferParams, WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
+    AttachId, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
+    OutputSeal, RgbDescr, RgbKeychain, RgbWallet, STATE_DATA_MAX_LEN, TransferParams, WalletError,
+    WalletProvider, XChain, XOutpoint, XWitnessId,
 };
-use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
-use rgbstd::persistence::{MemContractState, StockError};
-use rgbstd::stl::rgb_contract_stl;
-use rgbstd::{KnownState, OutputAssignment};
 use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
-use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
+use strict_types::encoding::{FieldName, TypeName};
 
 use crate::RgbArgs;
 
@@ -184,27 +180,19 @@ pub enum Command {
         /// If no state name is provided, the interface default state name for the operation is
         /// used.
         #[arg(short, long, requires = "operation")]
-        state: Option<String>,
+        assignment: Option<String>,
 
         /// Contract identifier
         contract_id: ContractId,
 
-        /// Amount of tokens (in the smallest unit) to transfer
-        #[arg(short, long)]
-        amount: Option<u64>,
-
-        /// Token index for NFT transfer
-        #[arg(long)]
-        token_index: Option<TokenIndex>,
-
-        /// Fraction of an NFT token to transfer
-        #[arg(long, requires = "token_index")]
-        token_fraction: Option<OwnedFraction>,
+        /// State for the invoice
+        state: Option<String>,
     },
 
     /// Prepare PSBT file for transferring RGB assets
     ///
-    /// In the most of cases you need to use `transfer` command instead of `prepare` and `consign`.
+    /// In the most of the cases you need to use `transfer` command instead of `prepare` and
+    /// `consign`.
     #[display("prepare")]
     Prepare {
         /// Encode PSBT as V2
@@ -398,16 +386,14 @@ impl Exec for RgbArgs {
                     ty,
                     opids,
                     state,
+                    attach_id,
                     to,
                     witness,
                 } in history
                 {
                     print!("{:9}\t", direction.to_string());
-                    if let AllocatedState::Amount(amount) = state {
-                        print!("{: >9}", amount.value());
-                    } else {
-                        print!("{state:>9}");
-                    }
+
+                    print!("{state}");
                     if *details {
                         print!("\t{ty}");
                     }
@@ -420,13 +406,16 @@ impl Exec for RgbArgs {
                     );
                     if *details {
                         println!(
-                            "\topid={}",
+                            "\topid {}",
                             opids
                                 .iter()
                                 .map(OpId::to_string)
                                 .collect::<Vec<_>>()
-                                .join("\n\topid=")
-                        )
+                                .join("\n\topid ")
+                        );
+                        if let Some(attach) = attach_id {
+                            println!("attach {attach}");
+                        }
                     }
                 }
             }
@@ -609,60 +598,22 @@ impl Exec for RgbArgs {
                 }
 
                 println!("\nOwned:");
-                fn witness<S: KnownState>(
-                    allocation: &OutputAssignment<S>,
-                    contract: &ContractIface<MemContract<&MemContractState>>,
-                ) -> String {
-                    allocation
-                        .witness
-                        .and_then(|w| contract.witness_info(w))
-                        .map(|info| format!("{} ({})", info.id, info.ord))
-                        .unwrap_or_else(|| s!("~"))
-                }
                 for owned in &contract.iface.assignments {
                     println!("  State      \t{:78}\tWitness", "Seal");
                     println!("  {}:", owned.name);
-                    if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
-                        for allocation in allocations {
+                    if let Ok(outputs) = contract.outputs_by_type(owned.name.clone(), &filter) {
+                        for output in outputs {
+                            let witness = output
+                                .witness
+                                .and_then(|w| contract.witness_info(w))
+                                .map(|info| format!("{} ({})", info.id, info.ord))
+                                .unwrap_or_else(|| s!("~"));
                             println!(
                                 "    {: >9}\t{}\t{} {}",
-                                allocation.state.value(),
-                                allocation.seal,
-                                witness(&allocation, &contract),
-                                filter.comment(allocation.seal.to_outpoint())
-                            );
-                        }
-                    }
-                    if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
-                        for allocation in allocations {
-                            println!(
-                                "    {: >9}\t{}\t{} {}",
-                                allocation.state,
-                                allocation.seal,
-                                witness(&allocation, &contract),
-                                filter.comment(allocation.seal.to_outpoint())
-                            );
-                        }
-                    }
-                    if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
-                        for allocation in allocations {
-                            println!(
-                                "    {: >9}\t{}\t{} {}",
-                                allocation.state,
-                                allocation.seal,
-                                witness(&allocation, &contract),
-                                filter.comment(allocation.seal.to_outpoint())
-                            );
-                        }
-                    }
-                    if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
-                        for allocation in allocations {
-                            println!(
-                                "    {: >9}\t{}\t{} {}",
-                                "right",
-                                allocation.seal,
-                                witness(&allocation, &contract),
-                                filter.comment(allocation.seal.to_outpoint())
+                                output.state,
+                                output.seal,
+                                witness,
+                                filter.comment(output.seal.to_outpoint())
                             );
                         }
                     }
@@ -674,21 +625,15 @@ impl Exec for RgbArgs {
                 contract,
             } => {
                 let mut stock = self.rgb_stock()?;
-
-                let file = fs::File::open(contract)?;
-
-                let code = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
-
-                let code = code
-                    .as_mapping()
-                    .expect("invalid YAML root-level structure");
+                let file = File::open(contract)?;
+                let src = serde_yaml::from_reader::<_, serde_yaml::Value>(file)?;
+                let code = src.as_mapping().expect("invalid YAML root-level structure");
 
                 let iface_name = code
                     .get("interface")
                     .expect("contract must specify interface under which it is constructed")
                     .as_str()
                     .expect("interface name must be a string");
-                let schema_ifaces = stock.schema(*schema_id)?;
                 let iface_name = tn!(iface_name.to_owned());
                 let iface = stock
                     .iface(iface_name.clone())
@@ -698,14 +643,8 @@ impl Exec for RgbArgs {
                     })?
                     .clone();
                 let iface_id = iface.iface_id();
-                let iface_impl = schema_ifaces.get(iface_id).ok_or_else(|| {
-                    WalletError::Custom(format!(
-                        "no known interface implementation for {iface_name}"
-                    ))
-                })?;
 
                 let mut builder = stock.contract_builder(issuer.clone(), *schema_id, iface_id)?;
-                let types = builder.type_system().clone();
 
                 if let Some(globals) = code.get("globals") {
                     for (name, val) in globals
@@ -715,31 +654,12 @@ impl Exec for RgbArgs {
                         let name = name
                             .as_str()
                             .expect("invalid YAML: global name must be a string");
-                        let state_type = iface_impl
-                            .global_state
-                            .iter()
-                            .find(|info| info.name.as_str() == name)
-                            .unwrap_or_else(|| panic!("unknown type name '{name}'"))
-                            .id;
-                        let sem_id = schema_ifaces
-                            .schema
-                            .global_types
-                            .get(&state_type)
-                            .expect("invalid schema implementation")
-                            .sem_id;
-                        let val = StrictVal::from(val.clone());
-                        let typed_val = types
-                            .typify(val, sem_id)
-                            .expect("global type doesn't match type definition");
-
-                        let serialized = types
-                            .strict_serialize_type::<MAX16>(&typed_val)
-                            .expect("internal error");
                         // Workaround for borrow checker:
                         let field_name =
                             FieldName::try_from(name.to_owned()).expect("invalid type name");
+                        let value = StrictVal::from(val.clone());
                         builder = builder
-                            .add_global_state(field_name, serialized)
+                            .add_global_state(field_name, value)
                             .expect("invalid global state data");
                     }
                 }
@@ -752,17 +672,9 @@ impl Exec for RgbArgs {
                         let name = name
                             .as_str()
                             .expect("invalid YAML: assignments name must be a string");
-                        let state_type = iface_impl
-                            .assignments
-                            .iter()
-                            .find(|info| info.name.as_str() == name)
-                            .expect("unknown type name")
-                            .id;
-                        let state_schema = schema_ifaces
-                            .schema
-                            .owned_types
-                            .get(&state_type)
-                            .expect("invalid schema implementation");
+                        // Workaround for borrow checker:
+                        let field_name =
+                            FieldName::try_from(name.to_owned()).expect("invalid type name");
 
                         let assign = val.as_mapping().expect("an assignment must be a mapping");
                         let seal = assign
@@ -772,26 +684,17 @@ impl Exec for RgbArgs {
                             .expect("seal must be a string");
                         let seal = OutputSeal::from_str(seal).expect("invalid seal definition");
                         let seal = GenesisSeal::new_random(seal.method, seal.txid, seal.vout);
+                        let seal = BuilderSeal::Revealed(XChain::Bitcoin(seal));
 
-                        // Workaround for borrow checker:
-                        let field_name =
-                            FieldName::try_from(name.to_owned()).expect("invalid type name");
-                        match state_schema.state_type() {
-                            StateType::Void => todo!(),
-                            StateType::Fungible => {
-                                let amount = assign
-                                    .get("amount")
-                                    .expect("owned state must be a fungible amount")
-                                    .as_u64()
-                                    .expect("fungible state must be an integer");
-                                let seal = BuilderSeal::Revealed(XChain::Bitcoin(seal));
-                                builder = builder
-                                    .add_fungible_state(field_name, seal, amount)
-                                    .expect("invalid global state data");
-                            }
-                            StateType::Structured => todo!(),
-                            StateType::Attachment => todo!(),
-                        }
+                        let data =
+                            StrictVal::from(assign.get("state").expect("absent state").clone());
+                        let attach = assign.get("attachment").map(|id| {
+                            AttachId::from_str(id.as_str().expect("invalid attachment data"))
+                                .expect("invalid attachment id string")
+                        });
+                        builder = builder
+                            .add_owned_state(field_name, seal, data, attach)
+                            .expect("invalid owned state data");
                     }
                 }
 
@@ -806,12 +709,10 @@ impl Exec for RgbArgs {
             Command::Invoice {
                 address_based,
                 operation,
-                state,
+                assignment,
                 contract_id,
                 iface,
-                amount,
-                token_index,
-                token_fraction,
+                state,
             } => {
                 let mut wallet = self.rgb_wallet(&config)?;
 
@@ -873,7 +774,7 @@ impl Exec for RgbArgs {
                         "interface {iface_name} doesn't have operation {op_name}"
                     )));
                 };
-                let state_name = state
+                let state_name = assignment
                     .clone()
                     .map(FieldName::try_from)
                     .transpose()
@@ -898,77 +799,27 @@ impl Exec for RgbArgs {
 
                 if operation.is_some() {
                     builder = builder.set_operation(op_name);
-                    if let Some(state) = state {
+                    if let Some(state) = assignment {
                         builder = builder.set_operation(fname!(state.clone()));
                     }
                 }
 
-                match (assign_iface.owned_state, amount, token_index.map(|i| (i, token_fraction))) {
-                    (
-                        OwnedIface::Rights
-                        | OwnedIface::Amount
-                        | OwnedIface::AnyData
-                        | OwnedIface::Data(_),
-                        None,
-                        None,
-                    ) => {
-                        // There is no state which has to be added to the invoice
-                    }
-                    (OwnedIface::Rights, Some(_), None | Some(_))
-                    | (OwnedIface::Rights, None, Some(_)) => {
+                if let Some(state) = state {
+                    let state: StrictVal = serde_yaml::from_str(&state)?;
+                    let Some(sem_id) = assign_iface.state_ty else {
                         return Err(WalletError::Invoicing(format!(
-                            "state {state_name} in interface {iface_name} defines a right and it \
-                             can't has a value or a token information"
+                            "interface {iface_name} doesn't define a state type for the invoiced \
+                             assignment"
                         )));
-                    }
-                    (OwnedIface::Amount, _, Some(_)) => {
-                        return Err(WalletError::Invoicing(format!(
-                            "state {state_name} in interface {iface_name} defines a fungible \
-                             state, while a non-fungible token index is provided for the invoice. \
-                             Please use only --amount argument"
-                        )));
-                    }
-                    (OwnedIface::Amount, Some(amount), None) => {
-                        builder = builder.set_amount_raw(*amount);
-                    }
-                    (OwnedIface::Data(_) | OwnedIface::AnyData, Some(_), _) => {
-                        return Err(WalletError::Invoicing(format!(
-                            "state {state_name} in interface {iface_name} defines a non-fungible \
-                             state, while a fungible amount is provided for the invoice. Please \
-                             use only --token-index and --token-fraction arguments"
-                        )));
-                    }
-                    (OwnedIface::Data(sem_id), None, Some(_))
-                        if sem_id
-                            != rgb_contract_stl()
-                                .types
-                                .get(&tn!("Allocation"))
-                                .expect("STL is broken")
-                                .sem_id_named(&tn!("Allocation")) =>
-                    {
-                        return Err(WalletError::Invoicing(format!(
-                            "state {state_name} in interface {iface_name} has a type which can't \
-                             be used with a non-fungible state allocation"
-                        )));
-                    }
-                    (OwnedIface::AnyData | OwnedIface::Data(_), None, Some((index, fraction))) => {
-                        builder = builder.set_allocation_raw(Allocation::with(
-                            index,
-                            fraction.unwrap_or(OwnedFraction::from(0)),
-                        ))
-                    }
-
-                    (OwnedIface::Any, _, _) => {
-                        return Err(WalletError::Invoicing(format!(
-                            "state {state_name} in interface {iface_name} can be of any type; \
-                             adding it to the invoice is impossible"
-                        )));
-                    }
-                    (OwnedIface::AnyAttach, _, _) => {
-                        return Err(WalletError::Invoicing(s!(
-                            "invoicing with attachments is not yet supported"
-                        )));
-                    }
+                    };
+                    let types = wallet.stock().type_system(iface)?;
+                    let value = types
+                        .typify(state, sem_id)
+                        .map_err(|e| WalletError::Invoicing(format!("invalid state data - {e}")))?;
+                    let data = types
+                        .strict_serialize_value::<STATE_DATA_MAX_LEN>(&value)
+                        .map_err(|_| WalletError::Invoicing(s!("state data too large")))?;
+                    builder = builder.set_state(data.into());
                 }
 
                 let invoice = builder.finish();
@@ -986,7 +837,7 @@ impl Exec for RgbArgs {
                 let params = TransferParams::with(*fee, *sats);
 
                 let (psbt, _) = wallet
-                    .construct_psbt(invoice, params)
+                    .construct_psbt(invoice.clone(), params)
                     .map_err(|err| err.to_string())?;
 
                 let ver = if *v2 { PsbtVer::V2 } else { PsbtVer::V0 };

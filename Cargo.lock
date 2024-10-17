@@ -241,12 +241,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "base58"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6107fe1be6682a68940da878d9e9f5e90ca5745b3dec9fd1bb393c8777d4f581"
-
-[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1118,7 +1112,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -1378,11 +1372,12 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.11.0-beta.9"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=feat/fungible-nonconf#8267ce26b1edf905553a49e5dcc42d5f2f0df338"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=feat/fungible-nonconf#e92e5b176886b3f04d8cfbb41714ab8f7d0b8046"
 dependencies = [
  "aluvm",
  "amplify",
  "baid64",
+ "base64",
  "bp-core",
  "chrono",
  "commit_verify",
@@ -1397,11 +1392,10 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.0-beta.9"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/fungible-nonconf#8f7020c5a04d019e2fb376d95031be1fecfdedf6"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/fungible-nonconf#bc455d70d168deb56551ad67885c498f6f27d2b4"
 dependencies = [
  "amplify",
  "baid64",
- "base58",
  "bp-core",
  "bp-invoice",
  "fluent-uri",
@@ -1462,7 +1456,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.0-beta.9"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/fungible-nonconf#8f7020c5a04d019e2fb376d95031be1fecfdedf6"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/fungible-nonconf#bc455d70d168deb56551ad67885c498f6f27d2b4"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1800,9 +1794,8 @@ dependencies = [
 
 [[package]]
 name = "strict_types"
-version = "2.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f16e8855a575633815f01482ac927ebaca3d2485aec8e17226c6826de29154e"
+version = "2.7.1"
+source = "git+https://github.com/strict-types/strict-types?branch=develop#729a4f86d25dfcea15ed15bbeb1e027473401c58"
 dependencies = [
  "amplify",
  "ascii-armor",

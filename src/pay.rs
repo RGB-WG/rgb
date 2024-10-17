@@ -33,10 +33,10 @@ use psrgbt::{
 };
 use rgbstd::containers::Transfer;
 use rgbstd::interface::AssignmentsFilter;
-use rgbstd::invoice::{Beneficiary, InvoiceState, RgbInvoice};
+use rgbstd::invoice::{Beneficiary, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::validation::ResolveWitness;
-use rgbstd::{ContractId, XChain, XOutpoint};
+use rgbstd::{ContractId, State, XChain, XOutpoint};
 
 use crate::validation::WitnessResolverError;
 use crate::vm::{WitnessOrd, XWitnessTx};
@@ -123,7 +123,7 @@ where Self::Descr: DescriptorRgb<K>
         invoice: &RgbInvoice,
         params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta, Transfer), PayError> {
-        let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice, params)?;
+        let (mut psbt, meta) = self.construct_psbt_rgb(stock, invoice.clone(), params)?;
         // ... here we pass PSBT around signers, if necessary
         let transfer = match self.transfer(stock, invoice, &mut psbt) {
             Ok(transfer) => transfer,
@@ -136,7 +136,7 @@ where Self::Descr: DescriptorRgb<K>
     fn construct_psbt_rgb<S: StashProvider, H: StateProvider, P: IndexProvider>(
         &mut self,
         stock: &Stock<S, H, P>,
-        invoice: &RgbInvoice,
+        invoice: RgbInvoice,
         mut params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
@@ -172,13 +172,6 @@ where Self::Descr: DescriptorRgb<K>
         let contract = stock
             .contract_iface(contract_id, iface_name)
             .map_err(|e| e.to_string())?;
-        let prev_outputs = match &invoice.owned_state {
-            InvoiceState::Specific(state) => contract
-                .assignments_fulfilling(assignment_name, &filter, state, |s| s.state.value.clone())?
-                .map(|a| a.seal)
-                .collect::<BTreeSet<_>>(),
-            _ => return Err(CompositionError::Unsupported),
-        };
         let beneficiaries = match invoice.beneficiary.into_inner() {
             Beneficiary::BlindedSeal(_) => vec![],
             Beneficiary::WitnessVout(pay2vout) => {
@@ -188,6 +181,12 @@ where Self::Descr: DescriptorRgb<K>
                 )]
             }
         };
+        let state_data = invoice.state.clone().ok_or(CompositionError::Unsupported)?;
+        let state = State::from(state_data); // TODO: Support attachments when they will be added to invoices
+        let prev_outputs = contract
+            .output_selection(assignment_name, &filter, |s| s.state.data.clone(), &state)?
+            .map(|a| a.seal)
+            .collect::<BTreeSet<_>>();
         let prev_outpoints = prev_outputs
             .iter()
             // TODO: Support liquid
