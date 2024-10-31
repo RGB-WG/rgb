@@ -21,34 +21,37 @@
 
 use std::fs;
 use std::fs::File;
+use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
+use bpstd::psbt::{Psbt, PsbtVer};
+use bpstd::seals::SecretSeal;
 use bpstd::{Sats, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
-use ifaces::{IfaceStandard, Rgb20, Rgb21, Rgb25};
-use psbt::{Psbt, PsbtVer};
 use rgb::containers::{
-    BuilderSeal, ContainerVer, ContentId, ContentSigs, Contract, FileContent, Supplement, Transfer,
-    UniversalFile,
+    BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
+    Supplement, Transfer, UniversalFile,
 };
-use rgb::interface::{AmountChange, IfaceId, OutpointFilter};
+use rgb::interface::{AssignmentsFilter, ContractOp, IfaceId};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
-use rgb::persistence::StashReadProvider;
+use rgb::persistence::{MemContract, StashReadProvider, Stock};
+use rgb::resolvers::ContractIssueResolver;
 use rgb::schema::SchemaId;
 use rgb::validation::Validity;
-use rgb::vm::RgbIsa;
+use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
-    BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OutputSeal, RgbDescr,
-    RgbKeychain, RgbWallet, StateType, TransferParams, WalletError, WalletProvider, XChain,
-    XOutpoint, XOutputSeal, XWitnessId,
+    Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
+    OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
+    TransferParams, WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
 };
-use rgbstd::containers::ConsignmentExt;
-use rgbstd::persistence::{MemContract, Stock};
-use seals::SecretSeal;
+use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
+use rgbstd::persistence::{MemContractState, StockError};
+use rgbstd::stl::rgb_contract_stl;
+use rgbstd::{KnownState, OutputAssignment};
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -74,10 +77,7 @@ pub enum Command {
 
     /// Prints out list of known RGB contracts
     #[display("contracts")]
-    Contracts {
-        /// Select only contracts using specific interface standard
-        standard: Option<IfaceStandard>,
-    },
+    Contracts,
 
     /// Imports RGB data into the stash: contracts, schema, interfaces, etc
     #[display("import")]
@@ -120,26 +120,30 @@ pub enum Command {
     /// Reports information about state of a contract
     #[display("state")]
     State {
-        /// Show all state - not just the one owned by the wallet
-        #[clap(short, long)]
+        /// Show all state, including already spent and not owned by the wallet
+        #[arg(short, long)]
         all: bool,
 
         /// Contract identifier
         contract_id: ContractId,
 
         /// Interface to interpret the state data
-        iface: String,
+        iface: Option<String>,
     },
 
     /// Print operation history for a default fungible token under a given
     /// interface
-    #[display("history-fungible")]
-    HistoryFungible {
+    #[display("history")]
+    History {
+        /// Print detailed information
+        #[arg(long)]
+        details: bool,
+
         /// Contract identifier
         contract_id: ContractId,
 
         /// Interface to interpret the state data
-        iface: String,
+        iface: Option<String>,
     },
 
     /// Display all known UTXOs belonging to this wallet
@@ -162,21 +166,45 @@ pub enum Command {
     #[display("invoice")]
     Invoice {
         /// Force address-based invoice
-        #[clap(short, long)]
+        #[arg(short, long)]
         address_based: bool,
+
+        /// Interface to interpret the state data
+        #[arg(short, long)]
+        iface: Option<String>,
+
+        /// Operation to use for the invoice
+        ///
+        /// If no operation is provided, the interface default operation is used.
+        #[arg(short, long)]
+        operation: Option<String>,
+
+        /// State name to use for the invoice
+        ///
+        /// If no state name is provided, the interface default state name for the operation is
+        /// used.
+        #[arg(short, long, requires = "operation")]
+        state: Option<String>,
 
         /// Contract identifier
         contract_id: ContractId,
 
-        /// Interface to interpret the state data
-        iface: String,
+        /// Amount of tokens (in the smallest unit) to transfer
+        #[arg(short, long)]
+        amount: Option<u64>,
 
-        /// Value to transfer
-        value: u64,
+        /// Token index for NFT transfer
+        #[arg(long)]
+        token_index: Option<TokenIndex>,
+
+        /// Fraction of an NFT token to transfer
+        #[arg(long, requires = "token_index")]
+        token_fraction: Option<OwnedFraction>,
     },
 
-    /// Prepare PSBT file for transferring RGB assets. In the most of cases you
-    /// need to use `transfer` command instead of `prepare` and `consign`.
+    /// Prepare PSBT file for transferring RGB assets
+    ///
+    /// In the most of cases you need to use `transfer` command instead of `prepare` and `consign`.
     #[display("prepare")]
     Prepare {
         /// Encode PSBT as V2
@@ -185,7 +213,7 @@ pub enum Command {
 
         /// Amount of satoshis which should be paid to the address-based
         /// beneficiary
-        #[clap(long, default_value = "2000")]
+        #[arg(long, default_value = "2000")]
         sats: Sats,
 
         /// Invoice data
@@ -198,8 +226,9 @@ pub enum Command {
         psbt: Option<PathBuf>,
     },
 
-    /// Prepare consignment for transferring RGB assets. In the most of the
-    /// cases you need to use `transfer` command instead of `prepare` and
+    /// Prepare consignment for transferring RGB assets
+    ///
+    /// In the most of the cases you need to use `transfer` command instead of `prepare` and
     /// `consign`.
     #[display("prepare")]
     Consign {
@@ -217,19 +246,19 @@ pub enum Command {
     #[display("transfer")]
     Transfer {
         /// Encode PSBT as V2
-        #[clap(short = '2')]
+        #[arg(short = '2')]
         v2: bool,
 
         /// Amount of satoshis which should be paid to the address-based
         /// beneficiary
-        #[clap(long, default_value = "2000")]
+        #[arg(long, default_value = "2000")]
         sats: Sats,
 
         /// Invoice data
         invoice: RgbInvoice,
 
         /// Fee for bitcoin transaction, in satoshis
-        #[clap(short, long, default_value = "400")]
+        #[arg(short, long, default_value = "400")]
         fee: Sats,
 
         /// File for generated transfer consignment
@@ -299,6 +328,7 @@ pub enum Command {
 #[display(lowercase)]
 #[clap(hide = true)]
 pub enum DebugCommand {
+    /// List known tapret tweaks for a wallet
     Taprets,
 }
 
@@ -338,57 +368,66 @@ impl Exec for RgbArgs {
                     print!("{info}");
                 }
             }
-            Command::Contracts { standard: None } => {
+            Command::Contracts => {
                 let stock = self.rgb_stock()?;
                 for info in stock.contracts()? {
                     print!("{info}");
                 }
             }
-            Command::Contracts {
-                standard: Some(IfaceStandard::Rgb20),
-            } => {
-                let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb20>()? {
-                    print!("{info}");
-                }
-            }
-            Command::Contracts {
-                standard: Some(IfaceStandard::Rgb21),
-            } => {
-                let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb21>()? {
-                    print!("{info}");
-                }
-            }
-            Command::Contracts {
-                standard: Some(IfaceStandard::Rgb25),
-            } => {
-                let stock = self.rgb_stock()?;
-                for info in stock.contracts_by::<Rgb25>()? {
-                    print!("{info}");
-                }
-            }
 
-            Command::HistoryFungible { contract_id, iface } => {
+            Command::History {
+                contract_id,
+                iface,
+                details,
+            } => {
                 let wallet = self.rgb_wallet(&config)?;
-                let iface: TypeName = tn!(iface.clone());
-                let history = wallet.fungible_history(*contract_id, iface)?;
-                println!("Amount\tCounterparty\tWitness Id");
-                for (id, op) in history {
-                    let (cparty, more) = match op.state_change {
-                        AmountChange::Dec(_) => {
-                            (op.beneficiaries.first(), op.beneficiaries.len().saturating_sub(1))
-                        }
-                        AmountChange::Zero => continue,
-                        AmountChange::Inc(_) => {
-                            (op.payers.first(), op.payers.len().saturating_sub(1))
-                        }
-                    };
-                    let more = if more > 0 { format!(" (+{more})") } else { s!("") };
-                    let cparty = cparty
-                        .map(XOutputSeal::to_string)
-                        .unwrap_or_else(|| s!("none"));
-                    println!("{}\t{}{}\t{}", op.state_change, cparty, more, id);
+                let iface = match contract_default_iface_name(*contract_id, wallet.stock(), iface)?
+                {
+                    ControlFlow::Continue(name) => name,
+                    ControlFlow::Break(_) => return Ok(()),
+                };
+                let mut history = wallet.history(*contract_id, iface)?;
+                history.sort_by_key(|op| op.witness.map(|w| w.ord).unwrap_or(WitnessOrd::Archived));
+                if *details {
+                    println!("Operation\tValue    \tState\t{:78}\tWitness", "Seal");
+                } else {
+                    println!("Operation\tValue    \t{:78}\tWitness", "Seal");
+                }
+                for ContractOp {
+                    direction,
+                    ty,
+                    opids,
+                    state,
+                    to,
+                    witness,
+                } in history
+                {
+                    print!("{:9}\t", direction.to_string());
+                    if let AllocatedState::Amount(amount) = state {
+                        print!("{: >9}", amount.value());
+                    } else {
+                        print!("{state:>9}");
+                    }
+                    if *details {
+                        print!("\t{ty}");
+                    }
+                    println!(
+                        "\t{}\t{}",
+                        to.first().expect("at least one receiver is always present"),
+                        witness
+                            .map(|info| format!("{} ({})", info.id, info.ord))
+                            .unwrap_or_else(|| s!("~"))
+                    );
+                    if *details {
+                        println!(
+                            "\topid={}",
+                            opids
+                                .iter()
+                                .map(OpId::to_string)
+                                .collect::<Vec<_>>()
+                                .join("\n\topid=")
+                        )
+                    }
                 }
             }
 
@@ -498,6 +537,11 @@ impl Exec for RgbArgs {
                     }
                 }
 
+                let iface = match contract_default_iface_name(*contract_id, &stock, iface)? {
+                    ControlFlow::Continue(name) => name,
+                    ControlFlow::Break(_) => return Ok(()),
+                };
+
                 let stock_wallet = match self.rgb_wallet_from_stock(&config, stock) {
                     Ok(wallet) => StockOrWallet::Wallet(wallet),
                     Err((stock, _)) => StockOrWallet::Stock(stock),
@@ -530,91 +574,94 @@ impl Exec for RgbArgs {
                     WalletAll(&'w RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
-                impl<'w> OutpointFilter for Filter<'w> {
-                    fn include_outpoint(&self, outpoint: impl Into<XOutpoint>) -> bool {
+                impl<'w> AssignmentsFilter for Filter<'w> {
+                    fn should_include(
+                        &self,
+                        outpoint: impl Into<XOutpoint>,
+                        id: Option<XWitnessId>,
+                    ) -> bool {
                         match self {
-                            Filter::Wallet(wallet) => {
-                                wallet.wallet().filter().include_outpoint(outpoint)
-                            }
+                            Filter::Wallet(wallet) => wallet
+                                .wallet()
+                                .filter_unspent()
+                                .should_include(outpoint, id),
                             _ => true,
                         }
                     }
                 }
                 impl<'w> Filter<'w> {
                     fn comment(&self, outpoint: XOutpoint) -> &'static str {
+                        let outpoint = outpoint
+                            .into_bp()
+                            .into_bitcoin()
+                            .expect("liquid is not yet supported");
                         match self {
-                            Filter::Wallet(wallet) | Filter::WalletAll(wallet)
-                                if wallet.wallet().filter().include_outpoint(outpoint) =>
-                            {
-                                ""
+                            Filter::Wallet(rgb) if rgb.wallet().is_unspent(outpoint) => "",
+                            Filter::WalletAll(rgb) if rgb.wallet().is_unspent(outpoint) => {
+                                "-- unspent"
                             }
-                            _ => "-- owner unknown",
+                            Filter::WalletAll(rgb) if rgb.wallet().has_outpoint(outpoint) => {
+                                "-- spent"
+                            }
+                            _ => "-- third-party",
                         }
                     }
                 }
 
                 println!("\nOwned:");
+                fn witness<S: KnownState>(
+                    allocation: &OutputAssignment<S>,
+                    contract: &ContractIface<MemContract<&MemContractState>>,
+                ) -> String {
+                    allocation
+                        .witness
+                        .and_then(|w| contract.witness_info(w))
+                        .map(|info| format!("{} ({})", info.id, info.ord))
+                        .unwrap_or_else(|| s!("~"))
+                }
                 for owned in &contract.iface.assignments {
+                    println!("  State      \t{:78}\tWitness", "Seal");
                     println!("  {}:", owned.name);
                     if let Ok(allocations) = contract.fungible(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
-                                "    value={}, utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
                                 allocation.state.value(),
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.data(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
-                                "   data={}, utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
                                 allocation.state,
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.attachments(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
-                                "   file={}, utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
                                 allocation.state,
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
                     }
                     if let Ok(allocations) = contract.rights(owned.name.clone(), &filter) {
                         for allocation in allocations {
-                            let witness = allocation
-                                .witness
-                                .as_ref()
-                                .map(XWitnessId::to_string)
-                                .unwrap_or(s!("~"));
                             println!(
-                                "   utxo={}, witness={} {}",
+                                "    {: >9}\t{}\t{} {}",
+                                "right",
                                 allocation.seal,
-                                witness,
+                                witness(&allocation, &contract),
                                 filter.comment(allocation.seal.to_outpoint())
                             );
                         }
@@ -750,8 +797,7 @@ impl Exec for RgbArgs {
 
                 let contract = builder.issue_contract()?;
                 let id = contract.contract_id();
-                let resolver = self.resolver()?;
-                stock.import_contract(contract, &resolver)?;
+                stock.import_contract(contract, &ContractIssueResolver)?;
                 eprintln!(
                     "A new contract {id} is issued and added to the stash.\nUse `export` command \
                      to export the contract."
@@ -759,12 +805,15 @@ impl Exec for RgbArgs {
             }
             Command::Invoice {
                 address_based,
+                operation,
+                state,
                 contract_id,
                 iface,
-                value,
+                amount,
+                token_index,
+                token_fraction,
             } => {
                 let mut wallet = self.rgb_wallet(&config)?;
-                let iface = TypeName::try_from(iface.to_owned()).expect("invalid interface name");
 
                 let outpoint = wallet
                     .wallet()
@@ -801,11 +850,128 @@ impl Exec for RgbArgs {
                         Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
                     }
                 };
-                let invoice = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
+
+                let iface = match contract_default_iface_name(*contract_id, wallet.stock(), iface)?
+                {
+                    ControlFlow::Continue(name) => wallet.stock().iface(name)?,
+                    ControlFlow::Break(_) => return Ok(()),
+                };
+                let iface_name = &iface.name;
+                let Some(op_name) = operation
+                    .clone()
+                    .map(FieldName::try_from)
+                    .transpose()
+                    .map_err(|e| WalletError::Invoicing(format!("invalid operation name - {e}")))?
+                    .or(iface.default_operation.clone())
+                else {
+                    return Err(WalletError::Invoicing(format!(
+                        "interface {iface_name} doesn't have default operation"
+                    )));
+                };
+                let Some(iface_op) = iface.transitions.get(&op_name) else {
+                    return Err(WalletError::Invoicing(format!(
+                        "interface {iface_name} doesn't have operation {op_name}"
+                    )));
+                };
+                let state_name = state
+                    .clone()
+                    .map(FieldName::try_from)
+                    .transpose()
+                    .map_err(|e| WalletError::Invoicing(format!("invalid state name - {e}")))?
+                    .or_else(|| iface_op.default_assignment.clone())
+                    .ok_or_else(|| {
+                        WalletError::Invoicing(format!(
+                            "interface {iface_name} doesn't have a default state for the \
+                             operation {op_name}"
+                        ))
+                    })?;
+                let Some(assign_iface) = iface.assignments.get(&state_name) else {
+                    return Err(WalletError::Invoicing(format!(
+                        "interface {iface_name} doesn't have state {state_name} in operation \
+                         {op_name}"
+                    )));
+                };
+
+                let mut builder = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
                     .set_contract(*contract_id)
-                    .set_interface(iface)
-                    .set_amount_raw(*value)
-                    .finish();
+                    .set_interface(iface_name.clone());
+
+                if operation.is_some() {
+                    builder = builder.set_operation(op_name);
+                    if let Some(state) = state {
+                        builder = builder.set_operation(fname!(state.clone()));
+                    }
+                }
+
+                match (assign_iface.owned_state, amount, token_index.map(|i| (i, token_fraction))) {
+                    (
+                        OwnedIface::Rights
+                        | OwnedIface::Amount
+                        | OwnedIface::AnyData
+                        | OwnedIface::Data(_),
+                        None,
+                        None,
+                    ) => {
+                        // There is no state which has to be added to the invoice
+                    }
+                    (OwnedIface::Rights, Some(_), None | Some(_))
+                    | (OwnedIface::Rights, None, Some(_)) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} defines a right and it \
+                             can't has a value or a token information"
+                        )));
+                    }
+                    (OwnedIface::Amount, _, Some(_)) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} defines a fungible \
+                             state, while a non-fungible token index is provided for the invoice. \
+                             Please use only --amount argument"
+                        )));
+                    }
+                    (OwnedIface::Amount, Some(amount), None) => {
+                        builder = builder.set_amount_raw(*amount);
+                    }
+                    (OwnedIface::Data(_) | OwnedIface::AnyData, Some(_), _) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} defines a non-fungible \
+                             state, while a fungible amount is provided for the invoice. Please \
+                             use only --token-index and --token-fraction arguments"
+                        )));
+                    }
+                    (OwnedIface::Data(sem_id), None, Some(_))
+                        if sem_id
+                            != rgb_contract_stl()
+                                .types
+                                .get(&tn!("Allocation"))
+                                .expect("STL is broken")
+                                .sem_id_named(&tn!("Allocation")) =>
+                    {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} has a type which can't \
+                             be used with a non-fungible state allocation"
+                        )));
+                    }
+                    (OwnedIface::AnyData | OwnedIface::Data(_), None, Some((index, fraction))) => {
+                        builder = builder.set_allocation_raw(Allocation::with(
+                            index,
+                            fraction.unwrap_or(OwnedFraction::from(0)),
+                        ))
+                    }
+
+                    (OwnedIface::Any, _, _) => {
+                        return Err(WalletError::Invoicing(format!(
+                            "state {state_name} in interface {iface_name} can be of any type; \
+                             adding it to the invoice is impossible"
+                        )));
+                    }
+                    (OwnedIface::AnyAttach, _, _) => {
+                        return Err(WalletError::Invoicing(s!(
+                            "invoicing with attachments is not yet supported"
+                        )));
+                    }
+                }
+
+                let invoice = builder.finish();
                 println!("{invoice}");
             }
             Command::Prepare {
@@ -1109,8 +1275,42 @@ impl Exec for RgbArgs {
                 eprintln!("Transfer accepted into the stash");
             }
         }
-        println!();
-
         Ok(())
     }
+}
+
+fn contract_default_iface_name(
+    contract_id: ContractId,
+    stock: &Stock,
+    iface: &Option<String>,
+) -> Result<ControlFlow<(), TypeName>, StockError> {
+    if let Some(iface) = iface {
+        return Ok(ControlFlow::Continue(tn!(iface.clone())));
+    };
+    let info = stock.contract_info(contract_id)?;
+    let schema = stock.schema(info.schema_id)?;
+    Ok(match schema.iimpls.len() {
+        0 => {
+            eprintln!("contract doesn't implement any interface and thus can't be read");
+            ControlFlow::Break(())
+        }
+        1 => ControlFlow::Continue(
+            schema
+                .iimpls
+                .first_key_value()
+                .expect("one interface is present")
+                .0
+                .clone(),
+        ),
+        _ => {
+            eprintln!(
+                "contract implements multiple interface, please select one of them to read the \
+                 contract:"
+            );
+            for iface in schema.iimpls.keys() {
+                eprintln!("{iface}");
+            }
+            ControlFlow::Break(())
+        }
+    })
 }

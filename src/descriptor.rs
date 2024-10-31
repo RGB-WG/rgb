@@ -30,12 +30,12 @@ use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bp::{LegacyPk, SigScript, Witness};
 use bpstd::{
-    Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Idx, IdxBase, IndexError,
-    IndexParseError, KeyOrigin, Keychain, NormalIndex, TapDerivation, TapScript, TapTree, Terminal,
-    XOnlyPk, XpubAccount, XpubDerivable,
+    Derive, DeriveCompr, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, Idx, IdxBase,
+    IndexError, IndexParseError, KeyOrigin, Keychain, LegacyKeySig, NormalIndex, SpkClass,
+    StdDescr, TapDerivation, TapScript, TapTree, TaprootKeySig, Terminal, TrKey, Wpkh, XOnlyPk,
+    XpubAccount, XpubDerivable,
 };
 use commit_verify::CommitVerify;
-use descriptors::{Descriptor, LegacyKeySig, SpkClass, StdDescr, TaprootKeySig, TrKey, Wpkh};
 use indexmap::IndexMap;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]

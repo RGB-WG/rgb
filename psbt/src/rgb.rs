@@ -25,8 +25,9 @@ use amplify::confinement::{Confined, SmallOrdMap, U24};
 use amplify::{confinement, FromSliceError};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
+use bpstd::psbt;
+use bpstd::psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
-use psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use rgbstd::containers::{BundleDichotomy, VelocityHint};
 use rgbstd::{
     ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
@@ -417,7 +418,11 @@ pub trait RgbOutExt {
 impl RgbOutExt for psbt::Output {
     fn rgb_velocity_hint(&self) -> Option<VelocityHint> {
         let data = self.proprietary.get(&PropKey::rgb_out_velocity_hint())?;
-        if data.len() != 1 { None } else { data.first().map(VelocityHint::with_value) }
+        if data.len() != 1 {
+            None
+        } else {
+            data.first().map(VelocityHint::with_value)
+        }
     }
 
     fn set_rgb_velocity_hint(&mut self, hint: VelocityHint) -> bool {

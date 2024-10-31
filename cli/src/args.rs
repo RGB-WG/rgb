@@ -104,19 +104,27 @@ impl RgbArgs {
         }
 
         let provider = FsBinStore::new(stock_path.clone())?;
-        let mut stock = Stock::load(provider, true).map_err(WalletError::WalletPersist).or_else(|err| {
-            if matches!(err, WalletError::Deserialize(DeserializeError::Decode(DecodeError::Io(ref err))) if err.kind() == ErrorKind::NotFound) {
+        let mut stock = Stock::load(provider, true).or_else(|err| {
+            if err
+                .0
+                .downcast_ref::<DeserializeError>()
+                .map(|e| matches!(e, DeserializeError::Decode(DecodeError::Io(ref e)) if e.kind() == ErrorKind::NotFound))
+                .unwrap_or_default()
+            {
                 if self.verbose > 1 {
                     eprint!("stock file is absent, creating a new one ... ");
                 }
                 fs::create_dir_all(&stock_path)?;
                 let provider = FsBinStore::new(stock_path)?;
                 let mut stock = Stock::in_memory();
-                stock.make_persistent(provider, true).map_err(WalletError::StockPersist)?;
+                stock
+                    .make_persistent(provider, true)
+                    .map_err(WalletError::StockPersist)?;
                 return Ok(stock);
             }
             eprintln!("stock file is damaged, failing");
-            Err(err)
+            error!("Unable to load stock data: {err:?}");
+            Err(WalletError::StockPersist(err))
         })?;
 
         if self.sync {

@@ -19,7 +19,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::marker::PhantomData;
 #[cfg(feature = "fs")]
 use std::path::PathBuf;
@@ -29,41 +28,46 @@ use bpstd::XpubDerivable;
 use bpwallet::fs::FsTextStore;
 #[cfg(feature = "fs")]
 use bpwallet::Wallet;
+use bpwallet::{Layer2, NoLayer2};
 #[cfg(not(target_arch = "wasm32"))]
 use nonasync::persistence::PersistenceProvider;
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
-use rgbstd::interface::{AmountChange, IfaceOp, IfaceRef};
+use rgbstd::interface::{ContractOp, IfaceRef};
 #[cfg(feature = "fs")]
 use rgbstd::persistence::fs::FsBinStore;
 use rgbstd::persistence::{
-    IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider, Stock,
+    ContractIfaceError, IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider,
+    Stock, StockError,
 };
 
 use super::{
-    CompletionError, CompositionError, ContractId, DescriptorRgb, HistoryError, PayError,
-    TransferParams, WalletError, WalletProvider, XWitnessId,
+    CompletionError, CompositionError, ContractId, DescriptorRgb, PayError, TransferParams,
+    WalletError, WalletProvider,
 };
 use crate::invoice::RgbInvoice;
 
 #[derive(Getters)]
 pub struct RgbWallet<
-    W: WalletProvider<K>,
+    W: WalletProvider<K, L2>,
     K = XpubDerivable,
     S: StashProvider = MemStash,
     H: StateProvider = MemState,
     P: IndexProvider = MemIndex,
+    L2: Layer2 = NoLayer2,
 > where W::Descr: DescriptorRgb<K>
 {
     stock: Stock<S, H, P>,
     wallet: W,
     #[getter(skip)]
-    _phantom: PhantomData<K>,
+    _key_phantom: PhantomData<K>,
+    #[getter(skip)]
+    _layer2_phantom: PhantomData<L2>,
 }
 
 #[cfg(feature = "fs")]
-impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
-    RgbWallet<Wallet<K, D>, K, S, H, P>
+impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvider, L2: Layer2>
+    RgbWallet<Wallet<K, D, L2>, K, S, H, P, L2>
 {
     #[allow(clippy::result_large_err)]
     pub fn load(
@@ -73,31 +77,46 @@ impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvide
     ) -> Result<Self, WalletError>
     where
         D: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        L2::Descr: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        L2::Data: serde::Serialize + for<'de> serde::Deserialize<'de>,
+        L2::Cache: serde::Serialize + for<'de> serde::Deserialize<'de>,
         FsBinStore: PersistenceProvider<S>,
         FsBinStore: PersistenceProvider<H>,
         FsBinStore: PersistenceProvider<P>,
+        FsTextStore: PersistenceProvider<L2>,
     {
-        let provider = FsBinStore::new(stock_path)?;
+        use nonasync::persistence::PersistenceError;
+        let provider = FsBinStore::new(stock_path)
+            .map_err(|e| WalletError::StockPersist(PersistenceError::with(e)))?;
         let stock = Stock::load(provider, autosave).map_err(WalletError::StockPersist)?;
-        let provider = FsTextStore::new(wallet_path)?;
+        let provider = FsTextStore::new(wallet_path)
+            .map_err(|e| WalletError::WalletPersist(PersistenceError::with(e)))?;
         let wallet = Wallet::load(provider, autosave).map_err(WalletError::WalletPersist)?;
         Ok(Self {
             wallet,
             stock,
-            _phantom: PhantomData,
+            _key_phantom: PhantomData,
+            _layer2_phantom: PhantomData,
         })
     }
 }
 
-impl<K, W: WalletProvider<K>, S: StashProvider, H: StateProvider, P: IndexProvider>
-    RgbWallet<W, K, S, H, P>
+impl<
+        K,
+        W: WalletProvider<K, L2>,
+        S: StashProvider,
+        H: StateProvider,
+        P: IndexProvider,
+        L2: Layer2,
+    > RgbWallet<W, K, S, H, P, L2>
 where W::Descr: DescriptorRgb<K>
 {
     pub fn new(stock: Stock<S, H, P>, wallet: W) -> Self {
         Self {
             stock,
             wallet,
-            _phantom: PhantomData,
+            _key_phantom: PhantomData,
+            _layer2_phantom: PhantomData,
         }
     }
 
@@ -105,34 +124,14 @@ where W::Descr: DescriptorRgb<K>
 
     pub fn wallet_mut(&mut self) -> &mut W { &mut self.wallet }
 
-    #[allow(clippy::result_large_err)]
-    pub fn fungible_history(
+    pub fn history(
         &self,
         contract_id: ContractId,
         iface: impl Into<IfaceRef>,
-    ) -> Result<HashMap<XWitnessId, IfaceOp<AmountChange>>, WalletError> {
+    ) -> Result<Vec<ContractOp>, StockError<S, H, P, ContractIfaceError>> {
+        let contract = self.stock.contract_iface(contract_id, iface.into())?;
         let wallet = &self.wallet;
-        let iref = iface.into();
-        let iface = self.stock.iface(iref.clone()).map_err(|e| e.to_string())?;
-        let default_op = iface
-            .default_operation
-            .as_ref()
-            .ok_or(HistoryError::NoDefaultOp)?;
-        let state_name = iface
-            .transitions
-            .get(default_op)
-            .ok_or(HistoryError::DefaultOpNotTransition)?
-            .default_assignment
-            .as_ref()
-            .ok_or(HistoryError::NoDefaultAssignment)?
-            .clone();
-        let contract = self
-            .stock
-            .contract_iface(contract_id, iref)
-            .map_err(|e| e.to_string())?;
-        Ok(contract
-            .fungible_ops::<AmountChange>(state_name, wallet.filter())
-            .map_err(|e| e.to_string())?)
+        Ok(contract.history(wallet.filter_outpoints(), wallet.filter_witnesses()))
     }
 
     #[allow(clippy::result_large_err)]

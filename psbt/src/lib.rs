@@ -26,7 +26,7 @@ mod rgb;
 
 use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
-pub use psbt::*;
+pub use bpstd::psbt::*;
 pub use rgb::*;
 use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia, PubWitness, XPubWitness};
 use rgbstd::XChain;
