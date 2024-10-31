@@ -27,10 +27,11 @@ use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
+use bpstd::psbt::{Psbt, PsbtVer};
+use bpstd::seals::SecretSeal;
 use bpstd::{Sats, XpubDerivable};
-use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
-use psbt::{Psbt, PsbtVer};
+use bpwallet::cli::{BpCommand, Config, Exec};
 use rgb::containers::{
     BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
     Supplement, Transfer, UniversalFile,
@@ -51,10 +52,9 @@ use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
 use rgbstd::stl::rgb_contract_stl;
 use rgbstd::{KnownState, OutputAssignment};
-use seals::SecretSeal;
 use serde_crate::{Deserialize, Serialize};
-use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
+use strict_types::encoding::{FieldName, TypeName};
 
 use crate::RgbArgs;
 

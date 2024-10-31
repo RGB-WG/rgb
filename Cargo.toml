@@ -10,7 +10,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-beta.8"
+version = "0.11.0-beta.9"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -25,18 +25,15 @@ amplify = "4.7.0"
 nonasync = { version = "0.1.2", features = ["log"] }
 baid64 = "0.2.2"
 strict_encoding = "2.7.0"
-strict_types = "2.7.0"
-commit_verify = "0.11.0-beta.8"
-bp-core = "0.11.0-beta.8"
-bp-seals = "0.11.0-beta.8"
-bp-std = "0.11.0-beta.8"
-bp-electrum = "0.11.0-beta.8.1"
-bp-esplora = { version = "0.11.0-beta.8", default-features = false }
-descriptors = "0.11.0-beta.8"
-psbt = { version = "0.11.0-beta.8", features = ["client-side-validation"] }
-bp-wallet = { version = "0.11.0-beta.8" }
-rgb-std = { version = "0.11.0-beta.8" }
-rgb-psbt = { version = "0.11.0-beta.8", path = "psbt" }
+strict_types = "2.7.2"
+commit_verify = "0.11.0-beta.9"
+bp-core = "0.11.0-beta.9"
+bp-std = { version = "0.11.0-beta.9", features = ["client-side-validation"] }
+bp-electrum = "0.11.0-beta.9"
+bp-esplora = { version = "0.11.0-beta.9", default-features = false }
+bp-wallet = { version = "0.11.0-beta.9" }
+rgb-std = { version = "0.11.0-beta.9" }
+rgb-psbt = { version = "0.11.0-beta.9", path = "psbt" }
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -71,7 +68,6 @@ strict_types = { workspace = true }
 bp-core = { workspace = true }
 bp-std = { workspace = true }
 bp-esplora = { workspace = true, optional = true }
-descriptors = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true }
 rgb-psbt = { workspace = true }
@@ -98,23 +94,12 @@ esplora_blocking = ["bp-esplora", "bp-esplora/blocking"]
 esplora_blocking-wasm = ["bp-esplora", "bp-esplora/blocking-wasm"]
 electrum_blocking = ["bp-electrum"]
 mempool_blocking = ["esplora_blocking"]
-serde = ["serde_crate", "serde_yaml", "bp-std/serde", "descriptors/serde", "rgb-psbt/serde"]
+serde = ["serde_crate", "serde_yaml", "bp-std/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = ["all"]
 
 [patch.crates-io]
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
-bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
-bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "develop" }
-bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "develop" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "develop" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "master" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "master" }

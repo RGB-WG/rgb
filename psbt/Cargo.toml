@@ -23,7 +23,6 @@ commit_verify = { workspace = true }
 strict_encoding = { workspace = true }
 bp-core = { workspace = true }
 bp-std = { workspace = true }
-psbt = { workspace = true }
 rgb-std = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -37,7 +36,7 @@ wasm-bindgen-test = "0.3"
 [features]
 default = []
 all = ["serde"]
-serde = ["bp-core/serde", "bp-std/serde", "psbt/serde", "rgb-std/serde"]
+serde = ["bp-core/serde", "bp-std/serde", "rgb-std/serde"]
 
 [package.metadata.docs.rs]
 features = ["all"]

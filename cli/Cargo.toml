@@ -21,10 +21,8 @@ amplify = { workspace = true }
 baid64 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
 commit_verify = { workspace = true }
-bp-seals = { workspace = true }
 bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true, features = ["cli"] }
-psbt = { workspace = true }
 rgb-std = { workspace = true, features = ["serde"] }
 rgb-runtime = { version = "0.11.0-beta.8", path = "..", features = ["electrum_blocking", "esplora_blocking", "mempool_blocking", "log", "serde", "fs", "cli"] }
 log = { workspace = true }

@@ -22,11 +22,12 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use amplify::confinement::{Confined, SmallOrdMap, U24};
-use amplify::{confinement, FromSliceError};
+use amplify::{FromSliceError, confinement};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
+use bpstd::psbt;
+use bpstd::psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
-use psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use rgbstd::containers::{BundleDichotomy, VelocityHint};
 use rgbstd::{
     ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
