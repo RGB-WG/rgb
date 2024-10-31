@@ -30,8 +30,8 @@ use baid64::DisplayBaid64;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
 use bpstd::{Sats, XpubDerivable};
-use bpwallet::Wallet;
 use bpwallet::cli::{BpCommand, Config, Exec};
+use bpwallet::Wallet;
 use rgb::containers::{
     BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
     Supplement, Transfer, UniversalFile,
@@ -53,8 +53,8 @@ use rgbstd::persistence::{MemContractState, StockError};
 use rgbstd::stl::rgb_contract_stl;
 use rgbstd::{KnownState, OutputAssignment};
 use serde_crate::{Deserialize, Serialize};
-use strict_types::StrictVal;
 use strict_types::encoding::{FieldName, TypeName};
+use strict_types::StrictVal;
 
 use crate::RgbArgs;
 

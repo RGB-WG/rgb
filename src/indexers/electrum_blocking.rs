@@ -95,21 +95,17 @@ impl RgbResolver for Client {
         let Some(confirmations) = tx_details.get("confirmations") else {
             return Ok(WitnessOrd::Tentative);
         };
-        let confirmations = check!(
-            confirmations
-                .as_u64()
-                .and_then(|x| u32::try_from(x).ok())
-                .ok_or(Error::InvalidResponse(tx_details.clone()))
-        );
+        let confirmations = check!(confirmations
+            .as_u64()
+            .and_then(|x| u32::try_from(x).ok())
+            .ok_or(Error::InvalidResponse(tx_details.clone())));
         if confirmations == 0 {
             return Ok(WitnessOrd::Tentative);
         }
-        let block_time = check!(
-            tx_details
-                .get("blocktime")
-                .and_then(|v| v.as_i64())
-                .ok_or(Error::InvalidResponse(tx_details.clone()))
-        );
+        let block_time = check!(tx_details
+            .get("blocktime")
+            .and_then(|v| v.as_i64())
+            .ok_or(Error::InvalidResponse(tx_details.clone())));
 
         let tip_height = u32::try_from(header.height).map_err(|_| s!("impossible height value"))?;
         let height: isize = (tip_height - confirmations) as isize;
@@ -127,10 +123,8 @@ impl RgbResolver for Client {
 
         let height =
             check!(NonZeroU32::new(tx_height).ok_or(Error::InvalidResponse(tx_details.clone())));
-        let pos = check!(
-            WitnessPos::bitcoin(height, block_time)
-                .ok_or(Error::InvalidResponse(tx_details.clone()))
-        );
+        let pos = check!(WitnessPos::bitcoin(height, block_time)
+            .ok_or(Error::InvalidResponse(tx_details.clone())));
 
         Ok(WitnessOrd::Mined(pos))
     }

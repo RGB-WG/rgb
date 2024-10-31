@@ -25,8 +25,8 @@ use std::iter;
 use std::str::FromStr;
 
 use amplify::Wrapper;
-use bp::dbc::Method;
 use bp::dbc::tapret::TapretCommitment;
+use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bp::{LegacyPk, SigScript, Witness};
 use bpstd::{

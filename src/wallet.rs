@@ -101,8 +101,14 @@ impl<K, D: DescriptorRgb<K>, S: StashProvider, H: StateProvider, P: IndexProvide
     }
 }
 
-impl<K, W: WalletProvider<K, L2>, S: StashProvider, H: StateProvider, P: IndexProvider, L2: Layer2>
-    RgbWallet<W, K, S, H, P, L2>
+impl<
+        K,
+        W: WalletProvider<K, L2>,
+        S: StashProvider,
+        H: StateProvider,
+        P: IndexProvider,
+        L2: Layer2,
+    > RgbWallet<W, K, S, H, P, L2>
 where W::Descr: DescriptorRgb<K>
 {
     pub fn new(stock: Stock<S, H, P>, wallet: W) -> Self {

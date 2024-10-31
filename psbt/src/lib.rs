@@ -28,12 +28,12 @@ use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
 pub use bpstd::psbt::*;
 pub use rgb::*;
-use rgbstd::XChain;
 use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia, PubWitness, XPubWitness};
+use rgbstd::XChain;
 
 pub use self::rgb::{
-    PSBT_GLOBAL_RGB_TRANSITION, PSBT_IN_RGB_CONSUMED_BY, PSBT_OUT_RGB_VELOCITY_HINT,
-    PSBT_RGB_PREFIX, ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError,
+    ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
+    PSBT_IN_RGB_CONSUMED_BY, PSBT_OUT_RGB_VELOCITY_HINT, PSBT_RGB_PREFIX,
 };
 
 #[derive(Clone, Eq, PartialEq, Debug, Display, Error)]
