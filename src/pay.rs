@@ -23,7 +23,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 
 use bp::dbc::tapret::TapretProof;
-use bp::seals::txout::ExplicitSeal;
+use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::{Outpoint, Sats, ScriptPubkey, Vout};
 use bpstd::{psbt, Address};
 use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
@@ -139,7 +139,24 @@ where Self::Descr: DescriptorRgb<K>
         mut params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
-        let method = self.descriptor().seal_close_method();
+        let contract_close_method = stock
+            .as_stash_provider()
+            .genesis(contract_id)
+            .map_err(|e| e.to_string())?
+            .close_method;
+        match (self.descriptor().close_method(), contract_close_method) {
+            (CloseMethod::OpretFirst, CloseMethod::TapretFirst) => {
+                return Err(CompositionError::WalletUnsupportsCloseMethod(contract_close_method));
+            }
+            (CloseMethod::OpretFirst, CloseMethod::OpretFirst) => {}
+            (CloseMethod::TapretFirst, CloseMethod::TapretFirst) => {}
+            (CloseMethod::TapretFirst, CloseMethod::OpretFirst) => {}
+        }
+        if !invoice.close_methods.is_empty()
+            && !invoice.close_methods.contains(&contract_close_method)
+        {
+            return Err(CompositionError::InvoiceUnsupportsCloseMethod(contract_close_method));
+        }
 
         let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
         let iface = stock.iface(iface_name.clone()).map_err(|e| e.to_string())?;
@@ -216,9 +233,9 @@ where Self::Descr: DescriptorRgb<K>
         };
         let beneficiaries = match invoice.beneficiary.into_inner() {
             Beneficiary::BlindedSeal(_) => vec![],
-            Beneficiary::WitnessVout(pay2vout) => {
+            Beneficiary::WitnessVout(address_payload) => {
                 vec![BpBeneficiary::new(
-                    Address::new(pay2vout.address, invoice.address_network()),
+                    Address::new(address_payload, invoice.address_network()),
                     params.min_amount,
                 )]
             }
@@ -231,13 +248,14 @@ where Self::Descr: DescriptorRgb<K>
             // TODO: Support liquid
             .map(|o| o.as_reduced_unsafe())
             .map(|o| Outpoint::new(o.txid, o.vout));
-        params.tx.change_keychain = RgbKeychain::for_method(method).into();
+        params.tx.change_keychain =
+            RgbKeychain::for_method(self.descriptor().close_method()).into();
         let (mut psbt, mut meta) =
             self.construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
         let beneficiary_script =
-            if let Beneficiary::WitnessVout(pay2vout) = invoice.beneficiary.into_inner() {
-                Some(pay2vout.address.script_pubkey())
+            if let Beneficiary::WitnessVout(address_payload) = invoice.beneficiary.into_inner() {
+                Some(address_payload.script_pubkey())
             } else {
                 None
             };
@@ -262,8 +280,8 @@ where Self::Descr: DescriptorRgb<K>
         }
 
         let beneficiary_vout = match invoice.beneficiary.into_inner() {
-            Beneficiary::WitnessVout(pay2vout) => {
-                let s = pay2vout.address.script_pubkey();
+            Beneficiary::WitnessVout(address_payload) => {
+                let s = address_payload.script_pubkey();
                 let vout = psbt
                     .outputs()
                     .find(|output| output.script == s)
@@ -275,7 +293,7 @@ where Self::Descr: DescriptorRgb<K>
             Beneficiary::BlindedSeal(_) => None,
         };
         let batch = stock
-            .compose(invoice, prev_outputs, method, beneficiary_vout, |_, _, _| meta.change_vout)
+            .compose(invoice, prev_outputs, beneficiary_vout, |_, _, _| meta.change_vout)
             .map_err(|e| e.to_string())?;
 
         let methods = batch.close_method_set();
@@ -297,6 +315,24 @@ where Self::Descr: DescriptorRgb<K>
         psbt: &mut Psbt,
     ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
+        let contract_close_method = stock
+            .as_stash_provider()
+            .genesis(contract_id)
+            .map_err(|e| e.to_string())?
+            .close_method;
+        match (self.descriptor().close_method(), contract_close_method) {
+            (CloseMethod::OpretFirst, CloseMethod::TapretFirst) => {
+                return Err(CompletionError::WalletUnsupportsCloseMethod(contract_close_method));
+            }
+            (CloseMethod::OpretFirst, CloseMethod::OpretFirst) => {}
+            (CloseMethod::TapretFirst, CloseMethod::TapretFirst) => {}
+            (CloseMethod::TapretFirst, CloseMethod::OpretFirst) => {}
+        }
+        if !invoice.close_methods.is_empty()
+            && !invoice.close_methods.contains(&contract_close_method)
+        {
+            return Err(CompletionError::InvoiceUnsupportsCloseMethod(contract_close_method));
+        }
 
         let fascia = psbt.rgb_commit()?;
         if fascia.anchor.has_tapret() {
@@ -314,17 +350,14 @@ where Self::Descr: DescriptorRgb<K>
 
         let witness_txid = psbt.txid();
         let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
-            Beneficiary::WitnessVout(pay2vout) => {
-                let s = pay2vout.address.script_pubkey();
+            Beneficiary::WitnessVout(address_payload) => {
+                let s = address_payload.script_pubkey();
                 let vout = psbt
                     .outputs()
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let seal = XChain::Bitcoin(ExplicitSeal::new(
-                    pay2vout.method,
-                    Outpoint::new(witness_txid, vout),
-                ));
+                let seal = XChain::Bitcoin(ExplicitSeal::new(Outpoint::new(witness_txid, vout)));
                 (None, vec![seal])
             }
             Beneficiary::BlindedSeal(seal) => (Some(XChain::Bitcoin(seal)), vec![]),

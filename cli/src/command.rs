@@ -27,6 +27,7 @@ use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
+use bp::seals::txout::CloseMethod;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
 use bpstd::{Sats, XpubDerivable};
@@ -37,7 +38,7 @@ use rgb::containers::{
     Supplement, Transfer, UniversalFile,
 };
 use rgb::interface::{AssignmentsFilter, ContractOp, IfaceId};
-use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
+use rgb::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::{MemContract, StashReadProvider, Stock};
 use rgb::resolvers::ContractIssueResolver;
 use rgb::schema::SchemaId;
@@ -51,7 +52,7 @@ use rgb::{
 use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
 use rgbstd::stl::rgb_contract_stl;
-use rgbstd::{KnownState, OutputAssignment};
+use rgbstd::{KnownState, Layer1, OutputAssignment};
 use serde_crate::{Deserialize, Serialize};
 use strict_types::encoding::{FieldName, TypeName};
 use strict_types::StrictVal;
@@ -154,6 +155,9 @@ pub enum Command {
     Issue {
         /// Schema name to use for the contract
         schema: SchemaId, //String,
+
+        /// Contract close method
+        close_method: Option<CloseMethod>,
 
         /// Issuer identity string
         issuer: Identity,
@@ -670,10 +674,12 @@ impl Exec for RgbArgs {
             }
             Command::Issue {
                 schema: schema_id,
+                close_method,
                 issuer,
                 contract,
             } => {
                 let mut stock = self.rgb_stock()?;
+                let wallet = self.rgb_wallet(&config)?;
 
                 let file = fs::File::open(contract)?;
 
@@ -704,7 +710,25 @@ impl Exec for RgbArgs {
                     ))
                 })?;
 
-                let mut builder = stock.contract_builder(issuer.clone(), *schema_id, iface_id)?;
+                let wallet_close_method = wallet.wallet().close_method();
+                let contract_close_method = close_method.unwrap_or(wallet_close_method);
+                match (wallet_close_method, contract_close_method) {
+                    (CloseMethod::OpretFirst, CloseMethod::TapretFirst) => {
+                        return Err(WalletError::Custom(s!(
+                            "an opret wallet cannot issue a tapret contract"
+                        )));
+                    }
+                    (CloseMethod::OpretFirst, CloseMethod::OpretFirst) => {}
+                    (CloseMethod::TapretFirst, CloseMethod::TapretFirst) => {}
+                    (CloseMethod::TapretFirst, CloseMethod::OpretFirst) => {}
+                }
+                let mut builder = stock.contract_builder(
+                    contract_close_method,
+                    issuer.clone(),
+                    *schema_id,
+                    iface_id,
+                    Layer1::Bitcoin,
+                )?;
                 let types = builder.type_system().clone();
 
                 if let Some(globals) = code.get("globals") {
@@ -772,7 +796,7 @@ impl Exec for RgbArgs {
                             .as_str()
                             .expect("seal must be a string");
                         let seal = OutputSeal::from_str(seal).expect("invalid seal definition");
-                        let seal = GenesisSeal::new_random(seal.method, seal.txid, seal.vout);
+                        let seal = GenesisSeal::new_random(seal.txid, seal.vout);
 
                         // Workaround for borrow checker:
                         let field_name =
@@ -836,17 +860,11 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessVout(Pay2Vout {
-                            address: addr.payload,
-                            method: wallet.wallet().seal_close_method(),
-                        })
+                        Beneficiary::WitnessVout(addr.payload)
                     }
                     (_, Some(outpoint)) => {
-                        let seal = XChain::Bitcoin(GraphSeal::new_random(
-                            wallet.wallet().seal_close_method(),
-                            outpoint.txid,
-                            outpoint.vout,
-                        ));
+                        let seal =
+                            XChain::Bitcoin(GraphSeal::new_random(outpoint.txid, outpoint.vout));
                         wallet.stock_mut().store_secret_seal(seal)?;
                         Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
                     }
@@ -896,6 +914,10 @@ impl Exec for RgbArgs {
                 let mut builder = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
                     .set_contract(*contract_id)
                     .set_interface(iface_name.clone());
+
+                if wallet.wallet().close_method() == CloseMethod::OpretFirst {
+                    builder = builder.set_close_methods(vec![CloseMethod::OpretFirst]);
+                }
 
                 if operation.is_some() {
                     builder = builder.set_operation(op_name);

@@ -21,6 +21,7 @@ amplify = { workspace = true }
 baid64 = { workspace = true }
 strict_types = { workspace = true, features = ["serde"] }
 commit_verify = { workspace = true }
+bp-core = { workspace = true }
 bp-std = { workspace = true, features = ["serde"] }
 bp-wallet = { workspace = true, features = ["cli"] }
 rgb-std = { workspace = true, features = ["serde"] }

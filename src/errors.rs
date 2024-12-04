@@ -25,6 +25,7 @@ use std::convert::Infallible;
 use std::io;
 
 use amplify::IoError;
+use bp::seals::txout::CloseMethod;
 use bpstd::Psbt;
 use nonasync::persistence::PersistenceError;
 use psrgbt::{CommitError, ConstructionError, EmbedError, TapretKeyError};
@@ -146,6 +147,12 @@ pub enum CompositionError {
     /// the invoice has expired.
     InvoiceExpired,
 
+    /// the invoice doesn't support the contract close method {0}
+    InvoiceUnsupportsCloseMethod(CloseMethod),
+
+    /// the wallet descriptor doesn't support the contract close method {0}
+    WalletUnsupportsCloseMethod(CloseMethod),
+
     /// one of the RGB assignments spent require presence of tapret output -
     /// even this is not a taproot wallet. Unable to create a valid PSBT, manual
     /// work is needed.
@@ -185,6 +192,12 @@ pub enum CompletionError {
 
     /// the provided PSBT has conflicting descriptor in the taptweak output.
     InconclusiveDerivation,
+
+    /// the invoice doesn't support the contract close method {0}
+    InvoiceUnsupportsCloseMethod(CloseMethod),
+
+    /// the wallet descriptor doesn't support the contract close method {0}
+    WalletUnsupportsCloseMethod(CloseMethod),
 
     #[from]
     #[display(inner)]

@@ -99,7 +99,6 @@ impl RgbPsbt for Psbt {
         // DBC commitment for the required methods
         let methods = bundles
             .values()
-            .flat_map(|b| b.iter())
             .map(|b| CloseMethodSet::from(b.close_method))
             .reduce(|methods, method| methods | method)
             .ok_or(RgbPsbtError::NoContracts)?;

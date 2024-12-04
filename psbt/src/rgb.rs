@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 use amplify::confinement::{Confined, SmallOrdMap, U24};
 use amplify::{confinement, FromSliceError};
@@ -28,7 +28,7 @@ use bp::seals::txout::CloseMethod;
 use bpstd::psbt;
 use bpstd::psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
-use rgbstd::containers::{BundleDichotomy, VelocityHint};
+use rgbstd::containers::VelocityHint;
 use rgbstd::{
     ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
     TransitionBundle, Vin,
@@ -111,6 +111,9 @@ pub enum RgbPsbtError {
     /// PSBT contains no contract information
     NoContracts,
 
+    /// PSBT contains no contract consumers information
+    NoContractConsumers,
+
     /// contract {0} listed in the PSBT has zero known transition information.
     NoTransitions(ContractId),
 
@@ -168,51 +171,45 @@ pub trait RgbExt {
         method: CloseMethod,
     ) -> Result<bool, RgbPsbtError>;
 
-    fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, BundleDichotomy>, RgbPsbtError> {
+    fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, TransitionBundle>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map = HashMap::<CloseMethod, SmallOrdMap<Vin, OpId>>::new();
-            let mut known_transitions =
-                HashMap::<CloseMethod, SmallOrdMap<OpId, Transition>>::new();
-            for (opid, vin) in self.rgb_contract_consumers(contract_id)? {
+            let mut contract_method = None;
+            let mut input_map: SmallOrdMap<Vin, OpId> = SmallOrdMap::new();
+            let mut known_transitions: SmallOrdMap<OpId, Transition> = SmallOrdMap::new();
+            let contract_consumers = self.rgb_contract_consumers(contract_id)?;
+            if contract_consumers.is_empty() {
+                return Err(RgbPsbtError::NoContractConsumers);
+            }
+            for (opid, vin) in contract_consumers {
                 let (transition, method) = (
                     self.rgb_transition(opid)?,
                     self.rgb_close_method(opid)?
                         .ok_or(RgbPsbtError::NoCloseMethod(opid))?,
                 );
-                input_map.entry(method).or_default().insert(vin, opid)?;
+                contract_method = Some(method);
+                input_map.insert(vin, opid)?;
                 if let Some(transition) = transition {
-                    known_transitions
-                        .entry(method)
-                        .or_default()
-                        .insert(opid, transition)?;
+                    known_transitions.insert(opid, transition)?;
                 }
             }
-            let mut bundles = vec![];
-            for (method, input_map) in input_map {
-                let known_transitions = known_transitions.remove(&method).unwrap_or_default();
-                bundles.push(TransitionBundle {
-                    close_method: method,
-                    input_map: InputMap::from(
-                        Confined::try_from(input_map.release())
-                            .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
-                    ),
-                    known_transitions: Confined::try_from(known_transitions.release())
+            let bundle = TransitionBundle {
+                close_method: contract_method.unwrap(),
+                input_map: InputMap::from(
+                    Confined::try_from(input_map.release())
                         .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
-                });
-            }
-            let mut bundles = bundles.into_iter();
-            let first = bundles
-                .next()
-                .ok_or(RgbPsbtError::NoTransitions(contract_id))?;
-            map.insert(contract_id, BundleDichotomy::with(first, bundles.next()));
+                ),
+                known_transitions: Confined::try_from(known_transitions.release())
+                    .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
+            };
+            map.insert(contract_id, bundle);
         }
         Ok(map)
     }
 
     fn rgb_bundles_to_mpc(
         &mut self,
-    ) -> Result<Confined<BTreeMap<ContractId, BundleDichotomy>, 1, U24>, RgbPsbtError>;
+    ) -> Result<Confined<BTreeMap<ContractId, TransitionBundle>, 1, U24>, RgbPsbtError>;
 }
 
 impl RgbExt for Psbt {
@@ -306,13 +303,10 @@ impl RgbExt for Psbt {
 
     fn rgb_bundles_to_mpc(
         &mut self,
-    ) -> Result<Confined<BTreeMap<ContractId, BundleDichotomy>, 1, U24>, RgbPsbtError> {
+    ) -> Result<Confined<BTreeMap<ContractId, TransitionBundle>, 1, U24>, RgbPsbtError> {
         let bundles = self.rgb_bundles()?;
 
-        for (contract_id, bundle) in bundles
-            .iter()
-            .flat_map(|(id, b)| b.iter().map(move |b| (id, b)))
-        {
+        for (contract_id, bundle) in &bundles {
             let protocol_id = mpc::ProtocolId::from(*contract_id);
             let message = mpc::Message::from(bundle.bundle_id());
             if bundle.close_method == CloseMethod::TapretFirst {

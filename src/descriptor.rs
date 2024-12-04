@@ -43,7 +43,7 @@ use indexmap::IndexMap;
 pub struct TapTweakAlreadyAssigned(pub Terminal);
 
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
-    fn seal_close_method(&self) -> CloseMethod;
+    fn close_method(&self) -> CloseMethod;
     fn add_tapret_tweak(
         &mut self,
         terminal: Terminal,
@@ -227,7 +227,7 @@ impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
 }
 
 impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
-    fn seal_close_method(&self) -> CloseMethod { CloseMethod::TapretFirst }
+    fn close_method(&self) -> CloseMethod { CloseMethod::TapretFirst }
 
     fn add_tapret_tweak(
         &mut self,
@@ -368,10 +368,10 @@ impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> DescriptorR
     for RgbDescr<K>
 where Self: Derive<DerivedScript>
 {
-    fn seal_close_method(&self) -> CloseMethod {
+    fn close_method(&self) -> CloseMethod {
         match self {
             RgbDescr::Wpkh(_) => CloseMethod::OpretFirst,
-            RgbDescr::TapretKey(d) => d.seal_close_method(),
+            RgbDescr::TapretKey(d) => d.close_method(),
         }
     }
 

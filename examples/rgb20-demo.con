@@ -29,6 +29,5 @@ contract Test: NonInflatableAsset
     owned assetOwner
         state = 1_000_000__000_000_00
         seal =
-            method := tapret1st
             txid = #01d46e52c4bdb51931a0eae83e958c78bdef9cac2057b36d55370410edafdd42
             vout = 0
