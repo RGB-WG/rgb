@@ -1,4 +1,4 @@
-// Standard Library for RGB smart contracts
+// Wallet Library for RGB smart contracts
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -22,12 +22,16 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate clap;
+use std::collections::BTreeMap;
 
-mod cmd;
+use hypersonic::ContractId;
 
-use clap::Parser;
-use cmd::Cmd;
+use crate::Coffer;
 
-fn main() -> anyhow::Result<()> { Cmd::parse().exec() }
+pub struct Barrow(BTreeMap<ContractId, Coffer>);
+
+mod _fs {
+    use super::*;
+
+    impl Barrow {}
+}
