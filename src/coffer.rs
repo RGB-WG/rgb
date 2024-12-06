@@ -1,4 +1,4 @@
-// Standard Library for RGB smart contracts
+// Wallet Library for RGB smart contracts
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -22,12 +22,26 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate clap;
+use bp::dbc::opret::OpretProof;
+use bp::dbc::tapret::TapretProof;
+use bp::seals::TxoSeal;
+use rgbstd::{FilePile, Stockpile};
 
-mod cmd;
+pub type OpretSeal = TxoSeal<OpretProof>;
+pub type TapretSeal = TxoSeal<TapretProof>;
 
-use clap::Parser;
-use cmd::Cmd;
+pub type OpretStockpile = Stockpile<OpretSeal, FilePile<OpretSeal>, FilePersistence>;
+pub type TapretStockpile = Stockpile<TapretSeal, FilePile<TapretSeal>, FilePersistence>;
 
-fn main() -> anyhow::Result<()> { Cmd::parse().exec() }
+pub enum Coffer {
+    Opret(OpretStockpile),
+    Tapret(TapretStockpile),
+}
+
+impl Coffer {}
+
+mod _fs {
+    use super::*;
+
+    impl Coffer {}
+}

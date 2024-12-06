@@ -1,4 +1,4 @@
-// Standard Library for RGB smart contracts
+// Wallet Library for RGB smart contracts
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -22,12 +22,21 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate clap;
+use bp::dbc::opret::OpretProof;
+use bp::dbc::tapret::TapretProof;
+use bp::seals::TxoSeal;
+use hypersonic::Persistence;
+use rgbstd::{Mound, Pile};
 
-mod cmd;
+pub type OpretSeal = TxoSeal<OpretProof>;
+pub type TapretSeal = TxoSeal<TapretProof>;
 
-use clap::Parser;
-use cmd::Cmd;
+pub struct Barrow<P: Pile, S: Persistence> {
+    pub tapret: Mound<TapretSeal, P<Seal = OpretSeal>, S>,
+}
 
-fn main() -> anyhow::Result<()> { Cmd::parse().exec() }
+mod _fs {
+    use super::*;
+
+    impl<P: Pile, S: Persistence> Barrow<P, S> {}
+}
