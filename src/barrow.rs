@@ -22,16 +22,21 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::collections::BTreeMap;
+use bp::dbc::opret::OpretProof;
+use bp::dbc::tapret::TapretProof;
+use bp::seals::TxoSeal;
+use hypersonic::Persistence;
+use rgbstd::{Mound, Pile};
 
-use hypersonic::ContractId;
+pub type OpretSeal = TxoSeal<OpretProof>;
+pub type TapretSeal = TxoSeal<TapretProof>;
 
-use crate::Coffer;
-
-pub struct Barrow(BTreeMap<ContractId, Coffer>);
+pub struct Barrow<P: Pile, S: Persistence> {
+    pub tapret: Mound<TapretSeal, P<Seal = OpretSeal>, S>,
+}
 
 mod _fs {
     use super::*;
 
-    impl Barrow {}
+    impl<P: Pile, S: Persistence> Barrow<P, S> {}
 }

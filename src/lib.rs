@@ -22,8 +22,8 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-mod omnistore;
+mod coffer;
 mod barrow;
 
 pub use barrow::Barrow;
-pub use omnistore::Coffer;
+pub use coffer::Coffer;
