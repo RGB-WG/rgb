@@ -20,25 +20,21 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.8.0"
-nonasync = { version = "0.1.2", features = ["log"] }
-baid64 = "0.4.1"
 strict_encoding = "2.8.1"
-strict_types = "2.8.1"
-commit_verify = "0.12.0-beta.1"
 hypersonic = "0.12.0-beta.1"
-bp-core = "0.12.0-beta.2"
-# bp-std = { version = "0.11.0-beta.9", features = ["client-side-validation"] }
+bp-std = { version = "0.12.0-alpha.1", features = ["client-side-validation"] }
 # bp-electrum = "0.11.0-beta.9"
 # bp-esplora = { version = "0.11.0-beta.9", default-features = false }
-# bp-wallet = { version = "0.11.0-beta.9" }
+# bp-wallet = { version = "0.12.0-alpha.1" }
 rgb-std = { version = "0.12.0-alpha.1" }
 # rgb-psbt = { version = "0.11.0-beta.9", path = "psbt" }
+indexmap = "2.7.0"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 
 [package]
-name = "rgb-runtime"
+name = "rgb-bp"
 version.workspace = true
 description = "RGB smart contracts wallet runtime"
 keywords.workspace = true
@@ -52,23 +48,19 @@ edition.workspace = true
 license.workspace = true
 
 [lib]
-name = "rgb"
+name = "rgbp"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amplify = { workspace = true }
-nonasync = { workspace = true }
-baid64 = { workspace = true }
-commit_verify = { workspace = true }
-strict_types = { workspace = true }
 hypersonic = { workspace = true }
-bp-core = { workspace = true }
-#bp-std = { workspace = true }
+bp-std = { workspace = true }
 #bp-electrum = { workspace = true, optional = true }
 #bp-esplora = { workspace = true, optional = true }
 #bp-wallet = { workspace = true }
-rgb-std = { workspace = true }
+rgb-std = { workspace = true, features = ["bitcoin"] }
 #rgb-psbt = { workspace = true }
+indexmap = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
@@ -82,13 +74,16 @@ getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-test = "0.3"
 
 [features]
-default = []
+default = ["std"]
 all = [
+    "std",
     #"esplora_blocking", "electrum_blocking", "mempool_blocking",
     "serde", "log", "fs",
     #"cli"
 ]
+std = []
 fs = [
+    "std",
     "serde",
     "rgb-std/fs",
     #"bp-wallet/fs",
@@ -107,4 +102,12 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic" }
+hypersonic = { git = "https://github.com/AluVM/sonic" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
 rgb-std = { path = "../rgb-std" }

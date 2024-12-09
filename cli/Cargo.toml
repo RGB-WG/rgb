@@ -1,5 +1,5 @@
 [package]
-name = "rgbx"
+name = "rgb-wallet"
 version.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -14,7 +14,7 @@ rust-version.workspace = true
 amplify.workspace = true
 strict_encoding.workspace = true
 hypersonic = { workspace = true, features = ["persist-file"] }
-bp-core.workspace = true
+bp-std.workspace = true
 rgb-std = { workspace = true, features = ["fs"] }
 serde.workspace = true
 serde_yaml = "0.9.34"

@@ -25,26 +25,28 @@
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use hypersonic::{
-    Articles, AuthToken, CallParams, ContractId, IssueParams, Private, Schema, Stock,
-};
+use clap::ValueHint;
+use hypersonic::{Articles, AuthToken, CallParams, ContractId, Stock};
+use rgb::popls::bp::file::{DirBarrow, DirMound};
+use rgb::SealType;
 use strict_encoding::{StreamReader, StreamWriter, StrictDecode, StrictReader, StrictWriter};
 
-pub const WALLET_ENV: &str = "RGB_WALLET";
+pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
+pub const RGB_SEAL_ENV: &str = "RGB_SEAL";
 
-pub const DATA_DIR_ENV: &str = "RGB_DATA_DIR";
+pub const RGB_DATA_DIR_ENV: &str = "RGB_DATA_DIR";
 #[cfg(target_os = "linux")]
-pub const DATA_DIR: &str = "~/.rgb";
+pub const RGB_DATA_DIR: &str = "~/.rgb";
 #[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
-pub const DATA_DIR: &str = "~/.rgb";
+pub const RGB_DATA_DIR: &str = "~/.rgb";
 #[cfg(target_os = "macos")]
-pub const DATA_DIR: &str = "~/Library/Application Support/RGB Smart Contracts";
+pub const RGB_DATA_DIR: &str = "~/Library/Application Support/RGB Smart Contracts";
 #[cfg(target_os = "windows")]
-pub const DATA_DIR: &str = "~\\AppData\\Local\\RGB Smart Contracts";
+pub const RGB_DATA_DIR: &str = "~\\AppData\\Local\\RGB Smart Contracts";
 #[cfg(target_os = "ios")]
-pub const DATA_DIR: &str = "~/Documents";
+pub const RGB_DATA_DIR: &str = "~/Documents";
 #[cfg(target_os = "android")]
-pub const DATA_DIR: &str = ".";
+pub const RGB_DATA_DIR: &str = ".";
 
 #[derive(Parser)]
 pub struct Args {
@@ -53,19 +55,14 @@ pub struct Args {
         short,
         long,
         global = true,
-        default_value = DATA_DIR,
-        env = DATA_DIR_ENV,
+        default_value = RGB_DATA_DIR,
+        env = RGB_DATA_DIR_ENV,
         value_hint = ValueHint::DirPath
     )]
     pub data_dir: PathBuf,
 
-    #[clap(
-        short,
-        long,
-        global = true,
-        env = WALLET_ENV
-    )]
-    pub wallet: Option<String>,
+    #[clap(short, long, global = true, default_value = "bctr", env = "RGB_SEAL_ENV", value_hint = [])]
+    pub seal: SealType,
 
     /// Command to execute
     #[clap(subcommand)]
@@ -97,11 +94,15 @@ pub enum Cmd {
     },
 
     /// Create a new wallet
-    Create { descriptor: String },
+    Create { name: String, descriptor: String },
 
     /// Print out a contract state
     #[clap(alias = "s")]
     State {
+        /// Wallet to use
+        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+
         /// Present all the state, not just the one owned by the wallet
         #[clap(short, long, global = true)]
         all: bool,
@@ -110,9 +111,13 @@ pub enum Cmd {
         contract: ContractId,
     },
 
-    /// Make a contract call
+    /// Execute a script
     #[clap(aliases = ["e", "exec"])]
     Execute {
+        /// Wallet to use
+        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+
         /// YAML file with a script to execute
         script: PathBuf,
     },
@@ -138,13 +143,20 @@ pub enum Cmd {
 
 impl Args {
     pub fn exec(&self) -> anyhow::Result<()> {
-        let mound = Mound::excavate(&self.data_dir);
+        let mound = DirMound::load(&self.data_dir);
         match &self.command {
             Cmd::Issue { schema, params } => todo!(),
             Cmd::Import { .. } => todo!(),
             Cmd::Export { .. } => todo!(),
             Cmd::Create { .. } => todo!(),
-            Cmd::State { .. } => todo!(),
+            Cmd::State {
+                wallet,
+                all,
+                contract,
+            } => {
+                let wallet = Wallet::load();
+                let barrow = DirBarrow::load(self.seal, &self.data_dir, wallet);
+            }
             Cmd::Execute { .. } => todo!(),
             Cmd::Consign { .. } => todo!(),
             Cmd::Accept { .. } => todo!(),
@@ -153,21 +165,7 @@ impl Args {
     }
 }
 
-impl Barrow {
-    pub fn issue(&self, schema: &Path, form: &Path, output: Option<&Path>) -> anyhow::Result<()> {
-        let schema = Schema::load(schema)?;
-        let file = File::open(form)?;
-        let params = serde_yaml::from_reader::<_, IssueParams>(file)?;
-
-        let path = output.unwrap_or(form);
-        let output = path.with_file_name(&format!("{}.articles", params.name));
-
-        let articles = schema.issue::<Private>(params);
-        articles.save(output)?;
-
-        Ok(())
-    }
-}
+pub fn issue(schema: &Path, form: &Path, output: Option<&Path>) -> anyhow::Result<()> { Ok(()) }
 
 fn process(articles: &Path, stock: Option<&Path>) -> anyhow::Result<()> {
     let path = stock.unwrap_or(articles);
