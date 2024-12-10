@@ -22,7 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use bpstd::{DeriveSet, DeriveXOnly, XpubDerivable};
+use bpstd::{Network, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::{OpretProvider, TapretProvider, WalletProvider};
@@ -39,6 +39,25 @@ impl WalletProvider for OpretWallet {}
 impl OpretProvider for OpretWallet {}
 
 impl OpretWallet {
+    pub fn create<P>(
+        provider: P,
+        descr: Opret<XpubDerivable>,
+        network: Network,
+        autosave: bool,
+    ) -> Result<Self, PersistenceError>
+    where
+        P: Clone
+            + PersistenceProvider<WalletDescr<XpubDerivable, Opret<XpubDerivable>, Layer2Empty>>
+            + PersistenceProvider<WalletData<Layer2Empty>>
+            + PersistenceProvider<WalletCache<Layer2Empty>>
+            + PersistenceProvider<NoLayer2>
+            + 'static,
+    {
+        let mut wallet = Wallet::new_layer1(descr, network);
+        wallet.make_persistent(provider, autosave)?;
+        Ok(Self(wallet))
+    }
+
     pub fn load<P>(provider: P, autosave: bool) -> Result<Self, PersistenceError>
     where P: Clone
             + PersistenceProvider<WalletDescr<XpubDerivable, Opret<XpubDerivable>, Layer2Empty>>
@@ -59,6 +78,25 @@ impl WalletProvider for TapretWallet {}
 impl TapretProvider for TapretWallet {}
 
 impl TapretWallet {
+    pub fn create<P>(
+        provider: P,
+        descr: Tapret<XpubDerivable>,
+        network: Network,
+        autosave: bool,
+    ) -> Result<Self, PersistenceError>
+    where
+        P: Clone
+            + PersistenceProvider<WalletDescr<XpubDerivable, Tapret<XpubDerivable>, Layer2Empty>>
+            + PersistenceProvider<WalletData<Layer2Empty>>
+            + PersistenceProvider<WalletCache<Layer2Empty>>
+            + PersistenceProvider<NoLayer2>
+            + 'static,
+    {
+        let mut wallet = Wallet::new_layer1(descr, network);
+        wallet.make_persistent(provider, autosave)?;
+        Ok(Self(wallet))
+    }
+
     pub fn load<P>(provider: P, autosave: bool) -> Result<Self, PersistenceError>
     where P: Clone
             + PersistenceProvider<WalletDescr<XpubDerivable, Tapret<XpubDerivable>, Layer2Empty>>

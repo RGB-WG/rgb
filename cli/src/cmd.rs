@@ -22,18 +22,23 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::fs::File;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use bpwallet::fs::FsTextStore;
+use bpwallet::{Network, Wpkh, XpubDerivable};
 use clap::ValueHint;
-use hypersonic::{AuthToken, CodexId, ContractId};
+use hypersonic::{AuthToken, CodexId, ContractId, IssueParams};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
 use rgb::SealType;
+use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
 
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
 pub const RGB_SEAL_ENV: &str = "RGB_SEAL";
+pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
 
 pub const RGB_DATA_DIR_ENV: &str = "RGB_DATA_DIR";
 #[cfg(target_os = "linux")]
@@ -63,8 +68,12 @@ pub struct Args {
     pub data_dir: PathBuf,
 
     /// Type of single-use seals to use
-    #[clap(short, long, global = true, default_value = "bctr", env = "RGB_SEAL_ENV")]
+    #[clap(short, long, global = true, default_value = "bctr", env = RGB_SEAL_ENV)]
     pub seal: SealType,
+
+    /// Network to use
+    #[arg(short, long, global = true, default_value = "testnet4", env = RGB_NETWORK_ENV)]
+    pub network: Network,
 
     /// Command to execute
     #[clap(subcommand)]
@@ -80,12 +89,14 @@ pub enum Cmd {
         codex: Option<CodexId>,
 
         /// Parameters and data for the contract
+        #[clap(value_hint = ValueHint::FilePath)]
         params: Option<PathBuf>,
     },
 
     /// Import contract articles
     Import {
         /// Contract articles to process
+        #[clap(value_hint = ValueHint::FilePath)]
         articles: PathBuf,
     },
 
@@ -95,12 +106,13 @@ pub enum Cmd {
         contract: ContractId,
 
         /// Path to export articles to
+        #[clap(value_hint = ValueHint::FilePath)]
         file: Option<PathBuf>,
     },
 
     Backup {
         /// Path for saving backup tar file
-        #[clap(default_value = "rgb-backup.tar")]
+        #[clap(default_value = "rgb-backup.tar", value_hint = ValueHint::FilePath)]
         file: PathBuf,
     },
 
@@ -116,6 +128,9 @@ pub enum Cmd {
         /// Contract id to remove
         contract: ContractId,
     },
+
+    /// List known wallets
+    Wallets,
 
     /// Create a new wallet
     Create { name: String, descriptor: String },
@@ -143,6 +158,7 @@ pub enum Cmd {
         wallet: Option<String>,
 
         /// YAML file with a script to execute
+        #[clap(value_hint = ValueHint::FilePath)]
         script: PathBuf,
     },
 
@@ -154,6 +170,7 @@ pub enum Cmd {
         terminals: Vec<AuthToken>,
 
         /// Location to save the consignment file to
+        #[clap(value_hint = ValueHint::FilePath)]
         output: PathBuf,
     },
 
@@ -161,6 +178,7 @@ pub enum Cmd {
     #[clap(alias = "a")]
     Accept {
         /// File with consignment to accept
+        #[clap(value_hint = ValueHint::FilePath)]
         input: PathBuf,
     },
 }
@@ -168,10 +186,15 @@ pub enum Cmd {
 impl Args {
     pub fn mound(&self) -> DirMound { DirMound::load(&self.data_dir) }
 
-    pub fn runtime(&self) -> DirRuntime {
-        let provider = FsTextStore::new(self.data_dir.join(self.seal.to_string()))
-            .expect("broken directory structure");
-        match self.seal {
+    pub fn wallet_provider(&self, name: Option<&str>) -> FsTextStore {
+        let mut path = self.data_dir.join(self.seal.to_string());
+        path.push(name.unwrap_or("default"));
+        FsTextStore::new(path).expect("broken directory structure")
+    }
+
+    pub fn runtime(&self, name: Option<&str>) -> DirRuntime {
+        let provider = self.wallet_provider(name);
+        let wallet = match self.seal {
             SealType::BitcoinOpret => {
                 let wallet = OpretWallet::load(provider, true).expect("unable to load the wallet");
                 DirBarrow::with_opret(self.seal, self.mound(), wallet)
@@ -181,8 +204,9 @@ impl Args {
                 DirBarrow::with_tapret(self.seal, self.mound(), wallet)
             }
             _ => panic!("unsupported wallet type"),
-        }
-        .into()
+        };
+        // TODO: Sync wallet if needed
+        wallet.into()
     }
 
     pub fn exec(&self) -> anyhow::Result<()> {
@@ -202,26 +226,55 @@ impl Args {
                 codex: Some(codex_id),
                 params: Some(params),
             } => {
-                self.mound().issue_from_file(codex_id, params);
+                let mut mound = self.mound();
+                let file = File::open(params).expect("unable to open parameters file");
+                let params = serde_yaml::from_reader::<_, IssueParams>(file)?;
+                let contract_id = match self.seal {
+                    SealType::BitcoinOpret => mound.bc_opret.issue_file(*codex_id, params),
+                    SealType::BitcoinTapret => mound.bc_tapret.issue_file(*codex_id, params),
+                    _ => panic!("unsupported seal type"),
+                };
+                println!("A new contract issued with ID {contract_id}");
             }
 
-            Cmd::Import { articles } => self.mound().import_file(articles),
-            Cmd::Export { contract, file } => self.mound().export_file(contract, file),
-            Cmd::Create { name, descriptor } => match self.seal {
-                SealType::BitcoinOpret => {}
-                SealType::BitcoinTapret => {}
-                _ => panic!("unsupported seal type"),
-            },
+            //Cmd::Import { articles } => self.mound().import_file(articles),
+            //Cmd::Export { contract, file } => self.mound().export_file(contract, file),
+            Cmd::Create { name, descriptor } => {
+                let provider = self.wallet_provider(Some(name));
+                let xpub = XpubDerivable::from_str(descriptor).expect("Invalid extended pubkey");
+                match self.seal {
+                    SealType::BitcoinOpret => {
+                        OpretWallet::create(
+                            provider,
+                            Opret::new_unfunded(Wpkh::from(xpub)),
+                            self.network,
+                            true,
+                        )
+                        .expect("unable to create wallet");
+                    }
+                    SealType::BitcoinTapret => {
+                        TapretWallet::create(
+                            provider,
+                            Tapret::key_only_unfunded(xpub),
+                            self.network,
+                            true,
+                        )
+                        .expect("unable to create wallet");
+                    }
+                    _ => panic!("unsupported seal type"),
+                }
+            }
 
             Cmd::State {
-                wallet: Some(name),
+                wallet,
                 all,
                 contract,
             } => {
-                for (contract_id, state) in self.runtime().state(all, contract) {
+                for (contract_id, state) in self.runtime(wallet.as_deref()).state(*all, *contract) {
                     println!("---");
                     println!("Contract ID: {contract_id}");
                     println!("---");
+                    let state = serde_yaml::to_string(state).expect("unable to generate YAML");
                     println!("{state}");
                     println!();
                 }
@@ -230,6 +283,8 @@ impl Args {
             Cmd::Exec { wallet, script } => {}
             Cmd::Consign { .. } => todo!(),
             Cmd::Accept { .. } => todo!(),
+
+            _ => todo!(),
         }
         Ok(())
     }
