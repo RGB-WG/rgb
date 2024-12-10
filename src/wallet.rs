@@ -22,6 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use bpstd::seals::Noise;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
@@ -108,9 +109,18 @@ impl TapretWallet {
     }
 }
 
+pub trait SealNoiseGen {
+    fn next(&mut self) -> Noise;
+}
+
 #[cfg(feature = "fs")]
 pub mod file {
+    use std::iter;
+
+    use bpstd::psbt::{ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
+    use bpstd::Psbt;
     use rgb::popls::bp::file::DirBarrow;
+    use rgb::popls::bp::PrefabBundle;
 
     use super::*;
 
@@ -118,4 +128,30 @@ pub mod file {
     #[wrapper(Deref)]
     #[wrapper_mut(DerefMut)]
     pub struct DirRuntime(DirBarrow<OpretWallet, TapretWallet>);
+
+    impl DirRuntime {
+        // TODO: Support multiple change outputs
+        pub fn construct_psbt(
+            &mut self,
+            bundle: &PrefabBundle,
+            params: TxParams,
+        ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
+            let beneficiaries = iter::empty();
+            let (psbt, meta) = match &mut self.0 {
+                DirBarrow::BcOpret(barrow) => {
+                    barrow
+                        .wallet
+                        .construct_psbt(bundle.closes(), beneficiaries, params)
+                }
+                DirBarrow::BcTapret(barrow) => {
+                    barrow
+                        .wallet
+                        .construct_psbt(bundle.closes(), beneficiaries, params)
+                }
+                _ => panic!("unsupported seal type"),
+            }?;
+            // TODO: add single-use seals information to PSBT
+            Ok((psbt, meta))
+        }
+    }
 }

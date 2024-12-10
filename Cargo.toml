@@ -91,7 +91,7 @@ fs = [
     "std",
     "serde",
     "rgb-std/fs",
-    #"bp-wallet/fs",
+    "bp-wallet/fs",
 ]
 #cli = ["fs", "bp-wallet/cli"]
 #esplora_blocking = ["bp-esplora", "bp-esplora/blocking"]
@@ -100,7 +100,7 @@ fs = [
 #mempool_blocking = ["esplora_blocking"]
 serde = [
     "dep:serde", "serde_yaml",
-    "bp-std/serde", # "rgb-psbt/serde"
+    "bp-std/serde", "rgb-std/serde"
 ]
 
 [package.metadata.docs.rs]

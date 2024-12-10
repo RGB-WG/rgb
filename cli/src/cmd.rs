@@ -27,14 +27,17 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use bpwallet::fs::FsTextStore;
-use bpwallet::{Network, Wpkh, XpubDerivable};
+use bpwallet::psbt::TxParams;
+use bpwallet::{Network, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use hypersonic::{AuthToken, CodexId, ContractId, IssueParams};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
+use rgb::popls::bp::ConstructParams;
 use rgb::SealType;
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
+use strict_encoding::StrictSerialize;
 
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
 pub const RGB_SEAL_ENV: &str = "RGB_SEAL";
@@ -150,9 +153,13 @@ pub enum Cmd {
         contract: Option<ContractId>,
     },
 
-    /// Execute a script
+    /// Execute a script, producing prefabricated operation bundle and PSBT
     #[clap(alias = "x")]
     Exec {
+        /// Print PSBT to STDOUT
+        #[clap(short, long, global = true)]
+        print: bool,
+
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,
@@ -160,6 +167,20 @@ pub enum Cmd {
         /// YAML file with a script to execute
         #[clap(value_hint = ValueHint::FilePath)]
         script: PathBuf,
+
+        /// File to save the produced prefabricated operation bundle
+        #[clap(value_hint = ValueHint::FilePath)]
+        bundle: PathBuf,
+
+        /// Fees for PSBT
+        fee: Sats,
+
+        /// File to save the produced PSBT
+        ///
+        /// If not provided, uses the same filename as for the bundle, replacing the extension with
+        /// 'psbt'.
+        #[clap(value_hint = ValueHint::FilePath)]
+        psbt: Option<PathBuf>,
     },
 
     /// Create a consignment transferring part of a contract state to another peer
@@ -270,7 +291,7 @@ impl Args {
                 all,
                 contract,
             } => {
-                for (contract_id, state) in self.runtime(wallet.as_deref()).state(*all, *contract) {
+                for (contract_id, state) in self.runtime(wallet.as_deref()).state(*contract) {
                     println!("---");
                     println!("Contract ID: {contract_id}");
                     println!("---");
@@ -280,7 +301,43 @@ impl Args {
                 }
             }
 
-            Cmd::Exec { wallet, script } => {}
+            Cmd::Exec {
+                wallet,
+                script,
+                fee,
+                bundle: bundle_filename,
+                psbt: psbt_filename,
+                print,
+            } => {
+                let mut runtime = self.runtime(wallet.as_deref());
+                let src = File::open(script).expect("unable to open script file");
+                let items = serde_yaml::from_reader::<_, Vec<ConstructParams>>(src)?;
+                let bundle = runtime.bundle(items);
+                assert!(
+                    bundle.defines().all(|vout| vout == Vout::from(0)),
+                    "currently only a single self-seal is supported, which must be a first output"
+                );
+                bundle
+                    .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
+                    .expect("unable to write output file");
+
+                let (psbt, _) = runtime
+                    .construct_psbt(&bundle, TxParams::with(*fee))
+                    .expect("unable to construct PSBT");
+                let mut psbt_file = File::create_new(
+                    psbt_filename
+                        .as_ref()
+                        .unwrap_or(bundle_filename)
+                        .with_extension("psbt"),
+                )
+                .expect("unable to create PSBT");
+                psbt.encode(psbt.version, &mut psbt_file)
+                    .expect("unable to write PSBT");
+                if *print {
+                    println!("{psbt}");
+                }
+            }
+
             Cmd::Consign { .. } => todo!(),
             Cmd::Accept { .. } => todo!(),
 

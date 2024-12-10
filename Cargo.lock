@@ -1182,6 +1182,7 @@ dependencies = [
  "getrandom",
  "hypersonic",
  "rgb-core",
+ "serde",
  "single_use_seals",
  "strict_encoding",
  "strict_types",
