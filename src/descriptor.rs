@@ -25,26 +25,51 @@
 use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
 use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 
-use bpstd::dbc::tapret::TapretCommitment;
+use amplify::{Wrapper, WrapperMut};
+use bpstd::dbc::opret::OpretProof;
+use bpstd::dbc::tapret::{TapretCommitment, TapretProof};
 use bpstd::seals::TxoSeal;
 use bpstd::{
-    dbc, Derive, DeriveScripts, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin,
-    Keychain, LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation,
-    TapScript, TapTree, TaprootKeySig, Terminal, Tr, TrKey, Witness, XOnlyPk, XpubAccount,
-    XpubDerivable,
+    dbc, Derive, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin, Keychain,
+    LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation, TapScript,
+    TapTree, TaprootKeySig, Terminal, Tr, TrKey, Witness, XOnlyPk, XpubAccount, XpubDerivable,
 };
+use commit_verify::CommitVerify;
 use indexmap::IndexMap;
 
 pub trait DescriptorRgb<D: dbc::Proof, K = XpubDerivable, V = ()>: Descriptor<K, V> {
     fn add_seal(&self, seal: TxoSeal<D>);
 }
 
-#[derive(Wrapper, WrapperMut, Clone, Eq, PartialEq, Debug, From)]
-#[wrapper(Deref, AsSlice, BorrowSlice, RangeOps)]
-#[wrapper_mut(DerefMut)]
+#[derive(Clone, Eq, PartialEq, Debug, From)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
 pub struct SealDescr<D: dbc::Proof>(BTreeSet<TxoSeal<D>>);
+
+impl<D: dbc::Proof> Deref for SealDescr<D> {
+    type Target = BTreeSet<TxoSeal<D>>;
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+
+impl<D: dbc::Proof> DerefMut for SealDescr<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+}
+
+impl<D: dbc::Proof> Wrapper for SealDescr<D> {
+    type Inner = BTreeSet<TxoSeal<D>>;
+    fn from_inner(inner: Self::Inner) -> Self { Self(inner) }
+    fn as_inner(&self) -> &Self::Inner { &self.0 }
+    fn into_inner(self) -> Self::Inner { self.0 }
+}
+
+impl<D: dbc::Proof> WrapperMut for SealDescr<D> {
+    fn as_inner_mut(&mut self) -> &mut Self::Inner { &mut self.0 }
+}
+
+impl<D: dbc::Proof> Default for SealDescr<D> {
+    fn default() -> Self { Self(empty!()) }
+}
 
 impl<D: dbc::Proof> Display for SealDescr<D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -60,15 +85,25 @@ impl<D: dbc::Proof> Display for SealDescr<D> {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Display)]
+#[derive(Clone, Display)]
 #[display("opret({descr}, {seals})")]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
-pub struct Opret<D: dbc::Proof, K: DeriveSet = XpubDerivable> {
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(
+        rename_all = "camelCase",
+        bound(
+            serialize = "K::Compr: serde::Serialize, K::XOnly: serde::Serialize",
+            deserialize = "K::Compr: serde::Deserialize<'de>, K::XOnly: serde::Deserialize<'de>"
+        )
+    )
+)]
+pub struct Opret<K: DeriveSet = XpubDerivable> {
     pub descr: StdDescr<K>,
-    pub seals: SealDescr<D>,
+    pub seals: SealDescr<OpretProof>,
 }
 
-impl<D: dbc::Proof, K: DeriveSet> Opret<D, K> {
+impl<K: DeriveSet> Opret<K> {
     pub fn new_unfunded(descr: impl Into<StdDescr<K>>) -> Self {
         Self {
             descr: descr.into(),
@@ -77,7 +112,7 @@ impl<D: dbc::Proof, K: DeriveSet> Opret<D, K> {
     }
 }
 
-impl<D: dbc::Proof, K: DeriveSet> Derive<DerivedScript> for Opret<D, K> {
+impl<K: DeriveSet> Derive<DerivedScript> for Opret<K> {
     fn default_keychain(&self) -> Keychain { self.descr.default_keychain() }
     fn keychains(&self) -> BTreeSet<Keychain> { self.descr.keychains() }
     fn derive(
@@ -89,7 +124,7 @@ impl<D: dbc::Proof, K: DeriveSet> Derive<DerivedScript> for Opret<D, K> {
     }
 }
 
-impl<D: dbc::Proof, K: DeriveSet> Descriptor<K> for Opret<D, K>
+impl<K: DeriveSet> Descriptor<K> for Opret<K>
 where
     Self: Clone,
     StdDescr<K>: Descriptor<K>,
@@ -123,13 +158,13 @@ where
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
-pub struct Tapret<D: dbc::Proof, K: DeriveXOnly = XpubDerivable> {
+pub struct Tapret<K: DeriveXOnly = XpubDerivable> {
     pub tr: Tr<K>,
     pub tweaks: BTreeMap<Terminal, BTreeSet<TapretCommitment>>,
-    pub seals: SealDescr<D>,
+    pub seals: SealDescr<TapretProof>,
 }
 
-impl<D: dbc::Proof, K: DeriveXOnly> Display for Tapret<D, K> {
+impl<K: DeriveXOnly> Display for Tapret<K> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("tapret(")?;
         match &self.tr {
@@ -160,7 +195,7 @@ impl<D: dbc::Proof, K: DeriveXOnly> Display for Tapret<D, K> {
     }
 }
 
-impl<D: dbc::Proof, K: DeriveXOnly> Tapret<D, K> {
+impl<K: DeriveXOnly> Tapret<K> {
     pub fn key_only_unfunded(internal_key: K) -> Self {
         Self {
             tr: Tr::KeyOnly(TrKey::from(internal_key)),
@@ -174,7 +209,7 @@ impl<D: dbc::Proof, K: DeriveXOnly> Tapret<D, K> {
     }
 }
 
-impl<D: dbc::Proof, K: DeriveXOnly> Derive<DerivedScript> for Tapret<D, K> {
+impl<K: DeriveXOnly> Derive<DerivedScript> for Tapret<K> {
     fn default_keychain(&self) -> Keychain { self.tr.default_keychain() }
     fn keychains(&self) -> BTreeSet<Keychain> { self.tr.keychains() }
     fn derive(
@@ -188,12 +223,12 @@ impl<D: dbc::Proof, K: DeriveXOnly> Derive<DerivedScript> for Tapret<D, K> {
         self.tr
             .as_internal_key()
             .derive(keychain, index)
-            .map(|internal_key| {
+            .flat_map(move |internal_key| {
                 self.tweaks
                     .get(&terminal)
                     .into_iter()
                     .flatten()
-                    .map(|tweak| {
+                    .map(move |tweak| {
                         let script_commitment = TapScript::commit(tweak);
                         let tap_tree = TapTree::with_single_leaf(script_commitment);
                         DerivedScript::TaprootScript(internal_key.into(), tap_tree)
@@ -202,7 +237,7 @@ impl<D: dbc::Proof, K: DeriveXOnly> Derive<DerivedScript> for Tapret<D, K> {
     }
 }
 
-impl<D: dbc::Proof, K: DeriveXOnly> Descriptor<K> for Tapret<D, K> {
+impl<K: DeriveXOnly> Descriptor<K> for Tapret<K> {
     fn class(&self) -> SpkClass { self.tr.class() }
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where K: 'a {

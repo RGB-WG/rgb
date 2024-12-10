@@ -28,6 +28,7 @@ extern crate clap;
 mod cmd;
 
 use clap::Parser;
-use cmd::Cmd;
 
-fn main() -> anyhow::Result<()> { Cmd::parse().exec() }
+use crate::cmd::Args;
+
+fn main() -> anyhow::Result<()> { Args::parse().exec() }

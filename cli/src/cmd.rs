@@ -22,14 +22,15 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+use bpwallet::fs::FsTextStore;
 use clap::ValueHint;
-use hypersonic::{Articles, AuthToken, CallParams, ContractId, Stock};
+use hypersonic::{AuthToken, CodexId, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
 use rgb::SealType;
-use strict_encoding::{StreamReader, StreamWriter, StrictDecode, StrictReader, StrictWriter};
+use rgbp::wallet::file::DirRuntime;
+use rgbp::wallet::{OpretWallet, TapretWallet};
 
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
 pub const RGB_SEAL_ENV: &str = "RGB_SEAL";
@@ -61,7 +62,8 @@ pub struct Args {
     )]
     pub data_dir: PathBuf,
 
-    #[clap(short, long, global = true, default_value = "bctr", env = "RGB_SEAL_ENV", value_hint = [])]
+    /// Type of single-use seals to use
+    #[clap(short, long, global = true, default_value = "bctr", env = "RGB_SEAL_ENV")]
     pub seal: SealType,
 
     /// Command to execute
@@ -72,13 +74,13 @@ pub struct Args {
 #[derive(Parser)]
 pub enum Cmd {
     /// Issue a new RGB contract
-    #[clap(alias = "i")]
     Issue {
-        /// Schema used to issue the contract
-        schema: PathBuf,
+        /// Codex used to issue the contract
+        #[clap(requires = "params")]
+        codex: Option<CodexId>,
 
         /// Parameters and data for the contract
-        params: PathBuf,
+        params: Option<PathBuf>,
     },
 
     /// Import contract articles
@@ -89,8 +91,30 @@ pub enum Cmd {
 
     /// Export contract articles
     Export {
+        /// Contract id to export
+        contract: ContractId,
+
         /// Path to export articles to
-        articles: PathBuf,
+        file: Option<PathBuf>,
+    },
+
+    Backup {
+        /// Path for saving backup tar file
+        #[clap(default_value = "rgb-backup.tar")]
+        file: PathBuf,
+    },
+
+    /// List contracts
+    Contracts,
+
+    /// Remove contract
+    Purge {
+        /// Force removal of a contract with a known state
+        #[clap(short, long)]
+        force: bool,
+
+        /// Contract id to remove
+        contract: ContractId,
     },
 
     /// Create a new wallet
@@ -107,13 +131,13 @@ pub enum Cmd {
         #[clap(short, long, global = true)]
         all: bool,
 
-        /// Contract directory
-        contract: ContractId,
+        /// Print out just a single contract state
+        contract: Option<ContractId>,
     },
 
     /// Execute a script
-    #[clap(aliases = ["e", "exec"])]
-    Execute {
+    #[clap(alias = "x")]
+    Exec {
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,
@@ -125,7 +149,7 @@ pub enum Cmd {
     /// Create a consignment transferring part of a contract state to another peer
     #[clap(alias = "c")]
     Consign {
-        /// List of tokens of authority which should serve as a contract terminals.
+        /// List of tokens of authority which should serve as a contract terminals
         #[clap(short, long)]
         terminals: Vec<AuthToken>,
 
@@ -142,76 +166,71 @@ pub enum Cmd {
 }
 
 impl Args {
+    pub fn mound(&self) -> DirMound { DirMound::load(&self.data_dir) }
+
+    pub fn runtime(&self) -> DirRuntime {
+        let provider = FsTextStore::new(self.data_dir.join(self.seal.to_string()))
+            .expect("broken directory structure");
+        match self.seal {
+            SealType::BitcoinOpret => {
+                let wallet = OpretWallet::load(provider, true).expect("unable to load the wallet");
+                DirBarrow::with_opret(self.seal, self.mound(), wallet)
+            }
+            SealType::BitcoinTapret => {
+                let wallet = TapretWallet::load(provider, true).expect("unable to load the wallet");
+                DirBarrow::with_tapret(self.seal, self.mound(), wallet)
+            }
+            _ => panic!("unsupported wallet type"),
+        }
+        .into()
+    }
+
     pub fn exec(&self) -> anyhow::Result<()> {
-        let mound = DirMound::load(&self.data_dir);
         match &self.command {
-            Cmd::Issue { schema, params } => todo!(),
-            Cmd::Import { .. } => todo!(),
-            Cmd::Export { .. } => todo!(),
-            Cmd::Create { .. } => todo!(),
+            Cmd::Issue {
+                codex: None,
+                params: None,
+            } => {
+                println!("To issue a new contract please specify a codex ID and a parameters file");
+                println!("Codex list:");
+                println!("{:<32}\t{:<64}\tDeveloper", "Name", "ID");
+                for (codex_id, schema) in self.mound().schemata() {
+                    println!("{:<32}\t{codex_id}\t{}", schema.codex.name, schema.codex.developer);
+                }
+            }
+            Cmd::Issue {
+                codex: Some(codex_id),
+                params: Some(params),
+            } => {
+                self.mound().issue_from_file(codex_id, params);
+            }
+
+            Cmd::Import { articles } => self.mound().import_file(articles),
+            Cmd::Export { contract, file } => self.mound().export_file(contract, file),
+            Cmd::Create { name, descriptor } => match self.seal {
+                SealType::BitcoinOpret => {}
+                SealType::BitcoinTapret => {}
+                _ => panic!("unsupported seal type"),
+            },
+
             Cmd::State {
-                wallet,
+                wallet: Some(name),
                 all,
                 contract,
             } => {
-                let wallet = Wallet::load();
-                let barrow = DirBarrow::load(self.seal, &self.data_dir, wallet);
+                for (contract_id, state) in self.runtime().state(all, contract) {
+                    println!("---");
+                    println!("Contract ID: {contract_id}");
+                    println!("---");
+                    println!("{state}");
+                    println!();
+                }
             }
-            Cmd::Execute { .. } => todo!(),
+
+            Cmd::Exec { wallet, script } => {}
             Cmd::Consign { .. } => todo!(),
             Cmd::Accept { .. } => todo!(),
         }
         Ok(())
     }
-}
-
-pub fn issue(schema: &Path, form: &Path, output: Option<&Path>) -> anyhow::Result<()> { Ok(()) }
-
-fn process(articles: &Path, stock: Option<&Path>) -> anyhow::Result<()> {
-    let path = stock.unwrap_or(articles);
-
-    let articles = Articles::<Private>::load(articles)?;
-    Stock::new(articles, path);
-
-    Ok(())
-}
-
-fn state(path: &Path) {
-    let stock = Stock::<Private, _>::load(path);
-    let val = serde_yaml::to_string(&stock.state().main).expect("unable to generate YAML");
-    println!("{val}");
-}
-
-fn call(stock: &Path, form: &Path) -> anyhow::Result<()> {
-    let mut stock = Stock::<Private, _>::load(stock);
-    let file = File::open(form)?;
-    let call = serde_yaml::from_reader::<_, CallParams>(file)?;
-    let opid = stock.call(call);
-    println!("Operation ID: {opid}");
-    Ok(())
-}
-
-fn export<'a>(
-    stock: &Path,
-    terminals: impl IntoIterator<Item = &'a AuthToken>,
-    output: &Path,
-) -> anyhow::Result<()> {
-    let mut stock = Stock::<Private, _>::load(stock);
-    let file = File::create_new(output)?;
-    let writer = StrictWriter::with(StreamWriter::new::<{ usize::MAX }>(file));
-    stock.export(terminals, writer)?;
-    Ok(())
-}
-
-fn accept(stock: &Path, input: &Path) -> anyhow::Result<()> {
-    let mut stock = Stock::<Private, _>::load(stock);
-    let file = File::open(input)?;
-    let mut reader = StrictReader::with(StreamReader::new::<{ usize::MAX }>(file));
-
-    let articles = Articles::<Private>::strict_decode(&mut reader)?;
-    if articles.contract_id() != stock.contract_id() {
-        return Err("Contract ID mismatch".into());
-    }
-
-    stock.consume()
 }

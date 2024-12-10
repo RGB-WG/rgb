@@ -25,11 +25,12 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod descriptor;
-
 extern crate alloc;
 #[macro_use]
 extern crate amplify;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
+
+pub mod descriptor;
+pub mod wallet;
