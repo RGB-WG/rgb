@@ -23,13 +23,11 @@
 
 #[macro_use]
 extern crate amplify;
-#[macro_use]
-extern crate strict_types;
 
 use hypersonic::Schema;
-use rgb::bitcoin::file::OmniBarrow;
 
 fn main() {
+    /*
     let mut alice = OmniBarrow::load("");
 
     let seal1 = alice.next_seal_pub();
@@ -87,4 +85,6 @@ fn main() {
 
     // Locker, token (stash) and trace are append-only logs
     // Only state, wallet (alice) must persist in memory
+     */
+    todo!()
 }

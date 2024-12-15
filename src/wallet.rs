@@ -22,6 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use amplify::Bytes32;
 use bpstd::seals::Noise;
 use bpstd::{Network, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
@@ -36,7 +37,9 @@ use crate::descriptor::{Opret, Tapret};
 #[wrapper_mut(DerefMut)]
 pub struct OpretWallet(Wallet<XpubDerivable, Opret<XpubDerivable>, NoLayer2>);
 
-impl WalletProvider for OpretWallet {}
+impl WalletProvider for OpretWallet {
+    fn noise_seed(&self) -> Bytes32 { self.noise }
+}
 impl OpretProvider for OpretWallet {}
 
 impl OpretWallet {
@@ -75,7 +78,9 @@ impl OpretWallet {
 #[wrapper_mut(DerefMut)]
 pub struct TapretWallet(Wallet<XpubDerivable, Tapret<XpubDerivable>, NoLayer2>);
 
-impl WalletProvider for TapretWallet {}
+impl WalletProvider for TapretWallet {
+    fn noise_seed(&self) -> Bytes32 { self.noise }
+}
 impl TapretProvider for TapretWallet {}
 
 impl TapretWallet {

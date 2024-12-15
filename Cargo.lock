@@ -282,7 +282,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#5d8db23ffa73417937230238d807310eb6052579"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
 dependencies = [
  "amplify",
  "chrono",
@@ -295,7 +295,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#5d8db23ffa73417937230238d807310eb6052579"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -312,7 +312,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#5d8db23ffa73417937230238d807310eb6052579"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
 dependencies = [
  "amplify",
  "base85",
@@ -326,7 +326,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#22052f4ccc6add1b1d8d39fc1c6373de5c730571"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -372,7 +372,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#22052f4ccc6add1b1d8d39fc1c6373de5c730571"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
 dependencies = [
  "amplify",
  "bech32",
@@ -384,7 +384,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#5d8db23ffa73417937230238d807310eb6052579"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
 dependencies = [
  "amplify",
  "baid64",
@@ -400,7 +400,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#22052f4ccc6add1b1d8d39fc1c6373de5c730571"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -447,9 +447,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cc"
-version = "1.2.3"
+version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27f657647bcff5394bf56c7317665bbf790a137a50eaaa5c6bfbb9e27a518f2d"
+checksum = "9157bbaa6b165880c27a4293a474c91cdcf265cc68cc829bf10be0964a391caf"
 dependencies = [
  "jobserver",
  "libc",
@@ -655,7 +655,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#22052f4ccc6add1b1d8d39fc1c6373de5c730571"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -797,7 +797,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#9f6e96678920f5364e370d761c6ef5d81eb5001a"
+source = "git+https://github.com/AluVM/sonic#b1e1375ba9991f52240042f6662a0b5597fbf7eb"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1055,7 +1055,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#22052f4ccc6add1b1d8d39fc1c6373de5c730571"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
 dependencies = [
  "amplify",
  "base64",
@@ -1250,9 +1250,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.19"
+version = "0.23.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "934b404430bb06b3fae2cba809eb45a1ab1aecd64491213d7c3301b88393f8d1"
+checksum = "5065c3f250cbd332cd894be57c40fa52387247659b14a2d6041d121547903b1b"
 dependencies = [
  "aws-lc-rs",
  "log",
@@ -1265,9 +1265,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16f1201b3c9a7ee8039bcadc17b7e605e2945b27eee7631788c1bd2b0643674b"
+checksum = "d2bf47e6ff922db3825eb750c4e2ff784c6ff8fb9e13046ef6a1d1c5401b0b37"
 
 [[package]]
 name = "rustls-webpki"
@@ -1325,18 +1325,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.215"
+version = "1.0.216"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6513c1ad0b11a9376da888e3e0baa0077f1aed55c17f50e7b2397136129fb88f"
+checksum = "0b9781016e935a97e8beecf0c933758c97a5520d32930e460142b4cd80c6338e"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.215"
+version = "1.0.216"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad1e866f866923f252f05c889987993144fb74e722403468a4ebd70c3cd756c0"
+checksum = "46f859dbbf73865c6627ed570e78961cd3ac92407a2d117204c49232485da55e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1443,7 +1443,7 @@ checksum = "fa1f0140117847f5470c5ab2e68f7645bfe6fe27933b9160de63832ecaf0f3d2"
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#9f6e96678920f5364e370d761c6ef5d81eb5001a"
+source = "git+https://github.com/AluVM/sonic#b1e1375ba9991f52240042f6662a0b5597fbf7eb"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1646,7 +1646,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/AluVM/ultrasonic#239bc019e3f868b07857d2c5bff5df6c8ca0044f"
+source = "git+https://github.com/AluVM/ultrasonic#68df7d94f61b73ac3e543ff35008c9ab76d9c131"
 dependencies = [
  "amplify",
  "baid64",

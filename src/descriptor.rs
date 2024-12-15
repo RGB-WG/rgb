@@ -27,7 +27,7 @@ use core::fmt::{self, Display, Formatter};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
-use amplify::{Wrapper, WrapperMut};
+use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::opret::OpretProof;
 use bpstd::dbc::tapret::{TapretCommitment, TapretProof};
 use bpstd::seals::TxoSeal;
@@ -101,13 +101,15 @@ impl<D: dbc::Proof> Display for SealDescr<D> {
 pub struct Opret<K: DeriveSet = XpubDerivable> {
     pub descr: StdDescr<K>,
     pub seals: SealDescr<OpretProof>,
+    pub noise: Bytes32,
 }
 
 impl<K: DeriveSet> Opret<K> {
-    pub fn new_unfunded(descr: impl Into<StdDescr<K>>) -> Self {
+    pub fn new_unfunded(descr: impl Into<StdDescr<K>>, noise: impl Into<[u8; 32]>) -> Self {
         Self {
             descr: descr.into(),
             seals: empty!(),
+            noise: noise.into().into(),
         }
     }
 }
@@ -162,6 +164,7 @@ pub struct Tapret<K: DeriveXOnly = XpubDerivable> {
     pub tr: Tr<K>,
     pub tweaks: BTreeMap<Terminal, BTreeSet<TapretCommitment>>,
     pub seals: SealDescr<TapretProof>,
+    pub noise: Bytes32,
 }
 
 impl<K: DeriveXOnly> Display for Tapret<K> {
@@ -196,11 +199,12 @@ impl<K: DeriveXOnly> Display for Tapret<K> {
 }
 
 impl<K: DeriveXOnly> Tapret<K> {
-    pub fn key_only_unfunded(internal_key: K) -> Self {
+    pub fn key_only_unfunded(internal_key: K, noise: impl Into<[u8; 32]>) -> Self {
         Self {
             tr: Tr::KeyOnly(TrKey::from(internal_key)),
             tweaks: empty!(),
             seals: empty!(),
+            noise: noise.into().into(),
         }
     }
 

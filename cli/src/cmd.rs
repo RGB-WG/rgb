@@ -26,6 +26,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use amplify::ByteArray;
 use bpwallet::fs::FsTextStore;
 use bpwallet::psbt::TxParams;
 use bpwallet::{Network, Sats, Vout, Wpkh, XpubDerivable};
@@ -136,7 +137,13 @@ pub enum Cmd {
     Wallets,
 
     /// Create a new wallet
-    Create { name: String, descriptor: String },
+    Create {
+        /// Wallet name
+        name: String,
+
+        /// Extended pubkey descriptor
+        descriptor: String,
+    },
 
     /// Print out a contract state
     #[clap(alias = "s")]
@@ -186,6 +193,9 @@ pub enum Cmd {
     /// Create a consignment transferring part of a contract state to another peer
     #[clap(alias = "c")]
     Consign {
+        /// Contract to use for the consignment
+        contract: ContractId,
+
         /// List of tokens of authority which should serve as a contract terminals
         #[clap(short, long)]
         terminals: Vec<AuthToken>,
@@ -224,7 +234,6 @@ impl Args {
                 let wallet = TapretWallet::load(provider, true).expect("unable to load the wallet");
                 DirBarrow::with_tapret(self.seal, self.mound(), wallet)
             }
-            _ => panic!("unsupported wallet type"),
         };
         // TODO: Sync wallet if needed
         wallet.into()
@@ -263,11 +272,12 @@ impl Args {
             Cmd::Create { name, descriptor } => {
                 let provider = self.wallet_provider(Some(name));
                 let xpub = XpubDerivable::from_str(descriptor).expect("Invalid extended pubkey");
+                let noise = xpub.xpub().chain_code().to_byte_array();
                 match self.seal {
                     SealType::BitcoinOpret => {
                         OpretWallet::create(
                             provider,
-                            Opret::new_unfunded(Wpkh::from(xpub)),
+                            Opret::new_unfunded(Wpkh::from(xpub), noise),
                             self.network,
                             true,
                         )
@@ -276,7 +286,7 @@ impl Args {
                     SealType::BitcoinTapret => {
                         TapretWallet::create(
                             provider,
-                            Tapret::key_only_unfunded(xpub),
+                            Tapret::key_only_unfunded(xpub, noise),
                             self.network,
                             true,
                         )
@@ -338,8 +348,33 @@ impl Args {
                 }
             }
 
-            Cmd::Consign { .. } => todo!(),
-            Cmd::Accept { .. } => todo!(),
+            Cmd::Consign {
+                contract,
+                terminals,
+                output,
+            } => {
+                let mut mound = self.mound();
+                match self.seal {
+                    SealType::BitcoinOpret => {
+                        mound.bc_opret.consign_to_file(*contract, terminals, output)
+                    }
+                    SealType::BitcoinTapret => mound
+                        .bc_tapret
+                        .consign_to_file(*contract, terminals, output),
+                    _ => panic!("unsupported wallet type"),
+                }
+                .expect("unable to consign contract");
+            }
+
+            Cmd::Accept { input } => {
+                let mut mound = self.mound();
+                match self.seal {
+                    SealType::BitcoinOpret => mound.bc_opret.accept_from_file(input),
+                    SealType::BitcoinTapret => mound.bc_opret.accept_from_file(input),
+                    _ => panic!("unsupported wallet type"),
+                }
+                .expect("unable to accept a consignment");
+            }
 
             _ => todo!(),
         }
