@@ -262,7 +262,6 @@ impl Args {
                 let contract_id = match self.seal {
                     SealType::BitcoinOpret => mound.bc_opret.issue_file(*codex_id, params),
                     SealType::BitcoinTapret => mound.bc_tapret.issue_file(*codex_id, params),
-                    _ => panic!("unsupported seal type"),
                 };
                 println!("A new contract issued with ID {contract_id}");
             }
@@ -292,7 +291,6 @@ impl Args {
                         )
                         .expect("unable to create wallet");
                     }
-                    _ => panic!("unsupported seal type"),
                 }
             }
 
@@ -361,7 +359,6 @@ impl Args {
                     SealType::BitcoinTapret => mound
                         .bc_tapret
                         .consign_to_file(*contract, terminals, output),
-                    _ => panic!("unsupported wallet type"),
                 }
                 .expect("unable to consign contract");
             }
@@ -369,9 +366,8 @@ impl Args {
             Cmd::Accept { input } => {
                 let mut mound = self.mound();
                 match self.seal {
-                    SealType::BitcoinOpret => mound.bc_opret.accept_from_file(input),
-                    SealType::BitcoinTapret => mound.bc_opret.accept_from_file(input),
-                    _ => panic!("unsupported wallet type"),
+                    SealType::BitcoinOpret => mound.bc_opret.consume_from_file(input),
+                    SealType::BitcoinTapret => mound.bc_opret.consume_from_file(input),
                 }
                 .expect("unable to accept a consignment");
             }

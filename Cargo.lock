@@ -797,7 +797,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#b1e1375ba9991f52240042f6662a0b5597fbf7eb"
+source = "git+https://github.com/AluVM/sonic#bea04376a11ee1f5df79895323f8805ae94f95f0"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1162,12 +1162,13 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#059dc252372f4f01b6ab7a7dfed939095fdd886e"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#7ecae1a6c0ebb334c28f8428e7d6c2bdd1d77fbc"
 dependencies = [
  "amplify",
  "commit_verify",
  "getrandom",
  "single_use_seals",
+ "strict_encoding",
  "ultrasonic",
  "wasm-bindgen",
 ]
@@ -1175,6 +1176,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-alpha.1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#95ce0ade203de3a1db1959bdf58662061bf9fcea"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1437,13 +1439,15 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "single_use_seals"
 version = "0.12.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa1f0140117847f5470c5ab2e68f7645bfe6fe27933b9160de63832ecaf0f3d2"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.12#b5ea9abeec487436ceb8d2e572a8e34305fd5d70"
+dependencies = [
+ "strict_encoding",
+]
 
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#b1e1375ba9991f52240042f6662a0b5597fbf7eb"
+source = "git+https://github.com/AluVM/sonic#bea04376a11ee1f5df79895323f8805ae94f95f0"
 dependencies = [
  "aluvm",
  "amplify",

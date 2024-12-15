@@ -153,7 +153,6 @@ pub mod file {
                         .wallet
                         .construct_psbt(bundle.closes(), beneficiaries, params)
                 }
-                _ => panic!("unsupported seal type"),
             }?;
             // TODO: add single-use seals information to PSBT
             Ok((psbt, meta))
