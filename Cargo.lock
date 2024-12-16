@@ -797,7 +797,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#bea04376a11ee1f5df79895323f8805ae94f95f0"
+source = "git+https://github.com/AluVM/sonic#b380ab911ddad447f890cfa3288bbdfa4251e25b"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1162,9 +1162,10 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#7ecae1a6c0ebb334c28f8428e7d6c2bdd1d77fbc"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#e51a59b0bdf2d2bc39e867d996bf8233f2fd5357"
 dependencies = [
  "amplify",
+ "bp-core",
  "commit_verify",
  "getrandom",
  "single_use_seals",
@@ -1176,7 +1177,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#95ce0ade203de3a1db1959bdf58662061bf9fcea"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#e2c92a9ea5c438d063d83a33f1104b90c5f4ba1e"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1447,7 +1448,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#bea04376a11ee1f5df79895323f8805ae94f95f0"
+source = "git+https://github.com/AluVM/sonic#b380ab911ddad447f890cfa3288bbdfa4251e25b"
 dependencies = [
  "aluvm",
  "amplify",

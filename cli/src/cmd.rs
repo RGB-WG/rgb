@@ -369,7 +369,7 @@ impl Args {
                     SealType::BitcoinOpret => mound.bc_opret.consume_from_file(input),
                     SealType::BitcoinTapret => mound.bc_opret.consume_from_file(input),
                 }
-                .expect("unable to accept a consignment");
+                .unwrap_or_else(|err| panic!("Unable to accept a consignment: {err}"));
             }
 
             _ => todo!(),
