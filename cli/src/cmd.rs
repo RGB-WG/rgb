@@ -22,6 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -31,10 +32,10 @@ use bpwallet::fs::FsTextStore;
 use bpwallet::psbt::TxParams;
 use bpwallet::{Network, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
-use hypersonic::{AuthToken, CodexId, ContractId, IssueParams};
+use hypersonic::{AuthToken, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
 use rgb::popls::bp::ConstructParams;
-use rgb::SealType;
+use rgb::{CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
@@ -71,6 +72,10 @@ pub struct Args {
     )]
     pub data_dir: PathBuf,
 
+    /// Initialize data directory if it doesn't exit
+    #[clap(long, global = true)]
+    pub init: bool,
+
     /// Type of single-use seals to use
     #[clap(short, long, global = true, default_value = "bctr", env = RGB_SEAL_ENV)]
     pub seal: SealType,
@@ -88,9 +93,9 @@ pub struct Args {
 pub enum Cmd {
     /// Issue a new RGB contract
     Issue {
-        /// Codex used to issue the contract
-        #[clap(requires = "params")]
-        codex: Option<CodexId>,
+        /// Wallet to use
+        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
 
         /// Parameters and data for the contract
         #[clap(value_hint = ValueHint::FilePath)]
@@ -215,23 +220,42 @@ pub enum Cmd {
 }
 
 impl Args {
-    pub fn mound(&self) -> DirMound { DirMound::load(&self.data_dir) }
+    pub fn mound(&self) -> DirMound {
+        if self.init {
+            let _ = fs::create_dir_all(&self.data_dir.join(SealType::BitcoinOpret.to_string()));
+            let _ = fs::create_dir_all(&self.data_dir.join(SealType::BitcoinTapret.to_string()));
+        }
+        DirMound::load(&self.data_dir)
+    }
+
+    fn wallet_file(&self, name: Option<&str>) -> PathBuf {
+        let mut path = self.data_dir.join(self.seal.to_string());
+        path.join(name.unwrap_or("default"))
+    }
 
     pub fn wallet_provider(&self, name: Option<&str>) -> FsTextStore {
-        let mut path = self.data_dir.join(self.seal.to_string());
-        path.push(name.unwrap_or("default"));
-        FsTextStore::new(path).expect("broken directory structure")
+        FsTextStore::new(self.wallet_file(name)).expect("broken directory structure")
     }
 
     pub fn runtime(&self, name: Option<&str>) -> DirRuntime {
         let provider = self.wallet_provider(name);
         let wallet = match self.seal {
             SealType::BitcoinOpret => {
-                let wallet = OpretWallet::load(provider, true).expect("unable to load the wallet");
+                let wallet = OpretWallet::load(provider, true).unwrap_or_else(|_| {
+                    panic!(
+                        "Error: unable to load opret wallet from path `{}`",
+                        self.wallet_file(name).display()
+                    )
+                });
                 DirBarrow::with_opret(self.seal, self.mound(), wallet)
             }
             SealType::BitcoinTapret => {
-                let wallet = TapretWallet::load(provider, true).expect("unable to load the wallet");
+                let wallet = TapretWallet::load(provider, true).unwrap_or_else(|_| {
+                    panic!(
+                        "Error: unable to load tapret wallet from path `{}`",
+                        self.wallet_file(name).display()
+                    )
+                });
                 DirBarrow::with_tapret(self.seal, self.mound(), wallet)
             }
         };
@@ -242,27 +266,27 @@ impl Args {
     pub fn exec(&self) -> anyhow::Result<()> {
         match &self.command {
             Cmd::Issue {
-                codex: None,
                 params: None,
+                wallet: _,
             } => {
-                println!("To issue a new contract please specify a codex ID and a parameters file");
-                println!("Codex list:");
+                println!(
+                    "To issue a new contract please specify a parameters file. A contract may be \
+                     issued under one of the codex listed below."
+                );
+                println!();
                 println!("{:<32}\t{:<64}\tDeveloper", "Name", "ID");
                 for (codex_id, schema) in self.mound().schemata() {
                     println!("{:<32}\t{codex_id}\t{}", schema.codex.name, schema.codex.developer);
                 }
             }
             Cmd::Issue {
-                codex: Some(codex_id),
                 params: Some(params),
+                wallet,
             } => {
-                let mut mound = self.mound();
-                let file = File::open(params).expect("unable to open parameters file");
-                let params = serde_yaml::from_reader::<_, IssueParams>(file)?;
-                let contract_id = match self.seal {
-                    SealType::BitcoinOpret => mound.bc_opret.issue_file(*codex_id, params),
-                    SealType::BitcoinTapret => mound.bc_tapret.issue_file(*codex_id, params),
-                };
+                let mut runtime = self.runtime(wallet.as_deref());
+                let file = File::open(params).expect("Unable to open parameters file");
+                let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
+                let contract_id = runtime.issue_to_file(params);
                 println!("A new contract issued with ID {contract_id}");
             }
 
@@ -291,6 +315,13 @@ impl Args {
                         )
                         .expect("unable to create wallet");
                     }
+                }
+            }
+
+            Cmd::Contracts => {
+                let mound = self.mound();
+                for contract_id in mound.contract_ids() {
+                    println!("{contract_id}");
                 }
             }
 

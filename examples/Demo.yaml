@@ -1,0 +1,19 @@
+sealType: BitcoinOpret
+codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
+name: DemoToken
+method: issue
+
+global:
+  - name: name
+    verified: Demo Token
+  - name: ticker
+    verified: DEMO
+  - name: precision
+    verified: centiMilli
+  - name: circulating
+    verified: 10000
+
+owned:
+  - name: owned
+    seal: bee0be478fca7df9e8023357fe20a9e53058a178be9623afe3ac3400964bcf37:0
+    data: 10000

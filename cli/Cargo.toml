@@ -10,6 +10,10 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[[bin]]
+path = "src/main.rs"
+name = "rgb"
+
 [dependencies]
 amplify.workspace = true
 strict_encoding.workspace = true

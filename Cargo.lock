@@ -282,7 +282,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#961885bd7f0d30f32a759089ee077a32b1325dbf"
 dependencies = [
  "amplify",
  "chrono",
@@ -295,7 +295,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#961885bd7f0d30f32a759089ee077a32b1325dbf"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -312,7 +312,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#961885bd7f0d30f32a759089ee077a32b1325dbf"
 dependencies = [
  "amplify",
  "base85",
@@ -384,7 +384,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#eadb08cf45fc3d50afe5d0243d779d54e4ab5468"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#961885bd7f0d30f32a759089ee077a32b1325dbf"
 dependencies = [
  "amplify",
  "baid64",
@@ -787,17 +787,17 @@ dependencies = [
 
 [[package]]
 name = "home"
-version = "0.5.9"
+version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3d1354bf6b7235cb4a0576c2619fd4ed18183f689b12b006a0ee7329eeff9a5"
+checksum = "589533453244b0995c858700322199b2becb13b627df2851f64a2775d024abcf"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#b380ab911ddad447f890cfa3288bbdfa4251e25b"
+source = "git+https://github.com/AluVM/sonic#e8506c8ea31d08ff180a56d6bd3413033494e5a8"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1162,12 +1162,13 @@ dependencies = [
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#e51a59b0bdf2d2bc39e867d996bf8233f2fd5357"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#f95a75c43ea335082f0c9671ae26c8f765da582e"
 dependencies = [
  "amplify",
  "bp-core",
  "commit_verify",
  "getrandom",
+ "serde",
  "single_use_seals",
  "strict_encoding",
  "ultrasonic",
@@ -1177,10 +1178,11 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#e2c92a9ea5c438d063d83a33f1104b90c5f4ba1e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#cbec3f51e8e85692d3dd5793c8f0af5b9a3fb3d7"
 dependencies = [
  "amplify",
  "bp-core",
+ "chrono",
  "commit_verify",
  "getrandom",
  "hypersonic",
@@ -1442,13 +1444,14 @@ name = "single_use_seals"
 version = "0.12.0-beta.1"
 source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.12#b5ea9abeec487436ceb8d2e572a8e34305fd5d70"
 dependencies = [
+ "serde",
  "strict_encoding",
 ]
 
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/AluVM/sonic#b380ab911ddad447f890cfa3288bbdfa4251e25b"
+source = "git+https://github.com/AluVM/sonic#e8506c8ea31d08ff180a56d6bd3413033494e5a8"
 dependencies = [
  "aluvm",
  "amplify",

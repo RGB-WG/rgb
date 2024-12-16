@@ -23,6 +23,14 @@
 
 fn main() {
     /*
+    let mut alice = DirRuntime::new_opret(alice_account);
+    let mut bob = DirRuntime::new_tapret(bob_account);
+
+    let invoice = bob.invoice();
+    alice.fulfill(invoice);
+     */
+
+    /*
     let mut alice = OmniBarrow::load("");
 
     let seal1 = alice.next_seal_pub();
