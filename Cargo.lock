@@ -1178,6 +1178,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-alpha.1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#15a8a5505ec6823248e962824e340f5c52eab4ac"
 dependencies = [
  "amplify",
  "bp-core",

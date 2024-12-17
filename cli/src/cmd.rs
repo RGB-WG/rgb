@@ -30,7 +30,7 @@ use std::str::FromStr;
 use amplify::ByteArray;
 use bpwallet::fs::FsTextStore;
 use bpwallet::psbt::TxParams;
-use bpwallet::{Network, Sats, Vout, Wpkh, XpubDerivable};
+use bpwallet::{Keychain, Network, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use hypersonic::{AuthToken, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
@@ -148,6 +148,23 @@ pub enum Cmd {
 
         /// Extended pubkey descriptor
         descriptor: String,
+    },
+
+    /// Receiving a wallet address for gas funding
+    Fund {
+        /// Wallet to use
+        #[clap(env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+    },
+
+    /// Generate a new single-use seal
+    Seal {
+        /// Wallet to use
+        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+
+        /// Nonce number to use
+        nonce: u64,
     },
 
     /// Print out a contract state
@@ -323,6 +340,27 @@ impl Args {
                 for info in mound.contracts_info() {
                     println!("---");
                     println!("{}", serde_yaml::to_string(&info).expect("unable to generate YAML"));
+                }
+            }
+
+            Cmd::Fund { wallet } => {
+                let mut runtime = self.runtime(wallet.as_deref());
+                let addr = match self.seal {
+                    SealType::BitcoinOpret => {
+                        runtime.wallet_opret().next_address(Keychain::OUTER, true)
+                    }
+                    SealType::BitcoinTapret => {
+                        runtime.wallet_opret().next_address(Keychain::OUTER, true)
+                    }
+                };
+                println!("{addr}");
+            }
+
+            Cmd::Seal { wallet, nonce } => {
+                let mut runtime = self.runtime(wallet.as_deref());
+                match runtime.auth_token(*nonce) {
+                    None => println!("Wallet has no unspent outputs; try `fund` first"),
+                    Some(token) => println!("{token}"),
                 }
             }
 

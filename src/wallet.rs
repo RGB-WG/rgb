@@ -24,7 +24,7 @@
 
 use amplify::Bytes32;
 use bpstd::seals::Noise;
-use bpstd::{Network, XpubDerivable};
+use bpstd::{Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::{OpretProvider, TapretProvider, WalletProvider};
@@ -39,6 +39,8 @@ pub struct OpretWallet(Wallet<XpubDerivable, Opret<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for OpretWallet {
     fn noise_seed(&self) -> Bytes32 { self.noise }
+
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 }
 impl OpretProvider for OpretWallet {}
 
@@ -80,6 +82,8 @@ pub struct TapretWallet(Wallet<XpubDerivable, Tapret<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for TapretWallet {
     fn noise_seed(&self) -> Bytes32 { self.noise }
+
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 }
 impl TapretProvider for TapretWallet {}
 

@@ -11,3 +11,5 @@ rm -rf examples/data/bcor/DemoToken.contract
 $RGB --seal bcor issue -w alice examples/Demo.yaml
 $RGB contracts
 $RGB --seal bcor state -w alice
+#$RGB --seal bcor fund alice
+$RGB --seal bcor invoice alice 0

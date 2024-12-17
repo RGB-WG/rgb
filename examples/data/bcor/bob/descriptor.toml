@@ -1,0 +1,10 @@
+network = "testnet4"
+
+[generator]
+seals = []
+noise = "b2594d09688565e0206593e720711eea03d560e38b491b4e3c66f9e3957aac86"
+
+[generator.descr]
+wpkh = "[cf05f8ea/84h/1h/1h]tpubDCpZeo9QAvMewp1ZhxjW25z3DSFC2eyt4wYimHuDNMkGzGhZsfUffCULroWTVUEfEaERv1rbbYPqG6fYb5Uivw86M3y4erJ7tGLRYcdbEFE/<0;1>/*"
+
+[layer2]

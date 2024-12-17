@@ -15,5 +15,5 @@ global:
 
 owned:
   - name: owned
-    seal: bee0be478fca7df9e8023357fe20a9e53058a178be9623afe3ac3400964bcf37:0
+    seal: b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
     data: 10000
