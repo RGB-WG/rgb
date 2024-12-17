@@ -229,7 +229,7 @@ impl Args {
     }
 
     fn wallet_file(&self, name: Option<&str>) -> PathBuf {
-        let mut path = self.data_dir.join(self.seal.to_string());
+        let path = self.data_dir.join(self.seal.to_string());
         path.join(name.unwrap_or("default"))
     }
 
@@ -320,8 +320,9 @@ impl Args {
 
             Cmd::Contracts => {
                 let mound = self.mound();
-                for contract_id in mound.contract_ids() {
-                    println!("{contract_id}");
+                for info in mound.contracts_info() {
+                    println!("---");
+                    println!("{}", serde_yaml::to_string(&info).expect("unable to generate YAML"));
                 }
             }
 
@@ -331,12 +332,26 @@ impl Args {
                 contract,
             } => {
                 for (contract_id, state) in self.runtime(wallet.as_deref()).state(*contract) {
+                    println!("====");
+                    println!("Contract Id: {contract_id}");
                     println!("---");
-                    println!("Contract ID: {contract_id}");
+                    println!("Global state");
                     println!("---");
-                    let state = serde_yaml::to_string(state).expect("unable to generate YAML");
-                    println!("{state}");
-                    println!();
+                    println!(
+                        "{}",
+                        serde_yaml::to_string(&state.immutable).expect("unable to generate YAML")
+                    );
+                    println!(
+                        "{}",
+                        serde_yaml::to_string(&state.computed).expect("unable to generate YAML")
+                    );
+                    println!("---");
+                    println!("Owned state");
+                    println!("---");
+                    println!(
+                        "{}",
+                        serde_yaml::to_string(&state.owned).expect("unable to generate YAML")
+                    );
                 }
             }
 
