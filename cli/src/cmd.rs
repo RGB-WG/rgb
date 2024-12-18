@@ -34,7 +34,7 @@ use bpwallet::{Keychain, Network, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use hypersonic::{AuthToken, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
-use rgb::popls::bp::ConstructParams;
+use rgb::popls::bp::PrefabParams;
 use rgb::{CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
@@ -403,7 +403,7 @@ impl Args {
             } => {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let src = File::open(script).expect("unable to open script file");
-                let items = serde_yaml::from_reader::<_, Vec<ConstructParams>>(src)?;
+                let items = serde_yaml::from_reader::<_, Vec<PrefabParams>>(src)?;
                 let bundle = runtime.bundle(items);
                 assert!(
                     bundle.defines().all(|vout| vout == Vout::from(0)),

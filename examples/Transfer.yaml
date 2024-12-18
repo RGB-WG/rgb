@@ -1,0 +1,12 @@
+- contractId: y1RBm~7f-hGoESyj-KPU1sNF-C7RFtm1-S4UobVz-Fu1dV5s
+  method: transfer
+  reading: [ ]
+  global: [ ]
+  using:
+    - addr: 1d305c99f8af26adede6b107ef3f7cb7d334b4c57c0a638a2443c3665ae74d61:0
+      outpoint: 942b28ad3f733cda3774c98279098061c454adbba0aec1d6b03a618599b64d04:0
+      val: 10000
+  owned:
+    - name: owned
+      seal: 5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-XJ6ejw
+      data: 10

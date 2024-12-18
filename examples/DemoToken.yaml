@@ -2,6 +2,7 @@ sealType: BitcoinOpret
 codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
 name: DemoToken
 method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
 
 global:
   - name: name
