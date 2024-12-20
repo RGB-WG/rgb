@@ -30,14 +30,14 @@ bp-esplora = { version = "0.12.0-beta.1", default-features = false }
 bp-wallet = { version = "0.12.0-beta.1" }
 rgb-std = { version = "0.12.0-alpha.1" }
 # rgb-psbt = { version = "0.11.0-beta.9", path = "psbt" }
-rgb-bp = { version = "0.12.0-alpha.1", path = "." }
+rgb-runtime = { version = "0.12.0-alpha.1", path = "." }
 indexmap = "2.7.0"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 
 [package]
-name = "rgb-bp"
+name = "rgb-runtime"
 version.workspace = true
 description = "RGB smart contracts wallet runtime"
 keywords.workspace = true

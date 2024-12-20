@@ -1137,7 +1137,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
-name = "rgb-bp"
+name = "rgb-core"
+version = "0.12.0-beta.3"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#f95a75c43ea335082f0c9671ae26c8f765da582e"
+dependencies = [
+ "amplify",
+ "bp-core",
+ "commit_verify",
+ "getrandom",
+ "serde",
+ "single_use_seals",
+ "strict_encoding",
+ "ultrasonic",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "rgb-runtime"
 version = "0.12.0-alpha.1"
 dependencies = [
  "amplify",
@@ -1157,22 +1173,6 @@ dependencies = [
  "serde_yaml",
  "wasm-bindgen",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "rgb-core"
-version = "0.12.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#f95a75c43ea335082f0c9671ae26c8f765da582e"
-dependencies = [
- "amplify",
- "bp-core",
- "commit_verify",
- "getrandom",
- "serde",
- "single_use_seals",
- "strict_encoding",
- "ultrasonic",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1203,7 +1203,7 @@ dependencies = [
  "bp-wallet",
  "clap",
  "hypersonic",
- "rgb-bp",
+ "rgb-runtime",
  "rgb-std",
  "serde",
  "serde_yaml",
