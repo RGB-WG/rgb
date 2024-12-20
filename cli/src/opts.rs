@@ -22,14 +22,19 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate clap;
+use bpwallet::cli::ResolverOpt;
 
-pub mod opts;
-pub mod cmd;
+use crate::cmd::RGB_WALLET_ENV;
 
-use clap::Parser;
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct WalletOpts {
+    /// Wallet to use
+    #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+    pub wallet: Option<String>,
 
-use crate::cmd::Args;
+    #[clap(long, global = true)]
+    pub sync: bool,
 
-fn main() -> anyhow::Result<()> { Args::parse().exec() }
+    #[clap(flatten)]
+    pub reslover: ResolverOpt,
+}

@@ -1,4 +1,4 @@
-// Standard Library for RGB smart contracts
+// Wallet Library for RGB smart contracts
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -25,12 +25,15 @@
 use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
+use std::process::exit;
 use std::str::FromStr;
 
 use amplify::ByteArray;
+use bpwallet::cli::ResolverOpt;
 use bpwallet::fs::FsTextStore;
+use bpwallet::indexers::esplora;
 use bpwallet::psbt::TxParams;
-use bpwallet::{Keychain, Network, Sats, Vout, Wpkh, XpubDerivable};
+use bpwallet::{AnyIndexer, Keychain, Network, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use hypersonic::{AuthToken, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
@@ -40,6 +43,8 @@ use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
 use strict_encoding::StrictSerialize;
+
+use crate::opts::WalletOpts;
 
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
 pub const RGB_SEAL_ENV: &str = "RGB_SEAL";
@@ -170,13 +175,20 @@ pub enum Cmd {
     /// Print out a contract state
     #[clap(alias = "s")]
     State {
-        /// Wallet to use
-        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
-        wallet: Option<String>,
+        #[clap(flatten)]
+        wallet: WalletOpts,
 
         /// Present all the state, not just the one owned by the wallet
-        #[clap(short, long, global = true)]
+        #[clap(short, long)]
         all: bool,
+
+        /// Display global state entries
+        #[clap(short, long, required_unless_present = "owned")]
+        global: bool,
+
+        /// Display owned state entries
+        #[clap(short, long)]
+        owned: bool,
 
         /// Print out just a single contract state
         contract: Option<ContractId>,
@@ -280,6 +292,30 @@ impl Args {
         wallet.into()
     }
 
+    pub fn indexer(&self, resolver: &ResolverOpt) -> AnyIndexer {
+        let network = self.network.to_string();
+        match (&resolver.esplora, &resolver.electrum, &resolver.mempool) {
+            (None, Some(url), None) => AnyIndexer::Electrum(Box::new(
+                electrum::Client::new(url).expect("Unable to initialize indexer"),
+            )),
+            (Some(url), None, None) => AnyIndexer::Esplora(Box::new(
+                esplora::Client::new_esplora(&url.replace("{network}", &network))
+                    .expect("Unable to initialize indexer"),
+            )),
+            (None, None, Some(url)) => AnyIndexer::Mempool(Box::new(
+                esplora::Client::new_mempool(&url.replace("{network}", &network))
+                    .expect("Unable to initialize indexer"),
+            )),
+            _ => {
+                eprintln!(
+                    "Error: no blockchain indexer specified; use either --esplora --mempool or \
+                     --electrum argument"
+                );
+                exit(1);
+            }
+        }
+    }
+
     pub fn exec(&self) -> anyhow::Result<()> {
         match &self.command {
             Cmd::Issue { params: None, wallet: _ } => {
@@ -358,28 +394,76 @@ impl Args {
                 }
             }
 
-            Cmd::State { wallet, all, contract } => {
-                for (contract_id, state) in self.runtime(wallet.as_deref()).state(*contract) {
-                    println!("====");
-                    println!("Contract Id: {contract_id}");
-                    println!("---");
-                    println!("Global state");
-                    println!("---");
-                    println!(
-                        "{}",
-                        serde_yaml::to_string(&state.immutable).expect("unable to generate YAML")
-                    );
-                    println!(
-                        "{}",
-                        serde_yaml::to_string(&state.computed).expect("unable to generate YAML")
-                    );
-                    println!("---");
-                    println!("Owned state");
-                    println!("---");
-                    println!(
-                        "{}",
-                        serde_yaml::to_string(&state.owned).expect("unable to generate YAML")
-                    );
+            Cmd::State { wallet, all, global, owned, contract } => {
+                let mut runtime = self.runtime(wallet.wallet.as_deref());
+                if wallet.sync {
+                    let indexer = self.indexer(&wallet.reslover);
+                    match self.seal {
+                        SealType::BitcoinOpret => runtime.wallet_opret().update(&indexer),
+                        SealType::BitcoinTapret => runtime.wallet_tapret().update(&indexer),
+                    };
+                    println!();
+                }
+                for (contract_id, state) in runtime.state(*contract) {
+                    println!("{contract_id}");
+                    if *global {
+                        if state.immutable.is_empty() {
+                            println!("global: # no known global state is defined by the contract");
+                        } else {
+                            println!(
+                                "global: {:<16}\t{:<32}\t{:<32}\t{}",
+                                "state name", "verified state", "unverified state", "address"
+                            );
+                        }
+                        for (name, map) in &state.immutable {
+                            let mut first = true;
+                            for (addr, atom) in map {
+                                print!("\t{:<16}", if first { name.as_str() } else { " " });
+                                print!("\t{:<32}", atom.verified.to_string());
+                                if let Some(unverified) = &atom.unverified {
+                                    print!("\t{unverified:<32}");
+                                } else {
+                                    print!("\t{:<32}", "~")
+                                }
+                                println!("\t{addr}");
+                                first = false;
+                            }
+                        }
+
+                        if state.computed.is_empty() {
+                            println!(
+                                "comp:   # no known computed state is defined by the contract"
+                            );
+                        } else {
+                            print!(
+                                "comp:   {:<16}\t{:<32}\t{:<32}\t{}",
+                                "state name", "verified state", "unverified state", "address"
+                            );
+                        }
+                        for (name, val) in &state.computed {
+                            println!("\t{name:<16}\t{val}");
+                        }
+                    }
+                    if *owned {
+                        if state.owned.is_empty() {
+                            println!("owned:  # no known owned state is defined by the contract");
+                        } else {
+                            println!(
+                                "owned:  {:<16}\t{:<32}\t{:<46}\t{}",
+                                "state name", "value", "address", "outpoint"
+                            );
+                        }
+                        for (name, map) in &state.owned {
+                            let mut first = true;
+                            for (addr, val) in map {
+                                print!("\t{:<16}", if first { name.as_str() } else { " " });
+                                print!("\t{:<32}", val.to_string());
+                                print!("\t{addr:<46}");
+                                println!("\t"); // TODO: print outpoint
+                                first = false;
+                            }
+                        }
+                    }
                 }
             }
 

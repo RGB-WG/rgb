@@ -60,8 +60,6 @@ hypersonic = { workspace = true }
 commit_verify = { workspace = true }
 nonasync = { workspace = true }
 bp-std = { workspace = true }
-bp-electrum = { workspace = true, optional = true }
-bp-esplora = { workspace = true, optional = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 #rgb-psbt = { workspace = true }
@@ -123,6 +121,6 @@ bp-electrum = { git = "https://github.com/BP-WG/bp-electrum-client", branch = "v
 bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "v0.12" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.12" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
-#rgb-std = { path = "../rgb-std" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-std = { path = "../rgb-std" }
+#rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
 

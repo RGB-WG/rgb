@@ -158,6 +158,7 @@ where
     }
 }
 
+/// NB: Tapret wallet also supports opret contracts
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
 pub struct Tapret<K: DeriveXOnly = XpubDerivable> {

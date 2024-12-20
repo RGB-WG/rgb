@@ -18,7 +18,9 @@ name = "rgb"
 amplify.workspace = true
 strict_encoding.workspace = true
 hypersonic = { workspace = true, features = ["persist-file"] }
-bp-wallet = { workspace = true, features = ["fs", "serde"] }
+bp-wallet = { workspace = true, features = ["fs", "serde", "cli"] }
+bp-electrum = { workspace = true }
+bp-esplora = { workspace = true }
 rgb-std = { workspace = true, features = ["fs", "serde"] }
 rgb-runtime = { workspace = true, features = ["fs", "serde"] }
 serde.workspace = true

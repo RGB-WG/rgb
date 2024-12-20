@@ -23,7 +23,6 @@
 // the License.
 
 use amplify::Bytes32;
-use bpstd::seals::Noise;
 use bpstd::{Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
