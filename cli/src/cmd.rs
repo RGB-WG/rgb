@@ -282,10 +282,7 @@ impl Args {
 
     pub fn exec(&self) -> anyhow::Result<()> {
         match &self.command {
-            Cmd::Issue {
-                params: None,
-                wallet: _,
-            } => {
+            Cmd::Issue { params: None, wallet: _ } => {
                 println!(
                     "To issue a new contract please specify a parameters file. A contract may be \
                      issued under one of the codex listed below."
@@ -296,10 +293,7 @@ impl Args {
                     println!("{:<32}\t{codex_id}\t{}", schema.codex.name, schema.codex.developer);
                 }
             }
-            Cmd::Issue {
-                params: Some(params),
-                wallet,
-            } => {
+            Cmd::Issue { params: Some(params), wallet } => {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let file = File::open(params).expect("Unable to open parameters file");
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
@@ -364,11 +358,7 @@ impl Args {
                 }
             }
 
-            Cmd::State {
-                wallet,
-                all,
-                contract,
-            } => {
+            Cmd::State { wallet, all, contract } => {
                 for (contract_id, state) in self.runtime(wallet.as_deref()).state(*contract) {
                     println!("====");
                     println!("Contract Id: {contract_id}");
@@ -430,11 +420,7 @@ impl Args {
                 }
             }
 
-            Cmd::Consign {
-                contract,
-                terminals,
-                output,
-            } => {
+            Cmd::Consign { contract, terminals, output } => {
                 let mut mound = self.mound();
                 match self.seal {
                     SealType::BitcoinOpret => {

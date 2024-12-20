@@ -118,10 +118,6 @@ impl TapretWallet {
     }
 }
 
-pub trait SealNoiseGen {
-    fn next(&mut self) -> Noise;
-}
-
 #[cfg(feature = "fs")]
 pub mod file {
     use std::iter;
