@@ -455,11 +455,11 @@ impl Args {
                         }
                         for (name, map) in &state.owned {
                             let mut first = true;
-                            for (addr, val) in map {
+                            for (addr, assignment) in map {
                                 print!("\t{:<16}", if first { name.as_str() } else { " " });
-                                print!("\t{:<32}", val.to_string());
+                                print!("\t{:<32}", assignment.data.to_string());
                                 print!("\t{addr:<46}");
-                                println!("\t"); // TODO: print outpoint
+                                println!("\t{}", assignment.seal);
                                 first = false;
                             }
                         }

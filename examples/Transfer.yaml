@@ -3,8 +3,8 @@
   reading: [ ]
   global: [ ]
   using:
-    - addr: 1d305c99f8af26adede6b107ef3f7cb7d334b4c57c0a638a2443c3665ae74d61:0
-      outpoint: 942b28ad3f733cda3774c98279098061c454adbba0aec1d6b03a618599b64d04:0
+    - addr: HTBcmfivJq3t5rEH7z98t9M0tMV8CmOKJEPDZlrnTWE:0
+      outpoint: b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
       val: 10000
   owned:
     - name: owned
