@@ -35,7 +35,7 @@ use crate::descriptor::{Opret, Tapret};
 #[derive(Wrapper, WrapperMut, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
-pub struct OpretWallet(Wallet<XpubDerivable, Opret<XpubDerivable>, NoLayer2>);
+pub struct OpretWallet(pub Wallet<XpubDerivable, Opret<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for OpretWallet {
     fn noise_seed(&self) -> Bytes32 { self.noise }
@@ -80,7 +80,7 @@ impl OpretWallet {
 #[derive(Wrapper, WrapperMut, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
-pub struct TapretWallet(Wallet<XpubDerivable, Tapret<XpubDerivable>, NoLayer2>);
+pub struct TapretWallet(pub Wallet<XpubDerivable, Tapret<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for TapretWallet {
     fn noise_seed(&self) -> Bytes32 { self.noise }
@@ -136,7 +136,7 @@ pub mod file {
     #[derive(Wrapper, WrapperMut, From)]
     #[wrapper(Deref)]
     #[wrapper_mut(DerefMut)]
-    pub struct DirRuntime(DirBarrow<OpretWallet, TapretWallet>);
+    pub struct DirRuntime(pub DirBarrow<OpretWallet, TapretWallet>);
 
     impl DirRuntime {
         // TODO: Support multiple change outputs

@@ -30,19 +30,21 @@ use std::str::FromStr;
 
 use amplify::ByteArray;
 use bpwallet::cli::ResolverOpt;
+use bpwallet::dbc::opret::OpretProof;
+use bpwallet::dbc::tapret::TapretProof;
 use bpwallet::fs::FsTextStore;
 use bpwallet::indexers::esplora;
 use bpwallet::psbt::TxParams;
-use bpwallet::{AnyIndexer, Keychain, Network, Sats, Vout, Wpkh, XpubDerivable};
+use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use hypersonic::{AuthToken, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
-use rgb::popls::bp::PrefabParams;
+use rgb::popls::bp::{PrefabBundle, PrefabParams};
 use rgb::{CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
-use strict_encoding::StrictSerialize;
+use strict_encoding::{StrictDeserialize, StrictSerialize};
 
 use crate::opts::WalletOpts;
 
@@ -222,6 +224,19 @@ pub enum Cmd {
         /// 'psbt'.
         #[clap(value_hint = ValueHint::FilePath)]
         psbt: Option<PathBuf>,
+    },
+
+    /// Complete finalizes PSBT and adds information about witness to the contracts mound
+    Complete {
+        /// Wallet to use
+        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+
+        /// Prefabricated operation bundle, used in PSBT construction
+        bundle: PathBuf,
+
+        /// Signed PSBT
+        psbt: PathBuf,
     },
 
     /// Create a consignment transferring part of a contract state to another peer
@@ -499,11 +514,34 @@ impl Args {
                         .with_extension("psbt"),
                 )
                 .expect("Unable to create PSBT");
+                // TODO: Embed commitment information
                 psbt.encode(psbt.version, &mut psbt_file)
                     .expect("Unable to write PSBT");
                 if *print {
                     println!("{psbt}");
                 }
+            }
+
+            Cmd::Complete { wallet, bundle, psbt } => {
+                let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
+                let mut psbt = Psbt::decode(&mut File::open(psbt).expect("Unable to open PSBT"))?;
+                let prevouts = psbt
+                    .inputs()
+                    .map(|inp| inp.previous_outpoint)
+                    .collect::<Vec<_>>();
+                let mut runtime = self.runtime(wallet.as_deref());
+                match &mut runtime.0 {
+                    DirBarrow::BcOpret(barrow) => {
+                        let (mpc, dbc) = psbt.dbc_commit::<OpretProof>()?;
+                        let tx = psbt.to_unsigned_tx();
+                        barrow.attest(&bundle, &tx.into(), mpc, dbc, &prevouts);
+                    }
+                    DirBarrow::BcTapret(barrow) => {
+                        let (mpc, dbc) = psbt.dbc_commit::<TapretProof>()?;
+                        let tx = psbt.to_unsigned_tx();
+                        barrow.attest(&bundle, &tx.into(), mpc, dbc, &prevouts);
+                    }
+                };
             }
 
             Cmd::Consign { contract, terminals, output } => {
