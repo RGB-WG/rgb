@@ -17,5 +17,7 @@ $RGB --seal bcor seal -w bob 0
 rm examples/transfer.psbt
 $RGB --seal bcor exec -w alice examples/Transfer.yaml examples/transfer.pfab 1000 examples/transfer.psbt
 
+$RGB --seal bcor complete -w alice examples/transfer.pfab examples/transfer.psbt
+
 rm examples/transfer.rgb
 $RGB --seal bcor consign y1RBm~7f-hGoESyj-KPU1sNF-C7RFtm1-S4UobVz-Fu1dV5s -t 5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-XJ6ejw examples/transfer.rgb

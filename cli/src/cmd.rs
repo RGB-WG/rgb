@@ -522,9 +522,11 @@ impl Args {
                 }
             }
 
-            Cmd::Complete { wallet, bundle, psbt } => {
+            Cmd::Complete { wallet, bundle, psbt: psbt_file } => {
                 let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
-                let mut psbt = Psbt::decode(&mut File::open(psbt).expect("Unable to open PSBT"))?;
+                let mut psbt =
+                    Psbt::decode(&mut File::open(psbt_file).expect("Unable to open PSBT"))?;
+                psbt.complete_construction();
                 let prevouts = psbt
                     .inputs()
                     .map(|inp| inp.previous_outpoint)
@@ -542,6 +544,10 @@ impl Args {
                         barrow.attest(&bundle, &tx.into(), mpc, dbc, &prevouts);
                     }
                 };
+                psbt.encode(
+                    psbt.version,
+                    &mut File::create(psbt_file).expect("Unable to write PSBT"),
+                )?;
             }
 
             Cmd::Consign { contract, terminals, output } => {
