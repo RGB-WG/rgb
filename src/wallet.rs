@@ -23,6 +23,7 @@
 // the License.
 
 use amplify::Bytes32;
+use bpstd::psbt::PsbtConstructor;
 use bpstd::{Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
@@ -38,6 +39,8 @@ pub struct OpretWallet(Wallet<XpubDerivable, Opret<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for OpretWallet {
     fn noise_seed(&self) -> Bytes32 { self.noise }
+
+    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 }
@@ -81,6 +84,8 @@ pub struct TapretWallet(Wallet<XpubDerivable, Tapret<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for TapretWallet {
     fn noise_seed(&self) -> Bytes32 { self.noise }
+
+    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 }

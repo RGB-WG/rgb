@@ -404,7 +404,9 @@ impl Args {
                     };
                     println!();
                 }
-                for (contract_id, state) in runtime.state(*contract) {
+                let state =
+                    if *all { runtime.state_all(*contract) } else { runtime.state(*contract) };
+                for (contract_id, state) in state {
                     println!("{contract_id}");
                     if *global {
                         if state.immutable.is_empty() {
