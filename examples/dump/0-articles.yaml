@@ -1,0 +1,618 @@
+contract:
+  version: null
+  meta:
+    capabilities: 65537
+    timestamp: 1734525120
+    name: DemoToken
+    issuer: ssi:anonymous
+  codex:
+    version: null
+    name: NonInflatableAsset
+    developer: dns:pandoraprime.ch
+    timestamp: 1732529307
+    fieldOrder: fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2e
+    inputConfig:
+      halt: true
+      complexity_lim: null
+    verificationConfig:
+      halt: true
+      complexity_lim: null
+    verifiers:
+      0:
+        libId: f2125a98cc413c1e5ddeafada6fc5b861097cccc0b1166566227fc293a059062
+        offset: 0
+      1:
+        libId: f2125a98cc413c1e5ddeafada6fc5b861097cccc0b1166566227fc293a059062
+        offset: 0
+      2:
+        libId: f2125a98cc413c1e5ddeafada6fc5b861097cccc0b1166566227fc293a059062
+        offset: 0
+    reserved: null
+  genesis:
+    codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
+    callId: 0
+    nonce: 0.fe
+    destructible:
+    - data:
+        type: double
+        first: 0.fe
+        second: 2710.fe
+      auth: mykpblno-Q34RHKIx-STNJ4IXb-9_www86k-83axvUfP-CBUVmg
+      lock: null
+    immutable:
+    - value:
+        type: double
+        first: 0.fe
+        second: 6E656B6F54206F6D65440A.fe
+      raw: null
+    - value:
+        type: double
+        first: 1.fe
+        second: 4F4D454404.fe
+      raw: null
+    - value:
+        type: double
+        first: 2.fe
+        second: 5.fe
+      raw: null
+    - value:
+        type: double
+        first: 3.fe
+        second: 2710.fe
+      raw: null
+    reserved: null
+contractSigs: {}
+codex:
+  version: null
+  name: NonInflatableAsset
+  developer: dns:pandoraprime.ch
+  timestamp: 1732529307
+  fieldOrder: fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2e
+  inputConfig:
+    halt: true
+    complexity_lim: null
+  verificationConfig:
+    halt: true
+    complexity_lim: null
+  verifiers:
+    0:
+      libId: f2125a98cc413c1e5ddeafada6fc5b861097cccc0b1166566227fc293a059062
+      offset: 0
+    1:
+      libId: f2125a98cc413c1e5ddeafada6fc5b861097cccc0b1166566227fc293a059062
+      offset: 0
+    2:
+      libId: f2125a98cc413c1e5ddeafada6fc5b861097cccc0b1166566227fc293a059062
+      offset: 0
+  reserved: null
+defaultApi: !embedded
+  version: null
+  codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
+  timestamp: 1732529307
+  name: null
+  developer: dns:pandoraprime.ch
+  appendOnly:
+    circulating:
+      semId: 888c5865633af13b95b7cd1a8d8af2dac1dc140b977251d9d4daf3c7511c8e84
+      rawSemId: d83fbee02f0de5b46cf80fe11ef7fdf061c78d975d31ade9eea2bc4099339e6c
+      published: true
+      adaptor: '0000000000000000000000000000000000000000000000000000000000000003'
+    name:
+      semId: 2cd0878a04bfec531cc3455a2a13b1aaad549d19650eed9f6d43457fee86dadf
+      rawSemId: d83fbee02f0de5b46cf80fe11ef7fdf061c78d975d31ade9eea2bc4099339e6c
+      published: true
+      adaptor: '0000000000000000000000000000000000000000000000000000000000000000'
+    precision:
+      semId: 5d03c4178da98e7e3f3af343e3997d74201d11f42732cfbea2b04b8e3ff15f22
+      rawSemId: d83fbee02f0de5b46cf80fe11ef7fdf061c78d975d31ade9eea2bc4099339e6c
+      published: true
+      adaptor: '0000000000000000000000000000000000000000000000000000000000000002'
+    ticker:
+      semId: 426010043dde389dba1a8d0fc3bfd798aec916f2efb0f566b9ea31b560da9b6d
+      rawSemId: d83fbee02f0de5b46cf80fe11ef7fdf061c78d975d31ade9eea2bc4099339e6c
+      published: true
+      adaptor: '0000000000000000000000000000000000000000000000000000000000000001'
+  destructible:
+    owned:
+      semId: 888c5865633af13b95b7cd1a8d8af2dac1dc140b977251d9d4daf3c7511c8e84
+      arithmetics: fungible
+      adaptor: '0000000000000000000000000000000000000000000000000000000000000000'
+  readers: {}
+  verifiers:
+    issue: 0
+    transfer: 1
+  errors:
+    '0000000000000000000000000000000000000000000000000000000000000000': sum of inputs is not equal to sum of outputs
+defaultApiSigs: {}
+customApis: {}
+libs:
+- isae: []
+  code:
+  - 15
+  data: []
+  libs: []
+types:
+  2cd0878a04bfec531cc3455a2a13b1aaad549d19650eed9f6d43457fee86dadf: !Tuple
+  - c43a7d9eb9b3027973c98f5dd6e1ac04f5cbd34240c0bebc0a0fb808140094d4
+  426010043dde389dba1a8d0fc3bfd798aec916f2efb0f566b9ea31b560da9b6d: !Tuple
+  - c26111e59fe29a770e06edbea6178f3e838add089ca313e449b050f65b91ba77
+  48be23172ae884459ae78334a0063f09fa0e317bea8b233ce782a38875e796b8: !Enum
+  - name: space
+    tag: 32
+  - name: excl
+    tag: 33
+  - name: quotes
+    tag: 34
+  - name: hash
+    tag: 35
+  - name: dollar
+    tag: 36
+  - name: percent
+    tag: 37
+  - name: ampersand
+    tag: 38
+  - name: apostrophe
+    tag: 39
+  - name: bracketL
+    tag: 40
+  - name: bracketR
+    tag: 41
+  - name: asterisk
+    tag: 42
+  - name: plus
+    tag: 43
+  - name: comma
+    tag: 44
+  - name: minus
+    tag: 45
+  - name: dot
+    tag: 46
+  - name: slash
+    tag: 47
+  - name: zero
+    tag: 48
+  - name: one
+    tag: 49
+  - name: two
+    tag: 50
+  - name: three
+    tag: 51
+  - name: four
+    tag: 52
+  - name: five
+    tag: 53
+  - name: six
+    tag: 54
+  - name: seven
+    tag: 55
+  - name: eight
+    tag: 56
+  - name: nine
+    tag: 57
+  - name: colon
+    tag: 58
+  - name: semiColon
+    tag: 59
+  - name: less
+    tag: 60
+  - name: equal
+    tag: 61
+  - name: greater
+    tag: 62
+  - name: question
+    tag: 63
+  - name: at
+    tag: 64
+  - name: _A
+    tag: 65
+  - name: _B
+    tag: 66
+  - name: _C
+    tag: 67
+  - name: _D
+    tag: 68
+  - name: _E
+    tag: 69
+  - name: _F
+    tag: 70
+  - name: _G
+    tag: 71
+  - name: _H
+    tag: 72
+  - name: _I
+    tag: 73
+  - name: _J
+    tag: 74
+  - name: _K
+    tag: 75
+  - name: _L
+    tag: 76
+  - name: _M
+    tag: 77
+  - name: _N
+    tag: 78
+  - name: _O
+    tag: 79
+  - name: _P
+    tag: 80
+  - name: _Q
+    tag: 81
+  - name: _R
+    tag: 82
+  - name: _S
+    tag: 83
+  - name: _T
+    tag: 84
+  - name: _U
+    tag: 85
+  - name: _V
+    tag: 86
+  - name: _W
+    tag: 87
+  - name: _X
+    tag: 88
+  - name: _Y
+    tag: 89
+  - name: _Z
+    tag: 90
+  - name: sqBracketL
+    tag: 91
+  - name: backSlash
+    tag: 92
+  - name: sqBracketR
+    tag: 93
+  - name: caret
+    tag: 94
+  - name: lodash
+    tag: 95
+  - name: backtick
+    tag: 96
+  - name: a
+    tag: 97
+  - name: b
+    tag: 98
+  - name: c
+    tag: 99
+  - name: d
+    tag: 100
+  - name: e
+    tag: 101
+  - name: f
+    tag: 102
+  - name: g
+    tag: 103
+  - name: h
+    tag: 104
+  - name: i
+    tag: 105
+  - name: j
+    tag: 106
+  - name: k
+    tag: 107
+  - name: l
+    tag: 108
+  - name: m
+    tag: 109
+  - name: n
+    tag: 110
+  - name: o
+    tag: 111
+  - name: p
+    tag: 112
+  - name: q
+    tag: 113
+  - name: r
+    tag: 114
+  - name: s
+    tag: 115
+  - name: t
+    tag: 116
+  - name: u
+    tag: 117
+  - name: v
+    tag: 118
+  - name: w
+    tag: 119
+  - name: x
+    tag: 120
+  - name: y
+    tag: 121
+  - name: z
+    tag: 122
+  - name: cBracketL
+    tag: 123
+  - name: pipe
+    tag: 124
+  - name: cBracketR
+    tag: 125
+  - name: tilde
+    tag: 126
+  5ca149585de534ee91b3e3a030b7efd4cdb79abea9152f101f3759b4c7210e1f: !Primitive 8
+  5d03c4178da98e7e3f3af343e3997d74201d11f42732cfbea2b04b8e3ff15f22: !Enum
+  - name: indivisible
+    tag: 0
+  - name: deci
+    tag: 1
+  - name: centi
+    tag: 2
+  - name: milli
+    tag: 3
+  - name: deciMilli
+    tag: 4
+  - name: centiMilli
+    tag: 5
+  - name: micro
+    tag: 6
+  - name: deciMicro
+    tag: 7
+  - name: centiMicro
+    tag: 8
+  - name: nano
+    tag: 9
+  - name: deciNano
+    tag: 10
+  - name: centiNano
+    tag: 11
+  - name: pico
+    tag: 12
+  - name: deciPico
+    tag: 13
+  - name: centiPico
+    tag: 14
+  - name: femto
+    tag: 15
+  - name: deciFemto
+    tag: 16
+  - name: centiFemto
+    tag: 17
+  - name: atto
+    tag: 18
+  5f5e26e5c5053c1b4544515bc6a0653da02a0791fb31116d71a4fad916e15355: !Enum
+  - name: zero
+    tag: 48
+  - name: one
+    tag: 49
+  - name: two
+    tag: 50
+  - name: three
+    tag: 51
+  - name: four
+    tag: 52
+  - name: five
+    tag: 53
+  - name: six
+    tag: 54
+  - name: seven
+    tag: 55
+  - name: eight
+    tag: 56
+  - name: nine
+    tag: 57
+  - name: _A
+    tag: 65
+  - name: _B
+    tag: 66
+  - name: _C
+    tag: 67
+  - name: _D
+    tag: 68
+  - name: _E
+    tag: 69
+  - name: _F
+    tag: 70
+  - name: _G
+    tag: 71
+  - name: _H
+    tag: 72
+  - name: _I
+    tag: 73
+  - name: _J
+    tag: 74
+  - name: _K
+    tag: 75
+  - name: _L
+    tag: 76
+  - name: _M
+    tag: 77
+  - name: _N
+    tag: 78
+  - name: _O
+    tag: 79
+  - name: _P
+    tag: 80
+  - name: _Q
+    tag: 81
+  - name: _R
+    tag: 82
+  - name: _S
+    tag: 83
+  - name: _T
+    tag: 84
+  - name: _U
+    tag: 85
+  - name: _V
+    tag: 86
+  - name: _W
+    tag: 87
+  - name: _X
+    tag: 88
+  - name: _Y
+    tag: 89
+  - name: _Z
+    tag: 90
+  - name: a
+    tag: 97
+  - name: b
+    tag: 98
+  - name: c
+    tag: 99
+  - name: d
+    tag: 100
+  - name: e
+    tag: 101
+  - name: f
+    tag: 102
+  - name: g
+    tag: 103
+  - name: h
+    tag: 104
+  - name: i
+    tag: 105
+  - name: j
+    tag: 106
+  - name: k
+    tag: 107
+  - name: l
+    tag: 108
+  - name: m
+    tag: 109
+  - name: n
+    tag: 110
+  - name: o
+    tag: 111
+  - name: p
+    tag: 112
+  - name: q
+    tag: 113
+  - name: r
+    tag: 114
+  - name: s
+    tag: 115
+  - name: t
+    tag: 116
+  - name: u
+    tag: 117
+  - name: v
+    tag: 118
+  - name: w
+    tag: 119
+  - name: x
+    tag: 120
+  - name: y
+    tag: 121
+  - name: z
+    tag: 122
+  822380f475f0edb4b5dc517991de7390ada2dbb3752c4c066851aa01630296c2: !Enum
+  - name: _A
+    tag: 65
+  - name: _B
+    tag: 66
+  - name: _C
+    tag: 67
+  - name: _D
+    tag: 68
+  - name: _E
+    tag: 69
+  - name: _F
+    tag: 70
+  - name: _G
+    tag: 71
+  - name: _H
+    tag: 72
+  - name: _I
+    tag: 73
+  - name: _J
+    tag: 74
+  - name: _K
+    tag: 75
+  - name: _L
+    tag: 76
+  - name: _M
+    tag: 77
+  - name: _N
+    tag: 78
+  - name: _O
+    tag: 79
+  - name: _P
+    tag: 80
+  - name: _Q
+    tag: 81
+  - name: _R
+    tag: 82
+  - name: _S
+    tag: 83
+  - name: _T
+    tag: 84
+  - name: _U
+    tag: 85
+  - name: _V
+    tag: 86
+  - name: _W
+    tag: 87
+  - name: _X
+    tag: 88
+  - name: _Y
+    tag: 89
+  - name: _Z
+    tag: 90
+  - name: a
+    tag: 97
+  - name: b
+    tag: 98
+  - name: c
+    tag: 99
+  - name: d
+    tag: 100
+  - name: e
+    tag: 101
+  - name: f
+    tag: 102
+  - name: g
+    tag: 103
+  - name: h
+    tag: 104
+  - name: i
+    tag: 105
+  - name: j
+    tag: 106
+  - name: k
+    tag: 107
+  - name: l
+    tag: 108
+  - name: m
+    tag: 109
+  - name: n
+    tag: 110
+  - name: o
+    tag: 111
+  - name: p
+    tag: 112
+  - name: q
+    tag: 113
+  - name: r
+    tag: 114
+  - name: s
+    tag: 115
+  - name: t
+    tag: 116
+  - name: u
+    tag: 117
+  - name: v
+    tag: 118
+  - name: w
+    tag: 119
+  - name: x
+    tag: 120
+  - name: y
+    tag: 121
+  - name: z
+    tag: 122
+  888c5865633af13b95b7cd1a8d8af2dac1dc140b977251d9d4daf3c7511c8e84: !Tuple
+  - 5ca149585de534ee91b3e3a030b7efd4cdb79abea9152f101f3759b4c7210e1f
+  c26111e59fe29a770e06edbea6178f3e838add089ca313e449b050f65b91ba77: !Tuple
+  - 822380f475f0edb4b5dc517991de7390ada2dbb3752c4c066851aa01630296c2
+  - f9fe65bda6fc78616c39e2a76ea4f356b85f3e59fe29b865e121d2524f12874a
+  c43a7d9eb9b3027973c98f5dd6e1ac04f5cbd34240c0bebc0a0fb808140094d4: !Tuple
+  - 48be23172ae884459ae78334a0063f09fa0e317bea8b233ce782a38875e796b8
+  - f5ad172144ccd2dd62ece74ff0fb14641d936a80c1a0c93ebf97727184897cbc
+  f5ad172144ccd2dd62ece74ff0fb14641d936a80c1a0c93ebf97727184897cbc: !List
+  - 48be23172ae884459ae78334a0063f09fa0e317bea8b233ce782a38875e796b8
+  - min: 0
+    max: 39
+  f9fe65bda6fc78616c39e2a76ea4f356b85f3e59fe29b865e121d2524f12874a: !List
+  - 5f5e26e5c5053c1b4544515bc6a0653da02a0791fb31116d71a4fad916e15355
+  - min: 1
+    max: 7
+codexSigs: {}
+annotations: {}
+reserved: null

@@ -263,7 +263,7 @@ impl Args {
     }
 
     pub fn wallet_provider(&self, name: Option<&str>) -> FsTextStore {
-        FsTextStore::new(self.wallet_file(name)).expect("broken directory structure")
+        FsTextStore::new(self.wallet_file(name)).expect("Broken directory structure")
     }
 
     pub fn runtime(&self, name: Option<&str>) -> DirRuntime {
@@ -351,7 +351,7 @@ impl Args {
                             self.network,
                             true,
                         )
-                        .expect("unable to create wallet");
+                        .expect("Unable to create wallet");
                     }
                     SealType::BitcoinTapret => {
                         TapretWallet::create(
@@ -360,7 +360,7 @@ impl Args {
                             self.network,
                             true,
                         )
-                        .expect("unable to create wallet");
+                        .expect("Unable to create wallet");
                     }
                 }
             }
@@ -369,7 +369,7 @@ impl Args {
                 let mound = self.mound();
                 for info in mound.contracts_info() {
                     println!("---");
-                    println!("{}", serde_yaml::to_string(&info).expect("unable to generate YAML"));
+                    println!("{}", serde_yaml::to_string(&info).expect("Uenable to generate YAML"));
                 }
             }
 
@@ -476,7 +476,7 @@ impl Args {
                 print,
             } => {
                 let mut runtime = self.runtime(wallet.as_deref());
-                let src = File::open(script).expect("unable to open script file");
+                let src = File::open(script).expect("Unable to open script file");
                 let items = serde_yaml::from_reader::<_, Vec<PrefabParams>>(src)?;
                 let bundle = runtime.bundle(items);
                 assert!(
@@ -485,20 +485,20 @@ impl Args {
                 );
                 bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
-                    .expect("unable to write output file");
+                    .expect("Unable to write output file");
 
                 let (psbt, _) = runtime
                     .construct_psbt(&bundle, TxParams::with(*fee))
-                    .expect("unable to construct PSBT");
+                    .expect("Unable to construct PSBT");
                 let mut psbt_file = File::create_new(
                     psbt_filename
                         .as_ref()
                         .unwrap_or(bundle_filename)
                         .with_extension("psbt"),
                 )
-                .expect("unable to create PSBT");
+                .expect("Unable to create PSBT");
                 psbt.encode(psbt.version, &mut psbt_file)
-                    .expect("unable to write PSBT");
+                    .expect("Unable to write PSBT");
                 if *print {
                     println!("{psbt}");
                 }
@@ -514,7 +514,7 @@ impl Args {
                         .bc_tapret
                         .consign_to_file(*contract, terminals, output),
                 }
-                .expect("unable to consign contract");
+                .expect("Unable to consign contract");
             }
 
             Cmd::Accept { input } => {

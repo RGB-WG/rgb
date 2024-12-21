@@ -332,7 +332,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#50f28740463664ee255e0b2e348c4f1d1130fe0f"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -379,7 +379,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#50f28740463664ee255e0b2e348c4f1d1130fe0f"
 dependencies = [
  "amplify",
  "bech32",
@@ -407,7 +407,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#50f28740463664ee255e0b2e348c4f1d1130fe0f"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -425,7 +425,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#1b4a6e31587e2fa884e828e0bebcadf80654a424"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#beab39fc1e1e513755eaa891c4e2045a3ffdbf16"
 dependencies = [
  "amplify",
  "base64",
@@ -689,7 +689,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#50f28740463664ee255e0b2e348c4f1d1130fe0f"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1345,7 +1345,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#ad51cc92acba6764c791d76a5d0034ca7b4f2763"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#50f28740463664ee255e0b2e348c4f1d1130fe0f"
 dependencies = [
  "amplify",
  "base64",
@@ -1477,7 +1477,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#02823ad1bf60cad81052e9a9300fcd8db2ad7836"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#67d3dd40b141981f669827eb9fb1e15f04ba8fe7"
 dependencies = [
  "amplify",
  "bp-core",
@@ -2009,7 +2009,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/AluVM/ultrasonic#ccb78f3fa2a50bdd2215b150847a348a8e75078c"
+source = "git+https://github.com/AluVM/ultrasonic#178a7b83a4ba6e5657210e7261b1075de79576b7"
 dependencies = [
  "amplify",
  "baid64",
