@@ -1,0 +1,28 @@
+[package]
+name = "rgb-psbt"
+description = "Partially-signed transaction support for RGB protocol"
+version.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "rgpsbt"
+
+[dependencies]
+amplify = { workspace = true }
+commit_verify = { workspace = true }
+rgb-std = { workspace = true, features = ["bitcoin"] }
+bp-std = { workspace = true, optional = true }
+
+[features]
+default = []
+all = ["bp", "rust-bitcoin"]
+
+bp = ["bp-std"]
+rust-bitcoin = []

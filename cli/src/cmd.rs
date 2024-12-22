@@ -44,6 +44,7 @@ use rgb::{CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
+use rgpsbt::RgbPsbt;
 use strict_encoding::{StrictDeserialize, StrictSerialize};
 
 use crate::opts::WalletOpts;
@@ -504,7 +505,7 @@ impl Args {
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
                     .expect("Unable to write output file");
 
-                let (psbt, _) = runtime
+                let (mut psbt, _) = runtime
                     .construct_psbt(&bundle, TxParams::with(*fee))
                     .expect("Unable to construct PSBT");
                 let mut psbt_file = File::create_new(
@@ -514,7 +515,8 @@ impl Args {
                         .with_extension("psbt"),
                 )
                 .expect("Unable to create PSBT");
-                // TODO: Embed commitment information
+                psbt.rgb_fill_csv(bundle)
+                    .expect("Unable to embed RGB information to PSBT");
                 psbt.encode(psbt.version, &mut psbt_file)
                     .expect("Unable to write PSBT");
                 if *print {
@@ -526,12 +528,17 @@ impl Args {
                 let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
                 let mut psbt =
                     Psbt::decode(&mut File::open(psbt_file).expect("Unable to open PSBT"))?;
-                psbt.complete_construction();
+                psbt.rgb_complete()?;
+
+                // TODO: Check that bundle matches PSBT
+
                 let prevouts = psbt
                     .inputs()
                     .map(|inp| inp.previous_outpoint)
                     .collect::<Vec<_>>();
+
                 let mut runtime = self.runtime(wallet.as_deref());
+                // TODO: Attest possible oprets for tapret wallet
                 match &mut runtime.0 {
                     DirBarrow::BcOpret(barrow) => {
                         let (mpc, dbc) = psbt.dbc_commit::<OpretProof>()?;

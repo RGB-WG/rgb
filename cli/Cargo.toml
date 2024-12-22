@@ -23,6 +23,7 @@ bp-electrum = { workspace = true }
 bp-esplora = { workspace = true }
 rgb-std = { workspace = true, features = ["fs", "serde"] }
 rgb-runtime = { workspace = true, features = ["fs", "serde"] }
+rgb-psbt = { workspace = true, features = ["bp"] }
 serde.workspace = true
 serde_yaml = "0.9.34"
 anyhow = "1.0.93"
