@@ -573,10 +573,15 @@ impl Args {
             Cmd::Accept { input } => {
                 let mut mound = self.mound();
                 match self.seal {
-                    SealType::BitcoinOpret => mound.bc_opret.consume_from_file(input),
-                    SealType::BitcoinTapret => mound.bc_opret.consume_from_file(input),
-                }
-                .unwrap_or_else(|err| panic!("Unable to accept a consignment: {err}"));
+                    SealType::BitcoinOpret => mound
+                        .bc_opret
+                        .consume_from_file(input)
+                        .unwrap_or_else(|err| panic!("Unable to accept a consignment: {err}")),
+                    SealType::BitcoinTapret => mound
+                        .bc_tapret
+                        .consume_from_file(input)
+                        .unwrap_or_else(|err| panic!("Unable to accept a consignment: {err}")),
+                };
             }
 
             _ => todo!(),
