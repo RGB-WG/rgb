@@ -31,6 +31,7 @@ use bpstd::{Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::{OpretProvider, TapretProvider, WalletProvider};
+use rgb::{AuthToken, SealAuthToken};
 
 use crate::descriptor::{Opret, Tapret};
 
@@ -54,6 +55,21 @@ impl WalletProvider for OpretWallet {
                 Ok::<_, Infallible>(())
             })
         });
+    }
+
+    fn resolve_seals(
+        &self,
+        seals: impl Iterator<Item = AuthToken>,
+    ) -> impl Iterator<Item = TxoSealDef> {
+        seals
+            .flat_map(|auth| {
+                self.0
+                    .descriptor()
+                    .seals
+                    .iter()
+                    .filter(move |seal| seal.auth_token() == auth)
+            })
+            .copied()
     }
 }
 impl OpretProvider for OpretWallet {}
@@ -108,6 +124,21 @@ impl WalletProvider for TapretWallet {
                 Ok::<_, Infallible>(())
             })
         });
+    }
+
+    fn resolve_seals(
+        &self,
+        seals: impl Iterator<Item = AuthToken>,
+    ) -> impl Iterator<Item = TxoSealDef> {
+        seals
+            .flat_map(|auth| {
+                self.0
+                    .descriptor()
+                    .seals
+                    .iter()
+                    .filter(move |seal| seal.auth_token() == auth)
+            })
+            .copied()
     }
 }
 impl TapretProvider for TapretWallet {}

@@ -37,10 +37,9 @@ use bpwallet::indexers::esplora;
 use bpwallet::psbt::TxParams;
 use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Vout, Wpkh, XpubDerivable};
 use clap::ValueHint;
-use hypersonic::{AuthToken, ContractId};
 use rgb::popls::bp::file::{DirBarrow, DirMound};
 use rgb::popls::bp::{PrefabBundle, PrefabParams};
-use rgb::{CreateParams, Outpoint, SealType};
+use rgb::{AuthToken, ContractId, CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
@@ -258,6 +257,10 @@ pub enum Cmd {
     /// Verify and accept a consignment
     #[clap(alias = "a")]
     Accept {
+        /// Wallet to use
+        #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+
         /// File with consignment to accept
         #[clap(value_hint = ValueHint::FilePath)]
         input: PathBuf,
@@ -570,18 +573,9 @@ impl Args {
                 .expect("Unable to consign contract");
             }
 
-            Cmd::Accept { input } => {
-                let mut mound = self.mound();
-                match self.seal {
-                    SealType::BitcoinOpret => mound
-                        .bc_opret
-                        .consume_from_file(input)
-                        .unwrap_or_else(|err| panic!("Unable to accept a consignment: {err}")),
-                    SealType::BitcoinTapret => mound
-                        .bc_tapret
-                        .consume_from_file(input)
-                        .unwrap_or_else(|err| panic!("Unable to accept a consignment: {err}")),
-                };
+            Cmd::Accept { wallet, input } => {
+                let mut runtime = self.runtime(wallet.as_deref());
+                runtime.consume_from_file(input)?;
             }
 
             _ => todo!(),

@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "bp-consensus"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#d44964747545123c1a7f6f875fc9a5ea5ba375c8"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#b5d5cdddab5d97b6350398273215fe1c67e90f9b"
 dependencies = [
  "amplify",
  "chrono",
@@ -301,7 +301,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#d44964747545123c1a7f6f875fc9a5ea5ba375c8"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#b5d5cdddab5d97b6350398273215fe1c67e90f9b"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -318,7 +318,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#d44964747545123c1a7f6f875fc9a5ea5ba375c8"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#b5d5cdddab5d97b6350398273215fe1c67e90f9b"
 dependencies = [
  "amplify",
  "base85",
@@ -391,7 +391,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0-beta.2"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#d44964747545123c1a7f6f875fc9a5ea5ba375c8"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#b5d5cdddab5d97b6350398273215fe1c67e90f9b"
 dependencies = [
  "amplify",
  "baid64",
@@ -1438,7 +1438,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.3"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#4224b8c3dfd08eec949c81f31c374caed0c2c1b8"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#7ac0fd908a100b299f6d015034a63fa60a4c47f8"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1470,7 +1470,6 @@ dependencies = [
  "bp-wallet",
  "commit_verify",
  "getrandom",
- "hypersonic",
  "indexmap 2.7.0",
  "log",
  "nonasync",
@@ -1485,7 +1484,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-alpha.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#73c30de2f8eedb906a592e01e9be9fe4416b43c1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#40a845fe3ad61fb310297bca4fd8db2852ec943b"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1511,7 +1510,6 @@ dependencies = [
  "bp-esplora",
  "bp-wallet",
  "clap",
- "hypersonic",
  "rgb-psbt",
  "rgb-runtime",
  "rgb-std",

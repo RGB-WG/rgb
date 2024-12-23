@@ -25,4 +25,4 @@ $RGB --seal bcor complete -w alice examples/transfer.pfab examples/transfer.psbt
 rm examples/transfer.rgb
 $RGB --seal bcor consign yxrQaqAE-W4F5io~-pU4nVOB-yo7028N-JXCESWT-1abvQk8 -t 5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-XJ6ejw examples/transfer.rgb
 
-$RGB_2 --seal bcor accept examples/transfer.rgb
+$RGB_2 --seal bcor accept -w bob examples/transfer.rgb

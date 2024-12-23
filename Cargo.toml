@@ -18,7 +18,6 @@ amplify = "4.8.0"
 strict_encoding = "2.8.1"
 commit_verify = "0.12.0-beta.1"
 nonasync = "0.1.2"
-hypersonic = "0.12.0-beta.1"
 bp-std = { version = "0.12.0-alpha.1", features = ["client-side-validation"] }
 bp-electrum = "0.12.0-beta.1"
 bp-esplora = { version = "0.12.0-beta.1", default-features = false }
@@ -51,7 +50,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amplify = { workspace = true }
-hypersonic = { workspace = true }
 commit_verify = { workspace = true }
 nonasync = { workspace = true }
 bp-std = { workspace = true }
