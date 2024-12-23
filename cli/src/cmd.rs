@@ -270,8 +270,8 @@ pub enum Cmd {
 impl Args {
     pub fn mound(&self) -> DirMound {
         if self.init {
-            let _ = fs::create_dir_all(&self.data_dir.join(SealType::BitcoinOpret.to_string()));
-            let _ = fs::create_dir_all(&self.data_dir.join(SealType::BitcoinTapret.to_string()));
+            let _ = fs::create_dir_all(self.data_dir.join(SealType::BitcoinOpret.to_string()));
+            let _ = fs::create_dir_all(self.data_dir.join(SealType::BitcoinTapret.to_string()));
         }
         DirMound::load(&self.data_dir)
     }
@@ -432,8 +432,8 @@ impl Args {
                             println!("global: # no known global state is defined by the contract");
                         } else {
                             println!(
-                                "global: {:<16}\t{:<32}\t{:<32}\t{}",
-                                "state name", "verified state", "unverified state", "address"
+                                "global: {:<16}\t{:<32}\t{:<32}\taddress",
+                                "state name", "verified state", "unverified state"
                             );
                         }
                         for (name, map) in &state.immutable {
@@ -457,8 +457,8 @@ impl Args {
                             );
                         } else {
                             print!(
-                                "comp:   {:<16}\t{:<32}\t{:<32}\t{}",
-                                "state name", "verified state", "unverified state", "address"
+                                "comp:   {:<16}\t{:<32}\t{:<32}\taddress",
+                                "state name", "verified state", "unverified state"
                             );
                         }
                         for (name, val) in &state.computed {
@@ -470,8 +470,8 @@ impl Args {
                             println!("owned:  # no known owned state is defined by the contract");
                         } else {
                             println!(
-                                "owned:  {:<16}\t{:<32}\t{:<46}\t{}",
-                                "state name", "value", "address", "outpoint"
+                                "owned:  {:<16}\t{:<32}\t{:<46}\toutpoint",
+                                "state name", "value", "address"
                             );
                         }
                         for (name, map) in &state.owned {
