@@ -22,8 +22,11 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::convert::Infallible;
+
 use amplify::Bytes32;
 use bpstd::psbt::PsbtConstructor;
+use bpstd::seals::TxoSealDef;
 use bpstd::{Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
@@ -43,6 +46,15 @@ impl WalletProvider for OpretWallet {
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
+
+    fn register_seal(&mut self, seal: TxoSealDef) {
+        let _ = self.0.descriptor_mut(|wd| {
+            wd.with_descriptor_mut(|d| {
+                d.seals.insert(seal);
+                Ok::<_, Infallible>(())
+            })
+        });
+    }
 }
 impl OpretProvider for OpretWallet {}
 
@@ -88,6 +100,15 @@ impl WalletProvider for TapretWallet {
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
+
+    fn register_seal(&mut self, seal: TxoSealDef) {
+        let _ = self.0.descriptor_mut(|wd| {
+            wd.with_descriptor_mut(|d| {
+                d.seals.insert(seal);
+                Ok::<_, Infallible>(())
+            })
+        });
+    }
 }
 impl TapretProvider for TapretWallet {}
 

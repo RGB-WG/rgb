@@ -25,12 +25,10 @@
 use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 
 use amplify::{Bytes32, Wrapper, WrapperMut};
-use bpstd::dbc::opret::OpretProof;
-use bpstd::dbc::tapret::{TapretCommitment, TapretProof};
-use bpstd::seals::TxoSeal;
+use bpstd::dbc::tapret::TapretCommitment;
+use bpstd::seals::{TxoSeal, TxoSealDef};
 use bpstd::{
     dbc, Derive, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin, Keychain,
     LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation, TapScript,
@@ -43,35 +41,13 @@ pub trait DescriptorRgb<D: dbc::Proof, K = XpubDerivable, V = ()>: Descriptor<K,
     fn add_seal(&self, seal: TxoSeal<D>);
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, From)]
+#[derive(Wrapper, WrapperMut, Clone, Eq, PartialEq, Debug, Default, From)]
+#[wrapper(Deref)]
+#[wrapper_mut(DerefMut)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
-pub struct SealDescr<D: dbc::Proof>(BTreeSet<TxoSeal<D>>);
+pub struct SealDescr(BTreeSet<TxoSealDef>);
 
-impl<D: dbc::Proof> Deref for SealDescr<D> {
-    type Target = BTreeSet<TxoSeal<D>>;
-    fn deref(&self) -> &Self::Target { &self.0 }
-}
-
-impl<D: dbc::Proof> DerefMut for SealDescr<D> {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
-}
-
-impl<D: dbc::Proof> Wrapper for SealDescr<D> {
-    type Inner = BTreeSet<TxoSeal<D>>;
-    fn from_inner(inner: Self::Inner) -> Self { Self(inner) }
-    fn as_inner(&self) -> &Self::Inner { &self.0 }
-    fn into_inner(self) -> Self::Inner { self.0 }
-}
-
-impl<D: dbc::Proof> WrapperMut for SealDescr<D> {
-    fn as_inner_mut(&mut self) -> &mut Self::Inner { &mut self.0 }
-}
-
-impl<D: dbc::Proof> Default for SealDescr<D> {
-    fn default() -> Self { Self(empty!()) }
-}
-
-impl<D: dbc::Proof> Display for SealDescr<D> {
+impl Display for SealDescr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("seals(")?;
         let mut iter = self.0.iter().peekable();
@@ -100,7 +76,7 @@ impl<D: dbc::Proof> Display for SealDescr<D> {
 )]
 pub struct Opret<K: DeriveSet = XpubDerivable> {
     pub descr: StdDescr<K>,
-    pub seals: SealDescr<OpretProof>,
+    pub seals: SealDescr,
     pub noise: Bytes32,
 }
 
@@ -164,7 +140,7 @@ where
 pub struct Tapret<K: DeriveXOnly = XpubDerivable> {
     pub tr: Tr<K>,
     pub tweaks: BTreeMap<Terminal, BTreeSet<TapretCommitment>>,
-    pub seals: SealDescr<TapretProof>,
+    pub seals: SealDescr,
     pub noise: Bytes32,
 }
 
