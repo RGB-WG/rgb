@@ -72,9 +72,7 @@ wasm-bindgen-test = "0.3"
 default = ["std"]
 all = [
     "std",
-    #"esplora_blocking", "electrum_blocking", "mempool_blocking",
     "serde", "log", "fs",
-    #"cli"
 ]
 std = []
 fs = [
@@ -83,11 +81,6 @@ fs = [
     "rgb-std/fs",
     "bp-wallet/fs",
 ]
-#cli = ["fs", "bp-wallet/cli"]
-#esplora_blocking = ["bp-esplora", "bp-esplora/blocking"]
-#esplora_blocking-wasm = ["bp-esplora", "bp-esplora/blocking-wasm"]
-#electrum_blocking = ["bp-electrum"]
-#mempool_blocking = ["esplora_blocking"]
 serde = [
     "dep:serde", "serde_yaml",
     "bp-std/serde", "rgb-std/serde"
