@@ -1,5 +1,6 @@
 [package]
 name = "rgb-wallet"
+description = "RGB smart contracts command-line wallet"
 version.workspace = true
 authors.workspace = true
 repository.workspace = true
