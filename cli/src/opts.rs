@@ -36,5 +36,5 @@ pub struct WalletOpts {
     pub sync: bool,
 
     #[clap(flatten)]
-    pub reslover: ResolverOpt,
+    pub resolver: ResolverOpt,
 }

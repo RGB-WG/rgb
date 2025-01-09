@@ -388,7 +388,7 @@ impl Args {
                 let mound = self.mound();
                 for info in mound.contracts_info() {
                     println!("---");
-                    println!("{}", serde_yaml::to_string(&info).expect("Uenable to generate YAML"));
+                    println!("{}", serde_yaml::to_string(&info).expect("Unable to generate YAML"));
                 }
             }
 
@@ -416,7 +416,7 @@ impl Args {
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet.wallet.as_deref());
                 if wallet.sync {
-                    let indexer = self.indexer(&wallet.reslover);
+                    let indexer = self.indexer(&wallet.resolver);
                     match self.seal {
                         SealType::BitcoinOpret => runtime.wallet_opret().update(&indexer),
                         SealType::BitcoinTapret => runtime.wallet_tapret().update(&indexer),
@@ -554,6 +554,7 @@ impl Args {
                         barrow.attest(&bundle, &tx.into(), mpc, dbc, &prevouts);
                     }
                 };
+
                 psbt.encode(
                     psbt.version,
                     &mut File::create(psbt_file).expect("Unable to write PSBT"),
