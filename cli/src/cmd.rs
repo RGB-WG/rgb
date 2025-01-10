@@ -508,7 +508,7 @@ impl Args {
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
                     .expect("Unable to write output file");
 
-                let (mut psbt, _) = runtime
+                let (mut psbt, meta) = runtime
                     .construct_psbt(&bundle, TxParams::with(*fee))
                     .expect("Unable to construct PSBT");
                 let mut psbt_file = File::create_new(

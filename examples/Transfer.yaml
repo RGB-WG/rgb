@@ -1,9 +1,9 @@
-- contractId: yxrQaqAE-W4F5io~-pU4nVOB-yo7028N-JXCESWT-1abvQk8
+- contractId: gDmGtRAO-gp3AQ78-jqEzM8S-_u8FVot-g2WaGXD-xLdIWXQ
   method: transfer
   reading: [ ]
   global: [ ]
   using:
-    - addr: gvmV7INdo7CpkJgzEbv4LpoM9zBihgtAO9~_7oyasOA:0
+    - addr: 71dJZXJbPfkGBe5tL0cJ4YGu_MOYcE22LGYC~7ppXYM:0
       outpoint: b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
       val: 10000
   owned:
