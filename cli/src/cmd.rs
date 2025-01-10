@@ -399,7 +399,7 @@ impl Args {
                         runtime.wallet_opret().next_address(Keychain::OUTER, true)
                     }
                     SealType::BitcoinTapret => {
-                        runtime.wallet_opret().next_address(Keychain::OUTER, true)
+                        runtime.wallet_tapret().next_address(Keychain::OUTER, true)
                     }
                 };
                 println!("{addr}");
