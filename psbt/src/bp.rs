@@ -24,10 +24,10 @@
 
 use amplify::ByteArray;
 use bpstd::seals::{mmb, mpc};
-use bpstd::{Psbt, Sats, ScriptPubkey, Unmodifiable};
+use bpstd::{Psbt, Sats, ScriptPubkey, Unmodifiable, Vout};
 use rgb::popls::bp::PrefabBundle;
 
-use crate::{RgbPsbt, RgbPsbtError};
+use crate::{RgbPsbt, RgbPsbtError, ScriptResolver};
 
 impl RgbPsbt for Psbt {
     fn rgb_fill_csv(&mut self, bundle: PrefabBundle) -> Result<(), RgbPsbtError> {
@@ -55,5 +55,15 @@ impl RgbPsbt for Psbt {
         }
         self.complete_construction();
         Ok(())
+    }
+}
+
+impl ScriptResolver for Psbt {
+    fn script_resolver(&self) -> impl Fn(&ScriptPubkey) -> Option<Vout> {
+        |spk| -> Option<Vout> {
+            self.outputs()
+                .find(|inp| &inp.script == spk)
+                .map(|inp| Vout::from_u32(inp.index() as u32))
+        }
     }
 }

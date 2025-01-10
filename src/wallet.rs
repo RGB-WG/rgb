@@ -176,12 +176,11 @@ impl TapretWallet {
 
 #[cfg(feature = "fs")]
 pub mod file {
-    use std::iter;
-
-    use bpstd::psbt::{ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
-    use bpstd::Psbt;
+    use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
+    use bpstd::{Address, Psbt};
     use rgb::popls::bp::file::DirBarrow;
-    use rgb::popls::bp::PrefabBundle;
+    use rgb::popls::bp::{PrefabParamsSet, SelfSeal};
+    use rgb::EitherSeal;
 
     use super::*;
 
@@ -191,26 +190,43 @@ pub mod file {
     pub struct DirRuntime(pub DirBarrow<OpretWallet, TapretWallet>);
 
     impl DirRuntime {
-        // TODO: Support multiple change outputs
+        pub fn network(&self) -> Network {
+            match &self.0 {
+                DirBarrow::BcOpret(barrow) => barrow.wallet.network(),
+                DirBarrow::BcTapret(barrow) => barrow.wallet.network(),
+            }
+        }
+
         pub fn construct_psbt(
             &mut self,
-            bundle: &PrefabBundle,
+            bundle: &PrefabParamsSet<SelfSeal>,
             params: TxParams,
         ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
-            let beneficiaries = iter::empty();
+            let closes = bundle
+                .iter()
+                .flat_map(|params| &params.using)
+                .map(|used| used.outpoint);
+            let network = self.network();
+            let beneficiaries = bundle
+                .iter()
+                .flat_map(|params| &params.owned)
+                .filter_map(|assignment| match &assignment.state.seal {
+                    EitherSeal::Alt(seal) => Some(seal),
+                    EitherSeal::Token(_) => None,
+                })
+                .map(|seal| {
+                    let address = Address::with(&seal.wout.to_script_pubkey(), network)
+                        .expect("script pubkey which is not representable as an address");
+                    Beneficiary::new(address, seal.amount)
+                });
             let (psbt, meta) = match &mut self.0 {
                 DirBarrow::BcOpret(barrow) => {
-                    barrow
-                        .wallet
-                        .construct_psbt(bundle.closes(), beneficiaries, params)
+                    barrow.wallet.construct_psbt(closes, beneficiaries, params)
                 }
                 DirBarrow::BcTapret(barrow) => {
-                    barrow
-                        .wallet
-                        .construct_psbt(bundle.closes(), beneficiaries, params)
+                    barrow.wallet.construct_psbt(closes, beneficiaries, params)
                 }
             }?;
-            // TODO: add single-use seals information to PSBT
             Ok((psbt, meta))
         }
     }

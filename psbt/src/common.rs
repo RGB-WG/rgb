@@ -25,7 +25,7 @@
 use bpstd::dbc::opret::OpretProof;
 use bpstd::dbc::tapret::TapretProof;
 use bpstd::seals::Anchor;
-use bpstd::Unmodifiable;
+use bpstd::{ScriptPubkey, Unmodifiable, Vout};
 use rgb::popls::bp::PrefabBundle;
 use rgb::{ContractId, Outpoint};
 
@@ -50,4 +50,8 @@ pub enum RgbPsbtError {
 
     /// input {0} is already used for {1}
     InputAlreadyUsed(usize, ContractId),
+}
+
+pub trait ScriptResolver {
+    fn script_resolver(&self) -> impl Fn(&ScriptPubkey) -> Option<Vout>;
 }

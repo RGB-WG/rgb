@@ -35,15 +35,15 @@ use bpwallet::dbc::tapret::TapretProof;
 use bpwallet::fs::FsTextStore;
 use bpwallet::indexers::esplora;
 use bpwallet::psbt::TxParams;
-use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Vout, Wpkh, XpubDerivable};
+use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use rgb::popls::bp::file::{DirBarrow, DirMound};
-use rgb::popls::bp::{PrefabBundle, PrefabParams};
+use rgb::popls::bp::{PrefabBundle, PrefabParamsSet, SelfSeal};
 use rgb::{AuthToken, ContractId, CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
-use rgpsbt::RgbPsbt;
+use rgpsbt::{RgbPsbt, ScriptResolver};
 use strict_encoding::{StrictDeserialize, StrictSerialize};
 
 use crate::opts::WalletOpts;
@@ -498,18 +498,10 @@ impl Args {
             } => {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let src = File::open(script).expect("Unable to open script file");
-                let items = serde_yaml::from_reader::<_, Vec<PrefabParams>>(src)?;
-                let bundle = runtime.bundle(items);
-                assert!(
-                    bundle.defines().all(|vout| vout == Vout::from(0)),
-                    "currently only a single self-seal is supported, which must be a first output"
-                );
-                bundle
-                    .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
-                    .expect("Unable to write output file");
+                let items = serde_yaml::from_reader::<_, PrefabParamsSet<SelfSeal>>(src)?;
 
                 let (mut psbt, meta) = runtime
-                    .construct_psbt(&bundle, TxParams::with(*fee))
+                    .construct_psbt(&items, TxParams::with(*fee))
                     .expect("Unable to construct PSBT");
                 let mut psbt_file = File::create_new(
                     psbt_filename
@@ -518,6 +510,16 @@ impl Args {
                         .with_extension("psbt"),
                 )
                 .expect("Unable to create PSBT");
+
+                // Here we send PSBT to other payjoin parties so they add their inputs and outputs,
+                // or even re-order existing ones
+
+                let items = items.resolve_seals(psbt.script_resolver())?;
+                let bundle = runtime.bundle(items, meta.change_vout.expect("no change output"));
+                bundle
+                    .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
+                    .expect("Unable to write output file");
+
                 psbt.rgb_fill_csv(bundle)
                     .expect("Unable to embed RGB information to PSBT");
                 psbt.encode(psbt.version, &mut psbt_file)
@@ -527,6 +529,7 @@ impl Args {
                 }
             }
 
+            // Here we send PSBT to other payjoin parties, so they add their client-side data.
             Cmd::Complete { wallet, bundle, psbt: psbt_file } => {
                 let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
                 let mut psbt =
