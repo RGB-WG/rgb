@@ -382,13 +382,12 @@ where Self::Descr: DescriptorRgb<K>
             }
         }
 
+        let witness_id = XChain::Bitcoin(witness_txid);
         stock
-            .consume_fascia(fascia, FasciaResolver {
-                witness_id: XChain::Bitcoin(witness_txid),
-            })
+            .consume_fascia(fascia, FasciaResolver { witness_id })
             .map_err(|e| e.to_string())?;
         let transfer = stock
-            .transfer(contract_id, beneficiary2, beneficiary1)
+            .transfer(contract_id, beneficiary2, beneficiary1, Some(witness_id))
             .map_err(|e| e.to_string())?;
 
         Ok(transfer)
