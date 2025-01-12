@@ -27,7 +27,7 @@ use std::convert::Infallible;
 use amplify::Bytes32;
 use bpstd::psbt::PsbtConstructor;
 use bpstd::seals::TxoSealDef;
-use bpstd::{Network, Outpoint, XpubDerivable};
+use bpstd::{Address, Keychain, Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::{OpretProvider, TapretProvider, WalletProvider};
@@ -71,6 +71,8 @@ impl WalletProvider for OpretWallet {
             })
             .copied()
     }
+
+    fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
 }
 impl OpretProvider for OpretWallet {}
 
@@ -140,6 +142,8 @@ impl WalletProvider for TapretWallet {
             })
             .copied()
     }
+
+    fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
 }
 impl TapretProvider for TapretWallet {}
 
@@ -179,7 +183,7 @@ pub mod file {
     use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
     use bpstd::{Address, Psbt};
     use rgb::popls::bp::file::DirBarrow;
-    use rgb::popls::bp::{PrefabParamsSet, SelfSeal};
+    use rgb::popls::bp::{PrefabParamsSet, WoutAssignment};
     use rgb::EitherSeal;
 
     use super::*;
@@ -199,7 +203,7 @@ pub mod file {
 
         pub fn construct_psbt(
             &mut self,
-            bundle: &PrefabParamsSet<SelfSeal>,
+            bundle: &PrefabParamsSet<WoutAssignment>,
             params: TxParams,
         ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
             let closes = bundle
@@ -215,7 +219,7 @@ pub mod file {
                     EitherSeal::Token(_) => None,
                 })
                 .map(|seal| {
-                    let address = Address::with(&seal.wout.to_script_pubkey(), network)
+                    let address = Address::with(&seal.wout.script_pubkey(), network)
                         .expect("script pubkey which is not representable as an address");
                     Beneficiary::new(address, seal.amount)
                 });

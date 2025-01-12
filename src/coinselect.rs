@@ -22,18 +22,24 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
-#![cfg_attr(not(feature = "std"), no_std)]
+use std::str::FromStr;
 
-extern crate alloc;
-#[macro_use]
-extern crate amplify;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display, Default)]
+#[display(lowercase)]
+pub enum CoinselectStrategy {
+    #[default]
+    Aggregate,
+    Size,
+}
 
-pub mod descriptor;
-pub mod wallet;
-mod coinselect;
+impl FromStr for CoinselectStrategy {
+    type Err = String;
 
-pub use coinselect::CoinselectStrategy;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "aggregate" => Ok(CoinselectStrategy::Aggregate),
+            "size" => Ok(CoinselectStrategy::Size),
+            s => Err(s.to_string()),
+        }
+    }
+}

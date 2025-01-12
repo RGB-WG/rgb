@@ -94,6 +94,10 @@ ultrasonic = { git = "https://github.com/AluVM/ultrasonic" }
 hypersonic = { git = "https://github.com/AluVM/sonic" }
 sonic-api = { git = "https://github.com/AluVM/sonic" }
 sonic-callreq = { git = "https://github.com/AluVM/sonic" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
 bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
 bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }

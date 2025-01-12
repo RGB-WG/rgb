@@ -37,20 +37,23 @@ use bpwallet::indexers::esplora;
 use bpwallet::psbt::TxParams;
 use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Wpkh, XpubDerivable};
 use clap::ValueHint;
+use rgb::invoice::RgbInvoice;
 use rgb::popls::bp::file::{DirBarrow, DirMound};
-use rgb::popls::bp::{PrefabBundle, PrefabParamsSet, SelfSeal};
+use rgb::popls::bp::{PrefabBundle, PrefabParamsSet, WoutAssignment};
 use rgb::{AuthToken, ContractId, CreateParams, Outpoint, SealType};
 use rgbp::descriptor::{Opret, Tapret};
 use rgbp::wallet::file::DirRuntime;
 use rgbp::wallet::{OpretWallet, TapretWallet};
+use rgbp::CoinselectStrategy;
 use rgpsbt::{RgbPsbt, ScriptResolver};
 use strict_encoding::{StrictDeserialize, StrictSerialize};
 
 use crate::opts::WalletOpts;
 
-pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
+pub const RGB_COINSELECT_STRATEGY_ENV: &str = "RGB_COINSELECT_STRATEGY";
 pub const RGB_SEAL_ENV: &str = "RGB_SEAL";
 pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
+pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
 
 pub const RGB_DATA_DIR_ENV: &str = "RGB_DATA_DIR";
 #[cfg(target_os = "linux")]
@@ -164,11 +167,15 @@ pub enum Cmd {
         wallet: Option<String>,
     },
 
-    /// Generate a new single-use seal
+    /// Generate a seal for an invoice
     Seal {
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,
+
+        /// Generate a witness output-based seal
+        #[clap(short = 'o', long)]
+        wout: bool,
 
         /// Nonce number to use
         nonce: u64,
@@ -194,6 +201,20 @@ pub enum Cmd {
 
         /// Print out just a single contract state
         contract: Option<ContractId>,
+    },
+
+    /// Pay an invoice
+    #[clap(alias = "p")]
+    Pay {
+        #[clap(flatten)]
+        wallet: WalletOpts,
+
+        /// Coinselect strategy to use
+        #[clap(short, long, default_value = "aggregate", env = RGB_COINSELECT_STRATEGY_ENV)]
+        strategy: CoinselectStrategy,
+
+        /// Invoice to fylfill
+        invoice: RgbInvoice,
     },
 
     /// Execute a script, producing prefabricated operation bundle and PSBT
@@ -405,11 +426,19 @@ impl Args {
                 println!("{addr}");
             }
 
-            Cmd::Seal { wallet, nonce } => {
+            Cmd::Seal { wallet, wout, nonce } => {
                 let mut runtime = self.runtime(wallet.as_deref());
-                match runtime.auth_token(*nonce) {
-                    None => println!("Wallet has no unspent outputs; try `fund` first"),
-                    Some(token) => println!("{token}"),
+                if *wout {
+                    let wout = runtime.wout(*nonce);
+                    println!("{wout}");
+                } else {
+                    match runtime.auth_token(*nonce) {
+                        None => println!(
+                            "Wallet has no unspent outputs; try `fund` first, or use `-w` flag to \
+                             generate a witness output-based seal"
+                        ),
+                        Some(token) => println!("{token}"),
+                    }
                 }
             }
 
@@ -498,7 +527,7 @@ impl Args {
             } => {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let src = File::open(script).expect("Unable to open script file");
-                let items = serde_yaml::from_reader::<_, PrefabParamsSet<SelfSeal>>(src)?;
+                let items = serde_yaml::from_reader::<_, PrefabParamsSet<WoutAssignment>>(src)?;
 
                 let (mut psbt, meta) = runtime
                     .construct_psbt(&items, TxParams::with(*fee))
