@@ -567,7 +567,7 @@ where Self::Descr: DescriptorRgb<K>
             .consume_fascia(fascia, FasciaResolver { witness_id })
             .map_err(|e| e.to_string())?;
         let transfer = stock
-            .transfer(contract_id, beneficiary2, beneficiary1, Some(witness_id))
+            .transfer(contract_id, beneficiary2, beneficiary1, None)
             .map_err(|e| e.to_string())?;
 
         Ok(transfer)
