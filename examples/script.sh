@@ -23,6 +23,6 @@ $RGB --seal bcor exec -w alice examples/Transfer.yaml examples/transfer.pfab 100
 $RGB --seal bcor complete -w alice examples/transfer.pfab examples/transfer.psbt
 
 rm examples/transfer.rgb
-$RGB --seal bcor consign gDmGtRAO-gp3AQ78-jqEzM8S-_u8FVot-g2WaGXD-xLdIWXQ -t 5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-XJ6ejw examples/transfer.rgb
+$RGB --seal bcor consign gDmGtRAO-gp3AQ78-jqEzM8S-_u8FVot-g2WaGXD-xLdIWXQ -t at:5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-ViYmlA examples/transfer.rgb
 
 $RGB_2 --seal bcor accept -w bob examples/transfer.rgb

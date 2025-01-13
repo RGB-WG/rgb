@@ -930,7 +930,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic#13c444a07eae5d2face6a5b5c461513f05082214"
+source = "git+https://github.com/AluVM/sonic#5e32310db8c3b23e9f55c048c78d6ac0548a3d86"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#38063323886c627888ba1bbad9f1a566aaf1238b"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#9cc2dc2c0e1b370dad050a010008dc850b8df8be"
 dependencies = [
  "amplify",
  "baid64",
@@ -1543,7 +1543,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#38063323886c627888ba1bbad9f1a566aaf1238b"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#9cc2dc2c0e1b370dad050a010008dc850b8df8be"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic#13c444a07eae5d2face6a5b5c461513f05082214"
+source = "git+https://github.com/AluVM/sonic#5e32310db8c3b23e9f55c048c78d6ac0548a3d86"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1867,7 +1867,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic#13c444a07eae5d2face6a5b5c461513f05082214"
+source = "git+https://github.com/AluVM/sonic#5e32310db8c3b23e9f55c048c78d6ac0548a3d86"
 dependencies = [
  "amplify",
  "baid64",
@@ -2096,7 +2096,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/ultrasonic#8ff8e764bf9f8b5e72965f0eceebb114ca8ec498"
+source = "git+https://github.com/AluVM/ultrasonic#32950ebd8c9ec32c8ef469107aab7744a7d37fab"
 dependencies = [
  "amplify",
  "baid64",

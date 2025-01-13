@@ -8,5 +8,5 @@
       val: 10000
   owned:
     - name: owned
-      seal: 5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-XJ6ejw
+      seal: at:5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-ViYmlA
       data: 10
