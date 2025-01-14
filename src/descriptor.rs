@@ -164,7 +164,8 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
         let index = index.into();
         let terminal = Terminal::new(keychain, index);
         let internal_key = self.tr.as_internal_key().derive(keychain, index);
-        if keychain.into_inner() == RgbKeychain::Tapret as u8 {
+        let keychain = keychain.into_inner();
+        if keychain == RgbKeychain::Internal as u8 || keychain == RgbKeychain::Tapret as u8 {
             if let Some(tweak) = self.tweaks.get(&terminal) {
                 let script_commitment = TapScript::commit(tweak);
                 let tap_tree = TapTree::with_single_leaf(script_commitment);
