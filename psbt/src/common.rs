@@ -22,17 +22,9 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use bpstd::dbc::opret::OpretProof;
-use bpstd::dbc::tapret::TapretProof;
-use bpstd::seals::Anchor;
 use bpstd::{ScriptPubkey, Unmodifiable, Vout};
 use rgb::popls::bp::PrefabBundle;
 use rgb::{ContractId, Outpoint};
-
-pub struct AnchorPair {
-    pub opret: Anchor<OpretProof>,
-    pub tapret: Anchor<TapretProof>,
-}
 
 pub trait RgbPsbt {
     // TODO: Add rgb_embed to embed operations for hardware signers

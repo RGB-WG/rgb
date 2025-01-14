@@ -26,26 +26,28 @@ use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
 use std::collections::HashMap;
 
+use amplify::confinement::Collection;
 use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::tapret::TapretCommitment;
-use bpstd::seals::{TxoSeal, TxoSealDef};
+use bpstd::seals::TxoSeal;
 use bpstd::{
-    dbc, Derive, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin, Keychain,
-    LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation, TapScript,
-    TapTree, TaprootKeySig, Terminal, Tr, TrKey, Witness, XOnlyPk, XpubAccount, XpubDerivable,
+    Derive, DeriveCompr, DeriveKey, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin,
+    Keychain, LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation,
+    TapScript, TapTree, TaprootKeySig, Terminal, Tr, TrKey, Witness, XOnlyPk, XpubAccount,
+    XpubDerivable,
 };
 use commit_verify::CommitVerify;
 use indexmap::IndexMap;
 
-pub trait DescriptorRgb<D: dbc::Proof, K = XpubDerivable, V = ()>: Descriptor<K, V> {
-    fn add_seal(&self, seal: TxoSeal<D>);
+pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
+    fn add_seal(&self, seal: TxoSeal);
 }
 
 #[derive(Wrapper, WrapperMut, Clone, Eq, PartialEq, Debug, Default, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
-pub struct SealDescr(BTreeSet<TxoSealDef>);
+pub struct SealDescr(BTreeSet<TxoSeal>);
 
 impl Display for SealDescr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -61,8 +63,34 @@ impl Display for SealDescr {
     }
 }
 
-#[derive(Clone, Display)]
-#[display("opret({descr}, {seals})")]
+#[derive(Wrapper, WrapperMut, Clone, PartialEq, Eq, Debug, Default, From)]
+#[wrapper(Deref)]
+#[wrapper_mut(DerefMut)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
+pub struct TapretWeaks(BTreeMap<Terminal, BTreeSet<TapretCommitment>>);
+
+impl Display for TapretWeaks {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("tweaks(")?;
+        let mut iter1 = self.iter().peekable();
+        while let Some((term, tweaks)) = iter1.next() {
+            write!(f, "{term}=")?;
+            let mut iter2 = tweaks.iter().peekable();
+            while let Some(tweak) = iter2.next() {
+                write!(f, "{tweak}")?;
+                if iter2.peek().is_some() {
+                    f.write_str(",")?;
+                }
+            }
+            if iter1.peek().is_some() {
+                f.write_str(";")?;
+            }
+        }
+        f.write_str(")")
+    }
+}
+
+#[derive(Clone, Display, From)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -74,174 +102,212 @@ impl Display for SealDescr {
         )
     )
 )]
-pub struct Opret<K: DeriveSet = XpubDerivable> {
-    pub descr: StdDescr<K>,
-    pub seals: SealDescr,
-    pub noise: Bytes32,
+enum RgbDeriver<K: DeriveSet = XpubDerivable> {
+    #[from]
+    #[display(inner)]
+    OpretOnly(StdDescr<K>),
+
+    #[display("{tr},{tweaks}")]
+    Universal {
+        tr: Tr<K::XOnly>,
+        tweaks: TapretWeaks,
+    },
 }
 
-impl<K: DeriveSet> Opret<K> {
-    pub fn new_unfunded(descr: impl Into<StdDescr<K>>, noise: impl Into<[u8; 32]>) -> Self {
-        Self {
-            descr: descr.into(),
-            seals: empty!(),
-            noise: noise.into().into(),
+impl<K: DeriveSet> Derive<DerivedScript> for RgbDeriver<K> {
+    fn default_keychain(&self) -> Keychain {
+        match self {
+            RgbDeriver::OpretOnly(d) => d.default_keychain(),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.default_keychain(),
         }
     }
-}
 
-impl<K: DeriveSet> Derive<DerivedScript> for Opret<K> {
-    fn default_keychain(&self) -> Keychain { self.descr.default_keychain() }
-    fn keychains(&self) -> BTreeSet<Keychain> { self.descr.keychains() }
+    fn keychains(&self) -> BTreeSet<Keychain> {
+        match self {
+            RgbDeriver::OpretOnly(d) => d.keychains(),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.keychains(),
+        }
+    }
+
     fn derive(
         &self,
         keychain: impl Into<Keychain>,
         index: impl Into<NormalIndex>,
     ) -> impl Iterator<Item = DerivedScript> {
-        self.descr.derive(keychain, index)
-    }
-}
-
-impl<K: DeriveSet> Descriptor<K> for Opret<K>
-where
-    Self: Clone,
-    StdDescr<K>: Descriptor<K>,
-{
-    fn class(&self) -> SpkClass { self.descr.class() }
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where K: 'a {
-        self.descr.keys()
-    }
-    fn vars<'a>(&'a self) -> impl Iterator<Item = &'a ()>
-    where (): 'a {
-        self.descr.vars()
-    }
-    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> { self.descr.xpubs() }
-    fn legacy_keyset(&self, terminal: Terminal) -> IndexMap<LegacyPk, KeyOrigin> {
-        self.descr.legacy_keyset(terminal)
-    }
-    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
-        self.descr.xonly_keyset(terminal)
-    }
-    fn legacy_witness(
-        &self,
-        keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
-    ) -> Option<(SigScript, Witness)> {
-        self.descr.legacy_witness(keysigs)
-    }
-    fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
-        self.descr.taproot_witness(keysigs)
-    }
-}
-
-/// NB: Tapret wallet also supports opret contracts
-#[derive(Clone, Eq, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
-pub struct Tapret<K: DeriveXOnly = XpubDerivable> {
-    pub tr: Tr<K>,
-    pub tweaks: BTreeMap<Terminal, BTreeSet<TapretCommitment>>,
-    pub seals: SealDescr,
-    pub noise: Bytes32,
-}
-
-impl<K: DeriveXOnly> Display for Tapret<K> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("tapret(")?;
-        match &self.tr {
-            Tr::KeyOnly(d) => Display::fmt(d.as_internal_key(), f)?,
-        }
-        if !self.tweaks.is_empty() {
-            f.write_str(",tweaks(")?;
-            let mut iter1 = self.tweaks.iter().peekable();
-            while let Some((term, tweaks)) = iter1.next() {
-                write!(f, "{term}=")?;
-                let mut iter2 = tweaks.iter().peekable();
-                while let Some(tweak) = iter2.next() {
-                    write!(f, "{tweak}")?;
-                    if iter2.peek().is_some() {
-                        f.write_str(",")?;
-                    }
-                }
-                if iter1.peek().is_some() {
-                    f.write_str(";")?;
-                }
-            }
-            f.write_str(")")?;
-        }
-        if !self.seals.is_empty() {
-            write!(f, ",{}", self.seals)?;
-        }
-        f.write_str(")")
-    }
-}
-
-impl<K: DeriveXOnly> Tapret<K> {
-    pub fn key_only_unfunded(internal_key: K, noise: impl Into<[u8; 32]>) -> Self {
-        Self {
-            tr: Tr::KeyOnly(TrKey::from(internal_key)),
-            tweaks: empty!(),
-            seals: empty!(),
-            noise: noise.into().into(),
-        }
-    }
-
-    pub fn add_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment) {
-        self.tweaks.entry(terminal).or_default().insert(tweak);
-    }
-}
-
-impl<K: DeriveXOnly> Derive<DerivedScript> for Tapret<K> {
-    fn default_keychain(&self) -> Keychain { self.tr.default_keychain() }
-    fn keychains(&self) -> BTreeSet<Keychain> { self.tr.keychains() }
-    fn derive(
-        &self,
-        keychain: impl Into<Keychain>,
-        index: impl Into<NormalIndex>,
-    ) -> impl Iterator<Item = DerivedScript> {
-        let keychain = keychain.into();
-        let index = index.into();
-        let terminal = Terminal::new(keychain, index);
-        self.tr
-            .as_internal_key()
-            .derive(keychain, index)
-            .flat_map(move |internal_key| {
-                self.tweaks
-                    .get(&terminal)
-                    .into_iter()
-                    .flatten()
-                    .map(move |tweak| {
+        match self {
+            RgbDeriver::OpretOnly(d) => d.derive(keychain, index).collect::<Vec<_>>().into_iter(),
+            RgbDeriver::Universal { tr, tweaks } => {
+                let keychain = keychain.into();
+                let index = index.into();
+                let terminal = Terminal::new(keychain, index);
+                let mut vec = Vec::with_capacity(tweaks.0.len());
+                for internal_key in tr.as_internal_key().derive(keychain, index) {
+                    for tweak in tweaks.get(&terminal).into_iter().flatten() {
                         let script_commitment = TapScript::commit(tweak);
                         let tap_tree = TapTree::with_single_leaf(script_commitment);
-                        DerivedScript::TaprootScript(internal_key.into(), tap_tree)
-                    })
-            })
+                        let script = DerivedScript::TaprootScript(internal_key.into(), tap_tree);
+                        vec.push(script);
+                    }
+                }
+                vec.into_iter()
+            }
+        }
     }
 }
 
-impl<K: DeriveXOnly> Descriptor<K> for Tapret<K> {
-    fn class(&self) -> SpkClass { self.tr.class() }
+impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K>
+    for RgbDeriver<K>
+{
+    fn class(&self) -> SpkClass {
+        match self {
+            RgbDeriver::OpretOnly(d) => d.class(),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.class(),
+        }
+    }
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where K: 'a {
-        self.tr.keys()
+        match self {
+            RgbDeriver::OpretOnly(d) => d.keys().collect::<Vec<_>>().into_iter(),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.keys().collect::<Vec<_>>().into_iter(),
+        }
     }
     fn vars<'a>(&'a self) -> impl Iterator<Item = &'a ()>
     where (): 'a {
-        self.tr.vars()
+        match self {
+            RgbDeriver::OpretOnly(d) => d.vars().collect::<Vec<_>>().into_iter(),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.vars().collect::<Vec<_>>().into_iter(),
+        }
     }
-    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> { self.tr.xpubs() }
+    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> {
+        match self {
+            RgbDeriver::OpretOnly(d) => d.xpubs().collect::<Vec<_>>().into_iter(),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.xpubs().collect::<Vec<_>>().into_iter(),
+        }
+    }
     fn legacy_keyset(&self, terminal: Terminal) -> IndexMap<LegacyPk, KeyOrigin> {
-        self.tr.legacy_keyset(terminal)
+        match self {
+            RgbDeriver::OpretOnly(d) => d.legacy_keyset(terminal),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.legacy_keyset(terminal),
+        }
     }
     fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
-        self.tr.xonly_keyset(terminal)
+        match self {
+            RgbDeriver::OpretOnly(d) => d.xonly_keyset(terminal),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.xonly_keyset(terminal),
+        }
     }
     fn legacy_witness(
         &self,
         keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
     ) -> Option<(SigScript, Witness)> {
-        self.tr.legacy_witness(keysigs)
+        match self {
+            RgbDeriver::OpretOnly(d) => d.legacy_witness(keysigs),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.legacy_witness(keysigs),
+        }
     }
     fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
-        self.tr.taproot_witness(keysigs)
+        match self {
+            RgbDeriver::OpretOnly(d) => d.taproot_witness(keysigs),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.taproot_witness(keysigs),
+        }
+    }
+}
+
+#[derive(Clone, Display)]
+#[display("rgb({deriver},{seals},noise({noise:x}))")]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(
+        rename_all = "camelCase",
+        bound(
+            serialize = "K::Compr: serde::Serialize, K::XOnly: serde::Serialize",
+            deserialize = "K::Compr: serde::Deserialize<'de>, K::XOnly: serde::Deserialize<'de>"
+        )
+    )
+)]
+pub struct RgbDescr<K: DeriveSet = XpubDerivable> {
+    deriver: RgbDeriver<K>,
+    seals: SealDescr,
+    noise: Bytes32,
+}
+
+impl<K: DeriveSet> RgbDescr<K> {
+    pub fn new_unfunded(deriver: impl Into<StdDescr<K>>, noise: impl Into<[u8; 32]>) -> Self {
+        let deriver = match deriver.into() {
+            StdDescr::Wpkh(d) => RgbDeriver::OpretOnly(StdDescr::Wpkh(d)),
+            StdDescr::TrKey(tr) => RgbDeriver::Universal { tr: Tr::KeyOnly(tr), tweaks: empty!() },
+            _ => unreachable!(),
+        };
+        Self { deriver, seals: empty!(), noise: noise.into().into() }
+    }
+
+    pub fn key_only_unfunded(internal_key: K, noise: impl Into<[u8; 32]>) -> Self
+    where K: DeriveSet<XOnly = K> + DeriveKey<XOnlyPk> {
+        Self {
+            deriver: RgbDeriver::Universal {
+                tr: Tr::KeyOnly(TrKey::from(internal_key)),
+                tweaks: empty!(),
+            },
+            seals: empty!(),
+            noise: noise.into().into(),
+        }
+    }
+
+    pub fn noise(&self) -> Bytes32 { self.noise }
+
+    pub fn seals(&self) -> impl Iterator<Item = &TxoSeal> { self.seals.iter() }
+
+    pub fn add_seal(&mut self, seal: TxoSeal) { self.seals.push(seal); }
+
+    pub fn add_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment) {
+        match &mut self.deriver {
+            RgbDeriver::OpretOnly(_) => {
+                panic!("attempting to add tapret tweaks to an opret-only wallet")
+            }
+            RgbDeriver::Universal { tr: _, tweaks } => {
+                tweaks.entry(terminal).or_default().insert(tweak);
+            }
+        }
+    }
+}
+
+impl<K: DeriveSet> Derive<DerivedScript> for RgbDescr<K> {
+    fn default_keychain(&self) -> Keychain { self.deriver.default_keychain() }
+    fn keychains(&self) -> BTreeSet<Keychain> { self.deriver.keychains() }
+    fn derive(
+        &self,
+        keychain: impl Into<Keychain>,
+        index: impl Into<NormalIndex>,
+    ) -> impl Iterator<Item = DerivedScript> {
+        self.deriver.derive(keychain, index)
+    }
+}
+
+impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K> for RgbDescr<K> {
+    fn class(&self) -> SpkClass { self.deriver.class() }
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
+    where K: 'a {
+        self.deriver.keys()
+    }
+    fn vars<'a>(&'a self) -> impl Iterator<Item = &'a ()>
+    where (): 'a {
+        self.deriver.vars()
+    }
+    fn xpubs(&self) -> impl Iterator<Item = &XpubAccount> { self.deriver.xpubs() }
+    fn legacy_keyset(&self, terminal: Terminal) -> IndexMap<LegacyPk, KeyOrigin> {
+        self.deriver.legacy_keyset(terminal)
+    }
+    fn xonly_keyset(&self, terminal: Terminal) -> IndexMap<XOnlyPk, TapDerivation> {
+        self.deriver.xonly_keyset(terminal)
+    }
+    fn legacy_witness(
+        &self,
+        keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
+    ) -> Option<(SigScript, Witness)> {
+        self.deriver.legacy_witness(keysigs)
+    }
+    fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
+        self.deriver.taproot_witness(keysigs)
     }
 }

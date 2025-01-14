@@ -26,32 +26,32 @@ use std::convert::Infallible;
 
 use amplify::Bytes32;
 use bpstd::psbt::PsbtConstructor;
-use bpstd::seals::TxoSealDef;
+use bpstd::seals::TxoSeal;
 use bpstd::{Address, Keychain, Network, Outpoint, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
-use rgb::popls::bp::{OpretProvider, TapretProvider, WalletProvider};
+use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, SealAuthToken};
 
-use crate::descriptor::{Opret, Tapret};
+use crate::descriptor::RgbDescr;
 
 // TODO: Use layer 2 supporting Lightning
 #[derive(Wrapper, WrapperMut, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
-pub struct OpretWallet(pub Wallet<XpubDerivable, Opret<XpubDerivable>, NoLayer2>);
+pub struct RgbWallet(pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, NoLayer2>);
 
-impl WalletProvider for OpretWallet {
-    fn noise_seed(&self) -> Bytes32 { self.noise }
+impl WalletProvider for RgbWallet {
+    fn noise_seed(&self) -> Bytes32 { self.noise() }
 
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 
-    fn register_seal(&mut self, seal: TxoSealDef) {
+    fn register_seal(&mut self, seal: TxoSeal) {
         let _ = self.0.descriptor_mut(|wd| {
             wd.with_descriptor_mut(|d| {
-                d.seals.insert(seal);
+                d.add_seal(seal);
                 Ok::<_, Infallible>(())
             })
         });
@@ -60,13 +60,12 @@ impl WalletProvider for OpretWallet {
     fn resolve_seals(
         &self,
         seals: impl Iterator<Item = AuthToken>,
-    ) -> impl Iterator<Item = TxoSealDef> {
+    ) -> impl Iterator<Item = TxoSeal> {
         seals
             .flat_map(|auth| {
                 self.0
                     .descriptor()
-                    .seals
-                    .iter()
+                    .seals()
                     .filter(move |seal| seal.auth_token() == auth)
             })
             .copied()
@@ -74,18 +73,17 @@ impl WalletProvider for OpretWallet {
 
     fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
 }
-impl OpretProvider for OpretWallet {}
 
-impl OpretWallet {
+impl RgbWallet {
     pub fn create<P>(
         provider: P,
-        descr: Opret<XpubDerivable>,
+        descr: RgbDescr<XpubDerivable>,
         network: Network,
         autosave: bool,
     ) -> Result<Self, PersistenceError>
     where
         P: Clone
-            + PersistenceProvider<WalletDescr<XpubDerivable, Opret<XpubDerivable>, Layer2Empty>>
+            + PersistenceProvider<WalletDescr<XpubDerivable, RgbDescr<XpubDerivable>, Layer2Empty>>
             + PersistenceProvider<WalletData<Layer2Empty>>
             + PersistenceProvider<WalletCache<Layer2Empty>>
             + PersistenceProvider<NoLayer2>
@@ -98,83 +96,12 @@ impl OpretWallet {
 
     pub fn load<P>(provider: P, autosave: bool) -> Result<Self, PersistenceError>
     where P: Clone
-            + PersistenceProvider<WalletDescr<XpubDerivable, Opret<XpubDerivable>, Layer2Empty>>
+            + PersistenceProvider<WalletDescr<XpubDerivable, RgbDescr<XpubDerivable>, Layer2Empty>>
             + PersistenceProvider<WalletData<Layer2Empty>>
             + PersistenceProvider<WalletCache<Layer2Empty>>
             + PersistenceProvider<NoLayer2>
             + 'static {
-        Wallet::load(provider, autosave).map(OpretWallet)
-    }
-}
-
-#[derive(Wrapper, WrapperMut, From)]
-#[wrapper(Deref)]
-#[wrapper_mut(DerefMut)]
-pub struct TapretWallet(pub Wallet<XpubDerivable, Tapret<XpubDerivable>, NoLayer2>);
-
-impl WalletProvider for TapretWallet {
-    fn noise_seed(&self) -> Bytes32 { self.noise }
-
-    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
-
-    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
-
-    fn register_seal(&mut self, seal: TxoSealDef) {
-        let _ = self.0.descriptor_mut(|wd| {
-            wd.with_descriptor_mut(|d| {
-                d.seals.insert(seal);
-                Ok::<_, Infallible>(())
-            })
-        });
-    }
-
-    fn resolve_seals(
-        &self,
-        seals: impl Iterator<Item = AuthToken>,
-    ) -> impl Iterator<Item = TxoSealDef> {
-        seals
-            .flat_map(|auth| {
-                self.0
-                    .descriptor()
-                    .seals
-                    .iter()
-                    .filter(move |seal| seal.auth_token() == auth)
-            })
-            .copied()
-    }
-
-    fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
-}
-impl TapretProvider for TapretWallet {}
-
-impl TapretWallet {
-    pub fn create<P>(
-        provider: P,
-        descr: Tapret<XpubDerivable>,
-        network: Network,
-        autosave: bool,
-    ) -> Result<Self, PersistenceError>
-    where
-        P: Clone
-            + PersistenceProvider<WalletDescr<XpubDerivable, Tapret<XpubDerivable>, Layer2Empty>>
-            + PersistenceProvider<WalletData<Layer2Empty>>
-            + PersistenceProvider<WalletCache<Layer2Empty>>
-            + PersistenceProvider<NoLayer2>
-            + 'static,
-    {
-        let mut wallet = Wallet::new_layer1(descr, network);
-        wallet.make_persistent(provider, autosave)?;
-        Ok(Self(wallet))
-    }
-
-    pub fn load<P>(provider: P, autosave: bool) -> Result<Self, PersistenceError>
-    where P: Clone
-            + PersistenceProvider<WalletDescr<XpubDerivable, Tapret<XpubDerivable>, Layer2Empty>>
-            + PersistenceProvider<WalletData<Layer2Empty>>
-            + PersistenceProvider<WalletCache<Layer2Empty>>
-            + PersistenceProvider<NoLayer2>
-            + 'static {
-        Wallet::load(provider, autosave).map(TapretWallet)
+        Wallet::load(provider, autosave).map(RgbWallet)
     }
 }
 
@@ -191,16 +118,9 @@ pub mod file {
     #[derive(Wrapper, WrapperMut, From)]
     #[wrapper(Deref)]
     #[wrapper_mut(DerefMut)]
-    pub struct DirRuntime(pub DirBarrow<OpretWallet, TapretWallet>);
+    pub struct DirRuntime(DirBarrow<RgbWallet>);
 
     impl DirRuntime {
-        pub fn network(&self) -> Network {
-            match &self.0 {
-                DirBarrow::BcOpret(barrow) => barrow.wallet.network(),
-                DirBarrow::BcTapret(barrow) => barrow.wallet.network(),
-            }
-        }
-
         pub fn construct_psbt(
             &mut self,
             bundle: &PrefabParamsSet<WoutAssignment>,
@@ -210,7 +130,7 @@ pub mod file {
                 .iter()
                 .flat_map(|params| &params.using)
                 .map(|used| used.outpoint);
-            let network = self.network();
+            let network = self.0.wallet.network();
             let beneficiaries = bundle
                 .iter()
                 .flat_map(|params| &params.owned)
@@ -223,15 +143,7 @@ pub mod file {
                         .expect("script pubkey which is not representable as an address");
                     Beneficiary::new(address, seal.amount)
                 });
-            let (psbt, meta) = match &mut self.0 {
-                DirBarrow::BcOpret(barrow) => {
-                    barrow.wallet.construct_psbt(closes, beneficiaries, params)
-                }
-                DirBarrow::BcTapret(barrow) => {
-                    barrow.wallet.construct_psbt(closes, beneficiaries, params)
-                }
-            }?;
-            Ok((psbt, meta))
+            self.0.wallet.construct_psbt(closes, beneficiaries, params)
         }
     }
 }

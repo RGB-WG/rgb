@@ -1,4 +1,4 @@
-sealType: bcor
+consensus: bitcoin
 testnet: true
 codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
 name: DemoToken
