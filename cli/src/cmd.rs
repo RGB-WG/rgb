@@ -36,13 +36,11 @@ use bpwallet::psbt::TxParams;
 use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use rgb::invoice::RgbInvoice;
-use rgb::popls::bp::file::{DirBarrow, DirMound};
+use rgb::popls::bp::file::{BpDirMound, DirBarrow};
 use rgb::popls::bp::{PrefabBundle, PrefabParamsSet, WoutAssignment};
 use rgb::{AuthToken, Consensus, ContractId, CreateParams, Outpoint};
 use rgbp::descriptor::RgbDescr;
-use rgbp::wallet::file::DirRuntime;
-use rgbp::wallet::RgbWallet;
-use rgbp::CoinselectStrategy;
+use rgbp::{CoinselectStrategy, RgbDirRuntime, RgbWallet};
 use rgpsbt::{RgbPsbt, ScriptResolver};
 use strict_encoding::{StrictDeserialize, StrictSerialize};
 
@@ -165,6 +163,7 @@ pub enum Cmd {
         wallet: Option<String>,
     },
 
+    // TODO: Convert to `invoice` command, also use contract names to simplify invoice creation
     /// Generate a seal for an invoice
     Seal {
         /// Wallet to use
@@ -299,14 +298,14 @@ impl Args {
         }
     }
 
-    pub fn mound(&self) -> DirMound {
+    pub fn mound(&self) -> BpDirMound {
         if self.init {
             let _ = fs::create_dir_all(&self.data_dir());
         }
         if !self.network.is_testnet() {
             panic!("Non-testnet networks are not yet supported");
         }
-        DirMound::load_testnet(Consensus::Bitcoin, &self.data_dir, self.no_network_prefix)
+        BpDirMound::load_testnet(Consensus::Bitcoin, &self.data_dir, self.no_network_prefix)
     }
 
     fn wallet_dir(&self, name: Option<&str>) -> PathBuf {
@@ -319,12 +318,12 @@ impl Args {
         FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
     }
 
-    pub fn runtime(&self, name: Option<&str>) -> DirRuntime {
+    pub fn runtime(&self, name: Option<&str>) -> RgbDirRuntime {
         let provider = self.wallet_provider(name);
         let wallet = RgbWallet::load(provider, true).unwrap_or_else(|_| {
             panic!("Error: unable to load wallet from path `{}`", self.wallet_dir(name).display())
         });
-        DirRuntime::from(DirBarrow::with(wallet, self.mound()))
+        RgbDirRuntime::from(DirBarrow::with(wallet, self.mound()))
         // TODO: Sync wallet if needed
     }
 

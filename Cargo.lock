@@ -272,9 +272,9 @@ dependencies = [
 
 [[package]]
 name = "bitflags"
-version = "2.7.0"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1be3f42a67d6d345ecd59f675f3f012d6974981560836e938c22b424b85ce1be"
+checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
 name = "block-buffer"
@@ -294,7 +294,7 @@ checksum = "3eeab4423108c5d7c744f4d234de88d18d636100093ae04caf4825134b9c3a32"
 [[package]]
 name = "bp-consensus"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=refactor/consensus#1645008e3aa31c762747a159877a2cd4550de933"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
 dependencies = [
  "amplify",
  "chrono",
@@ -307,7 +307,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=refactor/consensus#1645008e3aa31c762747a159877a2cd4550de933"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -324,7 +324,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=refactor/consensus#1645008e3aa31c762747a159877a2cd4550de933"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
 dependencies = [
  "amplify",
  "base85",
@@ -338,7 +338,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=refactor/consensus#33198e0ba9fb6c2110da317990b161742202814d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -387,7 +387,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=refactor/consensus#33198e0ba9fb6c2110da317990b161742202814d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
 dependencies = [
  "amplify",
  "bech32",
@@ -400,7 +400,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=refactor/consensus#1645008e3aa31c762747a159877a2cd4550de933"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
 dependencies = [
  "amplify",
  "baid64",
@@ -416,7 +416,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=refactor/consensus#33198e0ba9fb6c2110da317990b161742202814d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -434,7 +434,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#801ad987d1a332860a0dae0871b5ec2e99358f7e"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#39fc36b7ae5706926f519d33e2a2aabbe297435b"
 dependencies = [
  "amplify",
  "base64",
@@ -698,7 +698,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=refactor/consensus#33198e0ba9fb6c2110da317990b161742202814d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -930,7 +930,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=refactor/consensus#cff215e4e3f33ab3c4b0fe027aff826a1c1ff644"
+source = "git+https://github.com/AluVM/sonic?branch=master#5eb21d80bb2e00ff386adcd12b191be1e937a6f2"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1365,7 +1365,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=refactor/consensus#33198e0ba9fb6c2110da317990b161742202814d"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
 dependencies = [
  "amplify",
  "base64",
@@ -1480,7 +1480,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=refactor/consensus#7ba2b70f94bf7ceb8ca476051ba2d06e76f5c6bd"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#2be7f6c0926356aae0efb261a2369b1fae6f89fe"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=refactor/consensus#74ce5ce1cc9a6379b566268c4e165998775ac319"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#b0b072f48799d40c9ce279e60e7f3870449040a9"
 dependencies = [
  "amplify",
  "baid64",
@@ -1543,7 +1543,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=refactor/consensus#74ce5ce1cc9a6379b566268c4e165998775ac319"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#b0b072f48799d40c9ce279e60e7f3870449040a9"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=refactor/consensus#cff215e4e3f33ab3c4b0fe027aff826a1c1ff644"
+source = "git+https://github.com/AluVM/sonic?branch=master#5eb21d80bb2e00ff386adcd12b191be1e937a6f2"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1867,7 +1867,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=refactor/consensus#cff215e4e3f33ab3c4b0fe027aff826a1c1ff644"
+source = "git+https://github.com/AluVM/sonic?branch=master#5eb21d80bb2e00ff386adcd12b191be1e937a6f2"
 dependencies = [
  "amplify",
  "baid64",
@@ -2096,7 +2096,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/ultrasonic?branch=refactor/consensus#5e16d6b45e673156f807020c01e253636fe77405"
+source = "git+https://github.com/AluVM/ultrasonic?branch=master#45569f4bcc4ec9d45132865e25e2a3faac7b7a39"
 dependencies = [
  "amplify",
  "baid64",

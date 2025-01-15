@@ -90,20 +90,20 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "refactor/consensus" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "refactor/consensus" }
-bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "refactor/consensus" }
-bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "refactor/consensus" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "refactor/consensus" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "refactor/consensus" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "refactor/consensus" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "refactor/consensus" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "refactor/consensus" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "refactor/consensus" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "master" }
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
 bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.12" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "refactor/consensus" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "refactor/consensus" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "refactor/consensus" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
