@@ -80,15 +80,13 @@ struct ContractOutpointsFilter<
 }
 
 impl<
-        'stock,
-        'wallet,
         W: WalletProvider<K, L2> + ?Sized,
         K,
         S: StashProvider,
         H: StateProvider,
         P: IndexProvider,
         L2: Layer2,
-    > AssignmentsFilter for ContractOutpointsFilter<'stock, 'wallet, W, K, S, H, P, L2>
+    > AssignmentsFilter for ContractOutpointsFilter<'_, '_, W, K, S, H, P, L2>
 where W::Descr: DescriptorRgb<K>
 {
     fn should_include(&self, output: impl Into<XOutpoint>, id: Option<XWitnessId>) -> bool {

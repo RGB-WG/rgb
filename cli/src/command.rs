@@ -574,7 +574,7 @@ impl Exec for RgbArgs {
                     WalletAll(&'w RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
-                impl<'w> AssignmentsFilter for Filter<'w> {
+                impl AssignmentsFilter for Filter<'_> {
                     fn should_include(
                         &self,
                         outpoint: impl Into<XOutpoint>,
@@ -589,7 +589,7 @@ impl Exec for RgbArgs {
                         }
                     }
                 }
-                impl<'w> Filter<'w> {
+                impl Filter<'_> {
                     fn comment(&self, outpoint: XOutpoint) -> &'static str {
                         let outpoint = outpoint
                             .into_bp()
