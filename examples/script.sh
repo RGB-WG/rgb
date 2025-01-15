@@ -7,22 +7,22 @@ export RUST_BACKTRACE=1
 RGB="./target/debug/rgb -d examples/data"
 RGB_2="./target/debug/rgb -d examples/data2"
 
-rm -rf examples/data/bcor/DemoToken.contract
-rm -rf examples/data2/bcor/DemoToken.contract
-$RGB --seal bcor issue -w alice examples/DemoToken.yaml
-$RGB_2 --seal bcor issue -w alice examples/DemoToken.yaml
+rm -rf examples/data/bitcoin.testnet/DemoToken.contract
+rm -rf examples/data2/bitcoin.testnet/DemoToken.contract
+$RGB issue -w alice examples/DemoToken.yaml
+cp -r examples/data/bitcoin.testnet/DemoToken.contract examples/data2/bitcoin.testnet/
 
 $RGB contracts
-$RGB --seal bcor state -go -w alice
-#$RGB --seal bcor fund alice
-$RGB_2 --seal bcor seal -w bob 0
+$RGB state -go -w alice
+#$RGB fund alice
+$RGB_2 seal -w bob 0
 
 rm examples/transfer.psbt
-$RGB --seal bcor exec -w alice examples/Transfer.yaml examples/transfer.pfab 1000 examples/transfer.psbt
+$RGB exec -w alice examples/Transfer.yaml examples/transfer.pfab 1000 examples/transfer.psbt
 
-$RGB --seal bcor complete -w alice examples/transfer.pfab examples/transfer.psbt
+$RGB complete -w alice examples/transfer.pfab examples/transfer.psbt
 
 rm examples/transfer.rgb
-$RGB --seal bcor consign gDmGtRAO-gp3AQ78-jqEzM8S-_u8FVot-g2WaGXD-xLdIWXQ -t at:5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-ViYmlA examples/transfer.rgb
+$RGB consign qKpMlzOe-Imn6ysZ-a8JjG2p-WHWvaFm-BWMiPi3-_LvnfRw -t at:5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-ViYmlA examples/transfer.rgb
 
-$RGB_2 --seal bcor accept -w bob examples/transfer.rgb
+$RGB_2 accept -w bob examples/transfer.rgb
