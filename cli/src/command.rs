@@ -38,7 +38,7 @@ use rgb::containers::{
     Supplement, Transfer, UniversalFile,
 };
 use rgb::interface::{AssignmentsFilter, ContractOp, IfaceId};
-use rgb::invoice::{Beneficiary, RgbInvoice, RgbInvoiceBuilder, XChainNet};
+use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::{MemContract, StashReadProvider, Stock};
 use rgb::resolvers::ContractIssueResolver;
 use rgb::schema::SchemaId;
@@ -860,7 +860,7 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessVout(addr.payload)
+                        Beneficiary::WitnessVout(Pay2Vout::new(addr.payload))
                     }
                     (_, Some(outpoint)) => {
                         let seal =
