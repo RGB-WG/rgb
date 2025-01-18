@@ -17,6 +17,7 @@ license = "Apache-2.0"
 amplify = "4.8.0"
 nonasync = "0.1.2"
 strict_encoding = "2.8.1"
+strict_types = "2.8.1"
 commit_verify = "=0.12.0-beta.4"
 bp-std = { version = "=0.12.0-beta.4", features = ["client-side-validation"] }
 bp-electrum = "=0.12.0-beta.4"
@@ -51,10 +52,12 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 amplify = { workspace = true }
 commit_verify = { workspace = true }
+strict_types = { workspace = true }
 nonasync = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
+rgb-psbt.workspace = true
 indexmap = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }

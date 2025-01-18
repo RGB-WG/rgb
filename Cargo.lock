@@ -930,7 +930,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#02fea6d4472bfada05555f2a01348787498add23"
+source = "git+https://github.com/AluVM/sonic?branch=master#9c26410b570b9d51f54bb92f2909333631b16a01"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=payments#688aa844b36aeb8fde9c18c9aec27d318f3941f2"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=payments#d19bfefb813240e2e6edbcb99dfb1abd0358166c"
 dependencies = [
  "amplify",
  "baid64",
@@ -1533,9 +1533,11 @@ dependencies = [
  "log",
  "nonasync",
  "rand",
+ "rgb-psbt",
  "rgb-std",
  "serde",
  "serde_yaml",
+ "strict_types",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -1543,7 +1545,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=payments#688aa844b36aeb8fde9c18c9aec27d318f3941f2"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=payments#d19bfefb813240e2e6edbcb99dfb1abd0358166c"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1848,7 +1850,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#02fea6d4472bfada05555f2a01348787498add23"
+source = "git+https://github.com/AluVM/sonic?branch=master#9c26410b570b9d51f54bb92f2909333631b16a01"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1867,7 +1869,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#02fea6d4472bfada05555f2a01348787498add23"
+source = "git+https://github.com/AluVM/sonic?branch=master#9c26410b570b9d51f54bb92f2909333631b16a01"
 dependencies = [
  "amplify",
  "baid64",

@@ -24,13 +24,18 @@
 
 use std::ops::{Deref, DerefMut};
 
-use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
+use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
 use bpstd::seals::TxoSeal;
-use bpstd::{Address, Psbt};
-use rgb::popls::bp::{Barrow, OpRequestSet, WoutAssignment};
-use rgb::{EitherSeal, Excavate, Pile, Supply};
+use bpstd::{Psbt, Sats};
+use rgb::invoice::RgbInvoice;
+use rgb::popls::bp::{
+    Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, WoutAssignment,
+};
+use rgb::{ContractId, Excavate, Pile, Supply};
+use rgpsbt::{RgbPsbt, RgbPsbtError, ScriptResolver};
 
 use crate::wallet::RgbWallet;
+use crate::CoinselectStrategy;
 
 pub struct RgbRuntime<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>>(
     Barrow<RgbWallet, S, P, X>,
@@ -51,37 +56,105 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRunt
 }
 
 impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
-    pub fn construct_psbt(
+    /// Pays an invoice producing PSBT ready to be signed
+    ///
+    /// Should not be used in multi-party protocols like coinjoins, when a PSBT may needs to be
+    /// modified in the number of inputs or outputs. Use `construct_psbt` method for such
+    /// scenarios.
+    ///
+    /// If you need more flexibility in constructing payments (do multiple payments with multiple
+    /// contracts, use global state etc.) in a single PSBT, please use `pay_custom` APIs and
+    /// [`PrefabBundleSet`] stead of this simplified API.
+    pub fn pay_invoice(
         &mut self,
-        bundle: &OpRequestSet<Option<WoutAssignment>>,
+        invoice: &RgbInvoice<ContractId>,
+        strategy: CoinselectStrategy,
         params: TxParams,
-    ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
-        let closes = bundle
-            .iter()
-            .flat_map(|params| &params.using)
-            .map(|used| used.outpoint);
-        let network = self.0.wallet.network();
-        let beneficiaries = bundle
-            .iter()
-            .flat_map(|params| &params.owned)
-            .filter_map(|assignment| match &assignment.state.seal {
-                EitherSeal::Alt(seal) => seal.as_ref(),
-                EitherSeal::Token(_) => None,
-            })
-            .map(|seal| {
-                let address = Address::with(&seal.wout.script_pubkey(), network)
-                    .expect("script pubkey which is not representable as an address");
-                Beneficiary::new(address, seal.amount)
-            });
-        self.0.wallet.construct_psbt(closes, beneficiaries, params)
+        giveaway: Option<Sats>,
+    ) -> Result<Psbt, PayError> {
+        let request = self.fulfill(invoice, strategy, giveaway)?;
+        let bundle = OpRequestSet::with(request);
+        let psbt = self.transfer(bundle, params)?;
+        Ok(psbt)
     }
+
+    /// Constructs transfer, consisting of PSBT and a consignment stream
+    // TODO: Return a dedicated Transfer object which can stream a consignment
+    pub fn transfer(
+        &mut self,
+        set: OpRequestSet<Option<WoutAssignment>>,
+        params: TxParams,
+    ) -> Result<Psbt, TransferError> {
+        let (mut psbt, meta) = self.0.wallet.compose_psbt(&set, params)?;
+        let items = set
+            .resolve_seals(psbt.script_resolver(), meta.change_vout)
+            .map_err(|_| TransferError::ChangeRequired)?;
+        let bundle = self.bundle(items, meta.change_vout)?;
+
+        psbt.rgb_fill_csv(&bundle)?;
+
+        psbt.rgb_complete()
+            .expect("PSBT is modifiable since it is just constructed");
+        let (mpc, dbc) = psbt.dbc_commit()?;
+        let tx = psbt.to_unsigned_tx();
+
+        let prevouts = psbt
+            .inputs()
+            .map(|inp| inp.previous_outpoint)
+            .collect::<Vec<_>>();
+        self.include(&bundle, &tx.into(), mpc, dbc, &prevouts)?;
+
+        Ok(psbt)
+    }
+}
+
+#[derive(Clone, Debug, Display, Error, From)]
+#[display(inner)]
+pub enum PayError {
+    #[from]
+    Fulfill(FulfillError),
+    #[from]
+    Transfer(TransferError),
+}
+
+#[derive(Clone, Debug, Display, Error, From)]
+#[display(inner)]
+pub enum TransferError {
+    #[from]
+    PsbtConstruct(ConstructionError),
+
+    #[from]
+    PsbtRgb(RgbPsbtError),
+
+    #[from]
+    PsbtDbc(DbcPsbtError),
+
+    #[from]
+    Bundle(BundleError),
+
+    #[from]
+    Include(IncludeError),
+
+    #[display("transfer doesn't create BTC change output, which is required for RGB change")]
+    ChangeRequired,
 }
 
 #[cfg(feature = "fs")]
 pub mod file {
+    use std::io;
+
     use rgb::{DirExcavator, FilePile, FileSupply};
 
     use super::*;
 
     pub type RgbDirRuntime = RgbRuntime<FileSupply, FilePile<TxoSeal>, DirExcavator<TxoSeal>>;
+
+    pub trait ConsignmentStream {
+        fn write(self, writer: impl io::Write) -> io::Result<()>;
+    }
+
+    pub struct Transfer<C: ConsignmentStream> {
+        pub psbt: Psbt,
+        pub consignment: C,
+    }
 }

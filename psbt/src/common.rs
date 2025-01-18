@@ -28,7 +28,7 @@ use rgb::{ContractId, Outpoint};
 
 pub trait RgbPsbt {
     // TODO: Add rgb_embed to embed operations for hardware signers
-    fn rgb_fill_csv(&mut self, bundle: PrefabBundle) -> Result<(), RgbPsbtError>;
+    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtError>;
 
     fn rgb_complete(&mut self) -> Result<(), Unmodifiable>;
 }

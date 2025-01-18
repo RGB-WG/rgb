@@ -210,8 +210,17 @@ pub enum Cmd {
         #[clap(short, long, default_value = "aggregate", env = RGB_COINSELECT_STRATEGY_ENV)]
         strategy: CoinselectStrategy,
 
-        /// Invoice to fylfill
-        invoice: RgbInvoice,
+        /// Invoice to fulfill
+        invoice: RgbInvoice<ContractId>,
+
+        /// Fees for PSBT
+        fee: Sats,
+
+        /// File to save the produced PSBT
+        ///
+        /// If not provided, prints PSBT to standard output.
+        #[clap(value_hint = ValueHint::FilePath)]
+        psbt: Option<PathBuf>,
     },
 
     /// Execute a script, producing prefabricated operation bundle and PSBT
@@ -492,6 +501,23 @@ impl Args {
                 }
             }
 
+            Cmd::Pay { wallet, strategy, invoice, fee, psbt: psbt_filename } => {
+                let mut runtime = self.runtime(wallet.wallet.as_deref());
+                // TODO: sync wallet if needed
+                // TODO: Add params and giveway to arguments
+                let params = TxParams::with(*fee);
+                let giveaway = Some(Sats::from(500u16));
+                let psbt = runtime.pay_invoice(invoice, *strategy, params, giveaway)?;
+                if let Some(psbt_filename) = psbt_filename {
+                    psbt.encode(
+                        psbt.version,
+                        &mut File::create(psbt_filename).expect("Unable to write PSBT"),
+                    )?;
+                } else {
+                    println!("{psbt}");
+                }
+            }
+
             Cmd::Exec {
                 wallet,
                 script,
@@ -506,7 +532,8 @@ impl Args {
                     serde_yaml::from_reader::<_, OpRequestSet<Option<WoutAssignment>>>(src)?;
 
                 let (mut psbt, meta) = runtime
-                    .construct_psbt(&items, TxParams::with(*fee))
+                    .wallet
+                    .compose_psbt(&items, TxParams::with(*fee))
                     .expect("Unable to construct PSBT");
                 let mut psbt_file = File::create_new(
                     psbt_filename
@@ -519,13 +546,14 @@ impl Args {
                 // Here we send PSBT to other payjoin parties so they add their inputs and outputs,
                 // or even re-order existing ones
 
+                // TODO: Replace this with `color` function
                 let items = items.resolve_seals(psbt.script_resolver(), meta.change_vout)?;
                 let bundle = runtime.bundle(items, meta.change_vout)?;
                 bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
                     .expect("Unable to write output file");
 
-                psbt.rgb_fill_csv(bundle)
+                psbt.rgb_fill_csv(&bundle)
                     .expect("Unable to embed RGB information to PSBT");
                 psbt.encode(psbt.version, &mut psbt_file)
                     .expect("Unable to write PSBT");
