@@ -28,6 +28,7 @@ use std::str::FromStr;
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
 use bp::seals::txout::CloseMethod;
+use bp::Txid;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
 use bpstd::{Sats, XpubDerivable};
@@ -46,8 +47,8 @@ use rgb::validation::Validity;
 use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
     Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
-    OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
-    TransferParams, WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
+    Outpoint, OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
+    TransferParams, WalletError, WalletProvider,
 };
 use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
@@ -581,8 +582,8 @@ impl Exec for RgbArgs {
                 impl AssignmentsFilter for Filter<'_> {
                     fn should_include(
                         &self,
-                        outpoint: impl Into<XOutpoint>,
-                        id: Option<XWitnessId>,
+                        outpoint: impl Into<Outpoint>,
+                        id: Option<Txid>,
                     ) -> bool {
                         match self {
                             Filter::Wallet(wallet) => wallet
@@ -594,11 +595,7 @@ impl Exec for RgbArgs {
                     }
                 }
                 impl Filter<'_> {
-                    fn comment(&self, outpoint: XOutpoint) -> &'static str {
-                        let outpoint = outpoint
-                            .into_bp()
-                            .into_bitcoin()
-                            .expect("liquid is not yet supported");
+                    fn comment(&self, outpoint: Outpoint) -> &'static str {
                         match self {
                             Filter::Wallet(rgb) if rgb.wallet().is_unspent(outpoint) => "",
                             Filter::WalletAll(rgb) if rgb.wallet().is_unspent(outpoint) => {
@@ -809,7 +806,7 @@ impl Exec for RgbArgs {
                                     .expect("owned state must be a fungible amount")
                                     .as_u64()
                                     .expect("fungible state must be an integer");
-                                let seal = BuilderSeal::Revealed(XChain::Bitcoin(seal));
+                                let seal = BuilderSeal::Revealed(seal);
                                 builder = builder
                                     .add_fungible_state(field_name, seal, amount)
                                     .expect("invalid global state data");
@@ -863,10 +860,9 @@ impl Exec for RgbArgs {
                         Beneficiary::WitnessVout(Pay2Vout::new(addr.payload))
                     }
                     (_, Some(outpoint)) => {
-                        let seal =
-                            XChain::Bitcoin(GraphSeal::new_random(outpoint.txid, outpoint.vout));
+                        let seal = GraphSeal::new_random(outpoint.txid, outpoint.vout);
                         wallet.stock_mut().store_secret_seal(seal)?;
-                        Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
+                        Beneficiary::BlindedSeal(seal.to_secret_seal())
                     }
                 };
 
@@ -1072,7 +1068,7 @@ impl Exec for RgbArgs {
                 pub struct ConsignmentInspection {
                     version: ContainerVer,
                     transfer: bool,
-                    terminals: SmallOrdMap<BundleId, XChain<SecretSeal>>,
+                    terminals: SmallOrdMap<BundleId, SecretSeal>,
                     supplements: TinyOrdSet<Supplement>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }

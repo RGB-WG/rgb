@@ -28,8 +28,7 @@ use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
 pub use bpstd::psbt::*;
 pub use rgb::*;
-use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia, PubWitness, XPubWitness};
-use rgbstd::XChain;
+use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia, PubWitness};
 
 pub use self::rgb::{
     ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -77,7 +76,7 @@ impl RgbPsbt for Psbt {
             let contract_id = info.transition.contract_id;
             let mut inputs = info.inputs.release();
             for input in self.inputs_mut() {
-                if inputs.remove(&XChain::Bitcoin(input.prevout().outpoint())) {
+                if inputs.remove(&input.prevout().outpoint()) {
                     input
                         .set_rgb_consumer(contract_id, info.id)
                         .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
@@ -118,7 +117,7 @@ impl RgbPsbt for Psbt {
         // TODO: Use signed transaction here!
         let witness = PubWitness::with(self.to_unsigned_tx().into());
         Ok(Fascia {
-            witness: XPubWitness::Bitcoin(witness),
+            witness,
             anchor,
             bundles,
         })

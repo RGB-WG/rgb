@@ -24,7 +24,7 @@ use std::marker::PhantomData;
 
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
-use bp::{Outpoint, Sats, ScriptPubkey, Vout};
+use bp::{Outpoint, Sats, ScriptPubkey, Tx, Vout};
 use bpstd::{psbt, Address};
 use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
 use psrgbt::{
@@ -36,14 +36,14 @@ use rgbstd::interface::AssignmentsFilter;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::validation::ResolveWitness;
-use rgbstd::{ContractId, DataState, XChain, XOutpoint};
+use rgbstd::{ContractId, DataState};
 
 use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
-use crate::vm::{WitnessOrd, XWitnessTx};
+use crate::vm::WitnessOrd;
 use crate::{
     CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid,
-    WalletOutpointsFilter, WalletUnspentFilter, WalletWitnessFilter, XWitnessId,
+    WalletOutpointsFilter, WalletUnspentFilter, WalletWitnessFilter,
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -89,7 +89,7 @@ impl<
     > AssignmentsFilter for ContractOutpointsFilter<'_, '_, W, K, S, H, P, L2>
 where W::Descr: DescriptorRgb<K>
 {
-    fn should_include(&self, output: impl Into<XOutpoint>, id: Option<XWitnessId>) -> bool {
+    fn should_include(&self, output: impl Into<Outpoint>, id: Option<Txid>) -> bool {
         let output = output.into();
         if !self.wallet.filter_unspent().should_include(output, id) {
             return false;
@@ -243,11 +243,7 @@ where Self::Descr: DescriptorRgb<K>
         if prev_outputs.is_empty() {
             return Err(CompositionError::InsufficientState);
         }
-        let prev_outpoints = prev_outputs
-            .iter()
-            // TODO: Support liquid
-            .map(|o| o.as_reduced_unsafe())
-            .map(|o| Outpoint::new(o.txid, o.vout));
+        let prev_outpoints = prev_outputs.iter().map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain =
             RgbKeychain::for_method(self.descriptor().close_method()).into();
         let (mut psbt, mut meta) =
@@ -348,7 +344,7 @@ where Self::Descr: DescriptorRgb<K>
             })?;
         }
 
-        let witness_txid = psbt.txid();
+        let witness_id = psbt.txid();
         let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
             Beneficiary::WitnessVout(pay2vout) => {
                 let s = (*pay2vout).script_pubkey();
@@ -357,32 +353,28 @@ where Self::Descr: DescriptorRgb<K>
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
                 let vout = Vout::from_u32(vout as u32);
-                let seal = XChain::Bitcoin(ExplicitSeal::new(Outpoint::new(witness_txid, vout)));
+                let seal = ExplicitSeal::new(Outpoint::new(witness_id, vout));
                 (None, vec![seal])
             }
-            Beneficiary::BlindedSeal(seal) => (Some(XChain::Bitcoin(seal)), vec![]),
+            Beneficiary::BlindedSeal(seal) => (Some(seal), vec![]),
         };
 
         struct FasciaResolver {
-            witness_id: XWitnessId,
+            witness_id: Txid,
         }
         impl ResolveWitness for FasciaResolver {
-            fn resolve_pub_witness(
-                &self,
-                _: XWitnessId,
-            ) -> Result<XWitnessTx, WitnessResolverError> {
+            fn resolve_pub_witness(&self, _: Txid) -> Result<Tx, WitnessResolverError> {
                 unreachable!()
             }
             fn resolve_pub_witness_ord(
                 &self,
-                witness_id: XWitnessId,
+                witness_id: Txid,
             ) -> Result<WitnessOrd, WitnessResolverError> {
                 assert_eq!(witness_id, self.witness_id);
                 Ok(WitnessOrd::Tentative)
             }
         }
 
-        let witness_id = XChain::Bitcoin(witness_txid);
         stock
             .consume_fascia(fascia, FasciaResolver { witness_id })
             .map_err(|e| e.to_string())?;
