@@ -28,10 +28,10 @@ use bp::{Outpoint, Sats, ScriptPubkey, Tx, Vout};
 use bpstd::{psbt, Address};
 use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
 use psrgbt::{
-    Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbPsbt, TapretKeyError,
+    Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbExt, RgbPsbt, TapretKeyError,
     TxParams,
 };
-use rgbstd::containers::Transfer;
+use rgbstd::containers::{AnchorSet, Transfer};
 use rgbstd::interface::AssignmentsFilter;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
@@ -139,24 +139,8 @@ where Self::Descr: DescriptorRgb<K>
         mut params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
         let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
-        let contract_close_method = stock
-            .as_stash_provider()
-            .genesis(contract_id)
-            .map_err(|e| e.to_string())?
-            .close_method;
-        match (self.descriptor().close_method(), contract_close_method) {
-            (CloseMethod::OpretFirst, CloseMethod::TapretFirst) => {
-                return Err(CompositionError::WalletUnsupportsCloseMethod(contract_close_method));
-            }
-            (CloseMethod::OpretFirst, CloseMethod::OpretFirst) => {}
-            (CloseMethod::TapretFirst, CloseMethod::TapretFirst) => {}
-            (CloseMethod::TapretFirst, CloseMethod::OpretFirst) => {}
-        }
-        if !invoice.close_methods.is_empty()
-            && !invoice.close_methods.contains(&contract_close_method)
-        {
-            return Err(CompositionError::InvoiceUnsupportsCloseMethod(contract_close_method));
-        }
+
+        let close_method = self.descriptor().close_method();
 
         let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
         let iface = stock.iface(iface_name.clone()).map_err(|e| e.to_string())?;
@@ -244,8 +228,7 @@ where Self::Descr: DescriptorRgb<K>
             return Err(CompositionError::InsufficientState);
         }
         let prev_outpoints = prev_outputs.iter().map(|o| Outpoint::new(o.txid, o.vout));
-        params.tx.change_keychain =
-            RgbKeychain::for_method(self.descriptor().close_method()).into();
+        params.tx.change_keychain = RgbKeychain::for_method(close_method).into();
         let (mut psbt, mut meta) =
             self.construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
@@ -264,11 +247,18 @@ where Self::Descr: DescriptorRgb<K>
             .change_vout
             .and_then(|vout| psbt.output(vout.to_usize()))
             .map(|output| output.script.clone());
-        psbt.sort_outputs_by(|output| !output.is_tapret_host())
-            .expect("PSBT must be modifiable at this stage");
-        if let Some(change_script) = change_script {
+        if close_method == CloseMethod::OpretFirst {
+            let output = psbt.construct_output_expect(ScriptPubkey::op_return(&[]), Sats::ZERO);
+            output.set_opret_host().expect("just created");
+            psbt.sort_outputs_by(|output| !output.is_opret_host())
+                .expect("PSBT must be modifiable at this stage");
+        } else {
+            psbt.sort_outputs_by(|output| !output.is_tapret_host())
+                .expect("PSBT must be modifiable at this stage");
+        };
+        if let Some(ref change_script) = change_script {
             for output in psbt.outputs() {
-                if output.script == change_script {
+                if output.script == *change_script {
                     meta.change_vout = Some(output.vout());
                     break;
                 }
@@ -292,12 +282,7 @@ where Self::Descr: DescriptorRgb<K>
             .compose(invoice, prev_outputs, beneficiary_vout, |_, _, _| meta.change_vout)
             .map_err(|e| e.to_string())?;
 
-        let methods = batch.close_method_set();
-        if methods.has_opret_first() {
-            let output = psbt.construct_output_expect(ScriptPubkey::op_return(&[]), Sats::ZERO);
-            output.set_opret_host().expect("just created");
-        }
-
+        psbt.set_rgb_close_method(close_method);
         psbt.complete_construction();
         psbt.rgb_embed(batch)?;
         Ok((psbt, meta))
@@ -311,27 +296,9 @@ where Self::Descr: DescriptorRgb<K>
         psbt: &mut Psbt,
     ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
-        let contract_close_method = stock
-            .as_stash_provider()
-            .genesis(contract_id)
-            .map_err(|e| e.to_string())?
-            .close_method;
-        match (self.descriptor().close_method(), contract_close_method) {
-            (CloseMethod::OpretFirst, CloseMethod::TapretFirst) => {
-                return Err(CompletionError::WalletUnsupportsCloseMethod(contract_close_method));
-            }
-            (CloseMethod::OpretFirst, CloseMethod::OpretFirst) => {}
-            (CloseMethod::TapretFirst, CloseMethod::TapretFirst) => {}
-            (CloseMethod::TapretFirst, CloseMethod::OpretFirst) => {}
-        }
-        if !invoice.close_methods.is_empty()
-            && !invoice.close_methods.contains(&contract_close_method)
-        {
-            return Err(CompletionError::InvoiceUnsupportsCloseMethod(contract_close_method));
-        }
 
         let fascia = psbt.rgb_commit()?;
-        if fascia.anchor.has_tapret() {
+        if matches!(fascia.anchor, AnchorSet::Tapret(_)) {
             let output = psbt
                 .dbc_output::<TapretProof>()
                 .ok_or(TapretKeyError::NotTaprootOutput)?;

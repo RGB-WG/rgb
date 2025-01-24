@@ -27,7 +27,6 @@ use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
-use bp::seals::txout::CloseMethod;
 use bp::Txid;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
@@ -46,9 +45,9 @@ use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
-    Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
-    Outpoint, OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
-    TransferParams, WalletError, WalletProvider,
+    Allocation, BundleId, ContractId, GenesisSeal, GraphSeal, Identity, OpId, Outpoint, OutputSeal,
+    OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex, TransferParams,
+    WalletError, WalletProvider,
 };
 use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
@@ -156,9 +155,6 @@ pub enum Command {
     Issue {
         /// Schema name to use for the contract
         schema: SchemaId, //String,
-
-        /// Contract close method
-        close_method: Option<CloseMethod>,
 
         /// Issuer identity string
         issuer: Identity,
@@ -671,12 +667,10 @@ impl Exec for RgbArgs {
             }
             Command::Issue {
                 schema: schema_id,
-                close_method,
                 issuer,
                 contract,
             } => {
                 let mut stock = self.rgb_stock()?;
-                let wallet = self.rgb_wallet(&config)?;
 
                 let file = fs::File::open(contract)?;
 
@@ -707,20 +701,7 @@ impl Exec for RgbArgs {
                     ))
                 })?;
 
-                let wallet_close_method = wallet.wallet().close_method();
-                let contract_close_method = close_method.unwrap_or(wallet_close_method);
-                match (wallet_close_method, contract_close_method) {
-                    (CloseMethod::OpretFirst, CloseMethod::TapretFirst) => {
-                        return Err(WalletError::Custom(s!(
-                            "an opret wallet cannot issue a tapret contract"
-                        )));
-                    }
-                    (CloseMethod::OpretFirst, CloseMethod::OpretFirst) => {}
-                    (CloseMethod::TapretFirst, CloseMethod::TapretFirst) => {}
-                    (CloseMethod::TapretFirst, CloseMethod::OpretFirst) => {}
-                }
                 let mut builder = stock.contract_builder(
-                    contract_close_method,
                     issuer.clone(),
                     *schema_id,
                     iface_id,
@@ -910,10 +891,6 @@ impl Exec for RgbArgs {
                 let mut builder = RgbInvoiceBuilder::new(XChainNet::bitcoin(network, beneficiary))
                     .set_contract(*contract_id)
                     .set_interface(iface_name.clone());
-
-                if wallet.wallet().close_method() == CloseMethod::OpretFirst {
-                    builder = builder.set_close_methods(vec![CloseMethod::OpretFirst]);
-                }
 
                 if operation.is_some() {
                     builder = builder.set_operation(op_name);
