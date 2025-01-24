@@ -131,7 +131,7 @@ impl RgbArgs {
             let resolver = self.resolver()?;
             let from_height = self.from_height.unwrap_or(1);
             eprint!("Updating witness information starting from height {from_height} ... ");
-            let res = stock.update_witnesses(resolver, from_height)?;
+            let res = stock.update_witnesses(resolver, from_height, vec![])?;
             eprint!("{} transactions were checked and updated", res.succeeded);
             if res.failed.is_empty() {
                 eprintln!();
