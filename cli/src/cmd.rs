@@ -37,7 +37,7 @@ use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use rgb::invoice::RgbInvoice;
 use rgb::popls::bp::file::{BpDirMound, DirBarrow};
-use rgb::popls::bp::{PrefabBundle, PrefabParamsSet, WoutAssignment};
+use rgb::popls::bp::{OpRequestSet, PrefabBundle, WoutAssignment};
 use rgb::{AuthToken, Consensus, ContractId, CreateParams, Outpoint};
 use rgbp::descriptor::RgbDescr;
 use rgbp::{CoinselectStrategy, RgbDirRuntime, RgbWallet};
@@ -427,7 +427,7 @@ impl Args {
                 let state = if *all {
                     runtime.state_all(*contract).collect::<Vec<_>>()
                 } else {
-                    runtime.state(*contract).collect()
+                    runtime.state_own(*contract).collect()
                 };
                 for (contract_id, state) in state {
                     println!("{contract_id}");
@@ -502,7 +502,8 @@ impl Args {
             } => {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let src = File::open(script).expect("Unable to open script file");
-                let items = serde_yaml::from_reader::<_, PrefabParamsSet<WoutAssignment>>(src)?;
+                let items =
+                    serde_yaml::from_reader::<_, OpRequestSet<Option<WoutAssignment>>>(src)?;
 
                 let (mut psbt, meta) = runtime
                     .construct_psbt(&items, TxParams::with(*fee))
@@ -518,8 +519,8 @@ impl Args {
                 // Here we send PSBT to other payjoin parties so they add their inputs and outputs,
                 // or even re-order existing ones
 
-                let items = items.resolve_seals(psbt.script_resolver())?;
-                let bundle = runtime.bundle(items, meta.change_vout.expect("no change output"));
+                let items = items.resolve_seals(psbt.script_resolver(), meta.change_vout)?;
+                let bundle = runtime.bundle(items, meta.change_vout)?;
                 bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
                     .expect("Unable to write output file");
@@ -550,7 +551,7 @@ impl Args {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let (mpc, dbc) = psbt.dbc_commit()?;
                 let tx = psbt.to_unsigned_tx();
-                runtime.attest(&bundle, &tx.into(), mpc, dbc, &prevouts);
+                runtime.include(&bundle, &tx.into(), mpc, dbc, &prevouts)?;
 
                 psbt.encode(
                     psbt.version,

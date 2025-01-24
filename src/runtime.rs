@@ -27,7 +27,7 @@ use std::ops::{Deref, DerefMut};
 use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
 use bpstd::seals::TxoSeal;
 use bpstd::{Address, Psbt};
-use rgb::popls::bp::{Barrow, PrefabParamsSet, WoutAssignment};
+use rgb::popls::bp::{Barrow, OpRequestSet, WoutAssignment};
 use rgb::{EitherSeal, Excavate, Pile, Supply};
 
 use crate::wallet::RgbWallet;
@@ -53,7 +53,7 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRunt
 impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
     pub fn construct_psbt(
         &mut self,
-        bundle: &PrefabParamsSet<WoutAssignment>,
+        bundle: &OpRequestSet<Option<WoutAssignment>>,
         params: TxParams,
     ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
         let closes = bundle
@@ -65,7 +65,7 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
             .iter()
             .flat_map(|params| &params.owned)
             .filter_map(|assignment| match &assignment.state.seal {
-                EitherSeal::Alt(seal) => Some(seal),
+                EitherSeal::Alt(seal) => seal.as_ref(),
                 EitherSeal::Token(_) => None,
             })
             .map(|seal| {

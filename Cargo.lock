@@ -175,9 +175,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.12.0"
+version = "1.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f409eb70b561706bf8abba8ca9c112729c481595893fd06a2dd9af8ed8441148"
+checksum = "4c2b7ddaa2c56a367ad27a094ad8ef4faacf8a617c2575acb2ba88949df999ca"
 dependencies = [
  "aws-lc-sys",
  "paste",
@@ -186,9 +186,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.24.1"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "923ded50f602b3007e5e63e3f094c479d9c8a9b42d7f4034e4afe456aa48bfd2"
+checksum = "71b2ddd3ada61a305e1d8bb6c005d1eaa7d14d903681edfc400406d523a9b491"
 dependencies = [
  "bindgen",
  "cc",
@@ -345,7 +345,7 @@ dependencies = [
  "bp-invoice",
  "commit_verify",
  "hmac",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
  "sha2",
 ]
@@ -471,9 +471,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cc"
-version = "1.2.9"
+version = "1.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8293772165d9345bdaaa39b45b2109591e63fe5e6fbc23c6ff930a048aa310b"
+checksum = "13208fcbb66eaeffe09b99fffbe1af420f00a7b35aa99ad683dfc1aa76145229"
 dependencies = [
  "jobserver",
  "libc",
@@ -523,9 +523,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.26"
+version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8eb5e908ef3a6efbe1ed62520fb7287959888c88485abe072543190ecc66783"
+checksum = "769b0145982b4b48713e01ec42d61614425f27b7058bda7180a3a41f30104796"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -533,9 +533,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.26"
+version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b01801b5fc6a0a232407abc821660c9c6d25a1cafc0d4f85f29fb8d9afc121"
+checksum = "1b26884eb4b57140e4d2d93652abfa49498b938b3c9179f9fc487b0acc3edad7"
 dependencies = [
  "anstream",
  "anstyle",
@@ -702,7 +702,7 @@ source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a370095
 dependencies = [
  "amplify",
  "bp-derive",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
 ]
 
@@ -930,13 +930,13 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#5eb21d80bb2e00ff386adcd12b191be1e937a6f2"
+source = "git+https://github.com/AluVM/sonic?branch=master#02fea6d4472bfada05555f2a01348787498add23"
 dependencies = [
  "aluvm",
  "amplify",
  "commit_verify",
  "getrandom",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
  "serde_yaml",
  "sonic-api",
@@ -1128,9 +1128,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.7.0"
+version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f822373a4fe84d4bb149bf54e584a7f4abec90e072ed49cda0edea5b95471f"
+checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.2",
@@ -1373,7 +1373,7 @@ dependencies = [
  "bp-derive",
  "commit_verify",
  "descriptors",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
  "strict_encoding",
 ]
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#b0b072f48799d40c9ce279e60e7f3870449040a9"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=payments#688aa844b36aeb8fde9c18c9aec27d318f3941f2"
 dependencies = [
  "amplify",
  "baid64",
@@ -1529,7 +1529,7 @@ dependencies = [
  "bp-wallet",
  "commit_verify",
  "getrandom",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "log",
  "nonasync",
  "rand",
@@ -1543,7 +1543,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#b0b072f48799d40c9ce279e60e7f3870449040a9"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=payments#688aa844b36aeb8fde9c18c9aec27d318f3941f2"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1611,9 +1611,9 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustix"
-version = "0.38.43"
+version = "0.38.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a78891ee6bf2340288408954ac787aa063d8e8817e9f53abb37c695c6d834ef6"
+checksum = "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154"
 dependencies = [
  "bitflags",
  "errno",
@@ -1720,9 +1720,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.135"
+version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b0d7ba2887406110130a978386c4e1befb98c674b4fba677954e4db976630d9"
+checksum = "930cfb6e6abf99298aaad7d29abbef7a9999a9a8806a40088f55f0dcec03146b"
 dependencies = [
  "itoa",
  "memchr",
@@ -1759,7 +1759,7 @@ dependencies = [
  "chrono",
  "hex",
  "indexmap 1.9.3",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1785,7 +1785,7 @@ version = "0.9.34+deprecated"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
 dependencies = [
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "itoa",
  "ryu",
  "serde",
@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#5eb21d80bb2e00ff386adcd12b191be1e937a6f2"
+source = "git+https://github.com/AluVM/sonic?branch=master#02fea6d4472bfada05555f2a01348787498add23"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1867,13 +1867,13 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#5eb21d80bb2e00ff386adcd12b191be1e937a6f2"
+source = "git+https://github.com/AluVM/sonic?branch=master#02fea6d4472bfada05555f2a01348787498add23"
 dependencies = [
  "amplify",
  "baid64",
  "chrono",
  "fluent-uri",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "percent-encoding",
  "serde",
  "strict_encoding",
@@ -1926,7 +1926,7 @@ checksum = "3e208d1bd29a0f70d7ee90a91d76446b8bb7b1b8212d06e031e396d52e2fe891"
 dependencies = [
  "amplify",
  "baid64",
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2080,7 +2080,7 @@ version = "0.22.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ae48d6208a266e853d946088ed816055e556cc6028c5e8e2b84d9fa5dd7c7f5"
 dependencies = [
- "indexmap 2.7.0",
+ "indexmap 2.7.1",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -2110,9 +2110,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.14"
+version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb9e6ca4f869e1180728b7950e35922a7fc6397f7b641499e8f3ef06e50dc83"
+checksum = "11cd88e12b17c6494200a9c1b683a04fcac9573ed74cd1b62aeb2727c5592243"
 
 [[package]]
 name = "unsafe-libyaml"
