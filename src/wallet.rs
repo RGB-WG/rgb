@@ -30,7 +30,7 @@ use bpstd::seals::TxoSeal;
 use bpstd::{Address, Keychain, Network, Outpoint, Psbt, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
-use rgb::popls::bp::{OpRequestSet, WalletProvider, WoutAssignment};
+use rgb::popls::bp::{PaymentScript, WalletProvider};
 use rgb::{AuthToken, EitherSeal, SealAuthToken};
 
 use crate::descriptor::RgbDescr;
@@ -106,7 +106,7 @@ impl RgbWallet {
 
     pub fn compose_psbt(
         &mut self,
-        bundle: &OpRequestSet<Option<WoutAssignment>>,
+        bundle: &PaymentScript,
         params: TxParams,
     ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
         let closes = bundle

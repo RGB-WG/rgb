@@ -29,7 +29,7 @@ use bpstd::seals::TxoSeal;
 use bpstd::{Psbt, Sats};
 use rgb::invoice::RgbInvoice;
 use rgb::popls::bp::{
-    Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, WoutAssignment,
+    Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript,
 };
 use rgb::{ContractId, Excavate, Pile, Supply};
 use rgpsbt::{RgbPsbt, RgbPsbtError, ScriptResolver};
@@ -82,7 +82,7 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
     // TODO: Return a dedicated Transfer object which can stream a consignment
     pub fn transfer(
         &mut self,
-        set: OpRequestSet<Option<WoutAssignment>>,
+        set: PaymentScript,
         params: TxParams,
     ) -> Result<Psbt, TransferError> {
         let (mut psbt, meta) = self.0.wallet.compose_psbt(&set, params)?;
