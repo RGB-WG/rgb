@@ -25,13 +25,13 @@
 use std::convert::Infallible;
 
 use amplify::Bytes32;
-use bpstd::psbt::PsbtConstructor;
+use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
 use bpstd::seals::TxoSeal;
-use bpstd::{Address, Keychain, Network, Outpoint, XpubDerivable};
+use bpstd::{Address, Keychain, Network, Outpoint, Psbt, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
-use rgb::popls::bp::WalletProvider;
-use rgb::{AuthToken, SealAuthToken};
+use rgb::popls::bp::{PaymentScript, WalletProvider};
+use rgb::{AuthToken, EitherSeal, SealAuthToken};
 
 use crate::descriptor::RgbDescr;
 
@@ -102,5 +102,30 @@ impl RgbWallet {
             + PersistenceProvider<NoLayer2>
             + 'static {
         Wallet::load(provider, autosave).map(RgbWallet)
+    }
+
+    pub fn compose_psbt(
+        &mut self,
+        bundle: &PaymentScript,
+        params: TxParams,
+    ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
+        let closes = bundle
+            .iter()
+            .flat_map(|params| &params.using)
+            .map(|used| used.outpoint);
+        let network = self.network();
+        let beneficiaries = bundle
+            .iter()
+            .flat_map(|params| &params.owned)
+            .filter_map(|assignment| match &assignment.state.seal {
+                EitherSeal::Alt(seal) => seal.as_ref(),
+                EitherSeal::Token(_) => None,
+            })
+            .map(|seal| {
+                let address = Address::with(&seal.wout.script_pubkey(), network)
+                    .expect("script pubkey which is not representable as an address");
+                Beneficiary::new(address, seal.amount)
+            });
+        self.construct_psbt(closes, beneficiaries, params)
     }
 }

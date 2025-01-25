@@ -24,22 +24,23 @@
 
 use amplify::ByteArray;
 use bpstd::seals::{mmb, mpc};
-use bpstd::{Psbt, Sats, ScriptPubkey, Unmodifiable, Vout};
+use bpstd::{Psbt, Sats, ScriptPubkey, Vout};
 use rgb::popls::bp::PrefabBundle;
 
+use crate::common::RgbPsbtUnfinalizable;
 use crate::{RgbPsbt, RgbPsbtError, ScriptResolver};
 
 impl RgbPsbt for Psbt {
-    fn rgb_fill_csv(&mut self, bundle: PrefabBundle) -> Result<(), RgbPsbtError> {
+    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtError> {
         for prefab in bundle {
             let id = mpc::ProtocolId::from_byte_array(prefab.operation.contract_id.to_byte_array());
             let opid = prefab.operation.opid();
             let msg = mmb::Message::from_byte_array(opid.to_byte_array());
-            for outpoint in prefab.closes {
+            for outpoint in &prefab.closes {
                 let input = self
                     .inputs_mut()
-                    .find(|inp| inp.previous_outpoint == outpoint)
-                    .ok_or(RgbPsbtError::InputAbsent(outpoint))?;
+                    .find(|inp| inp.previous_outpoint == *outpoint)
+                    .ok_or(RgbPsbtError::InputAbsent(*outpoint))?;
                 input.set_mmb_message(id, msg).map_err(|_| {
                     RgbPsbtError::InputAlreadyUsed(input.index(), prefab.operation.contract_id)
                 })?;
@@ -48,9 +49,11 @@ impl RgbPsbt for Psbt {
         Ok(())
     }
 
-    fn rgb_complete(&mut self) -> Result<(), Unmodifiable> {
+    fn rgb_complete(&mut self) -> Result<(), RgbPsbtUnfinalizable> {
         if self.outputs().all(|out| !out.is_opret_host()) && self.opret_hosts().count() == 0 {
-            let host = self.construct_output(ScriptPubkey::op_return(&[]), Sats::ZERO)?;
+            let host = self
+                .construct_output(ScriptPubkey::op_return(&[]), Sats::ZERO)
+                .map_err(|_| RgbPsbtUnfinalizable)?;
             host.set_opret_host().ok();
         }
         self.complete_construction();

@@ -35,11 +35,6 @@ jobs:
       matrix:
         feature:
           - fs
-          - cli
-          - log
-          - esplora_blocking
-          - electrum_blocking
-          - mempool_blocking
           - serde
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [ nightly, beta, stable, 1.77.0 ]
+        toolchain: [ nightly, beta, stable, 1.82.0 ]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master

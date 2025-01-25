@@ -22,14 +22,22 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::str::FromStr;
+use core::str::FromStr;
+
+use rgb::popls::bp::Coinselect;
+use rgb::{CellAddr, StateCalc};
+use strict_types::StrictVal;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display, Default)]
 #[display(lowercase)]
 pub enum CoinselectStrategy {
+    /// Collect them most small outputs unless the invoiced value if reached
     #[default]
     Aggregate,
-    Size,
+
+    /// Collect the minimum number of outputs (with the large value) to reduce the resulting input
+    /// count
+    SmallSize,
 }
 
 impl FromStr for CoinselectStrategy {
@@ -38,8 +46,58 @@ impl FromStr for CoinselectStrategy {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "aggregate" => Ok(CoinselectStrategy::Aggregate),
-            "size" => Ok(CoinselectStrategy::Size),
+            "smallsize" => Ok(CoinselectStrategy::SmallSize),
             s => Err(s.to_string()),
         }
+    }
+}
+
+impl Coinselect for CoinselectStrategy {
+    fn coinselect(
+        &mut self,
+        invoiced_state: &StrictVal,
+        calc: &mut (impl StateCalc + ?Sized),
+        owned_state: Vec<(CellAddr, &StrictVal)>,
+    ) -> Option<Vec<CellAddr>> {
+        let res = match self {
+            CoinselectStrategy::Aggregate => owned_state
+                .into_iter()
+                .take_while(|(_, val)| {
+                    if calc.is_satisfied(invoiced_state) {
+                        return false;
+                    }
+                    calc.accumulate(val).is_ok()
+                })
+                .map(|(addr, _)| addr)
+                .collect(),
+            CoinselectStrategy::SmallSize => owned_state
+                .into_iter()
+                .rev()
+                .take_while(|(_, val)| {
+                    if calc.is_satisfied(invoiced_state) {
+                        return false;
+                    }
+                    calc.accumulate(val).is_ok()
+                })
+                .map(|(addr, _)| addr)
+                .collect(),
+        };
+        if !calc.is_satisfied(invoiced_state) {
+            return None;
+        };
+        Some(res)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_from_str() {
+        assert_eq!(CoinselectStrategy::Aggregate.to_string(), "aggregate");
+        assert_eq!(CoinselectStrategy::SmallSize.to_string(), "smallsize");
+        assert_eq!(CoinselectStrategy::Aggregate, "aggregate".parse().unwrap());
+        assert_eq!(CoinselectStrategy::SmallSize, "smallsize".parse().unwrap());
     }
 }

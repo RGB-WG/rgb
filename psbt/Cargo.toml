@@ -16,8 +16,8 @@ name = "rgpsbt"
 
 [dependencies]
 amplify = { workspace = true }
-commit_verify = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
+bp-core = { workspace = true }
 bp-std = { workspace = true, optional = true }
 
 [features]

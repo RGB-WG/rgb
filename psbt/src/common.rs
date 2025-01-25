@@ -22,15 +22,21 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use bpstd::{ScriptPubkey, Unmodifiable, Vout};
+use bp::{ScriptPubkey, Vout};
 use rgb::popls::bp::PrefabBundle;
 use rgb::{ContractId, Outpoint};
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
+#[display(
+    "in order to complete RGB processing the PSBT must have PSBT_GLOBAL_TX_MODIFIABLE flag set on"
+)]
+pub struct RgbPsbtUnfinalizable;
+
 pub trait RgbPsbt {
     // TODO: Add rgb_embed to embed operations for hardware signers
-    fn rgb_fill_csv(&mut self, bundle: PrefabBundle) -> Result<(), RgbPsbtError>;
+    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtError>;
 
-    fn rgb_complete(&mut self) -> Result<(), Unmodifiable>;
+    fn rgb_complete(&mut self) -> Result<(), RgbPsbtUnfinalizable>;
 }
 
 /// Errors embedding RGB-related information.
