@@ -66,7 +66,7 @@ impl Coinselect for CoinselectStrategy {
                     if calc.is_satisfied(invoiced_state) {
                         return false;
                     }
-                    calc.accumulate(*val).is_ok()
+                    calc.accumulate(val).is_ok()
                 })
                 .map(|(addr, _)| addr)
                 .collect(),
@@ -77,7 +77,7 @@ impl Coinselect for CoinselectStrategy {
                     if calc.is_satisfied(invoiced_state) {
                         return false;
                     }
-                    calc.accumulate(*val).is_ok()
+                    calc.accumulate(val).is_ok()
                 })
                 .map(|(addr, _)| addr)
                 .collect(),

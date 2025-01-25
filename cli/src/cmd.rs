@@ -309,7 +309,7 @@ impl Args {
 
     pub fn mound(&self) -> BpDirMound {
         if self.init {
-            let _ = fs::create_dir_all(&self.data_dir());
+            let _ = fs::create_dir_all(self.data_dir());
         }
         if !self.network.is_testnet() {
             panic!("Non-testnet networks are not yet supported");
