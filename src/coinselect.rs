@@ -88,3 +88,16 @@ impl Coinselect for CoinselectStrategy {
         Some(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_from_str() {
+        assert_eq!(CoinselectStrategy::Aggregate.to_string(), "aggregate");
+        assert_eq!(CoinselectStrategy::SmallSize.to_string(), "smallsize");
+        assert_eq!(CoinselectStrategy::Aggregate, "aggregate".parse().unwrap());
+        assert_eq!(CoinselectStrategy::SmallSize, "smallsize".parse().unwrap());
+    }
+}
