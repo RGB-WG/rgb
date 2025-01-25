@@ -58,7 +58,7 @@ nonasync = { workspace = true }
 bp-std = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
-rgb-psbt.workspace = true
+rgb-psbt = { workspace = true, features = ["bp"] }
 indexmap = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
