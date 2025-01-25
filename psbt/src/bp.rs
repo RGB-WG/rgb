@@ -24,9 +24,10 @@
 
 use amplify::ByteArray;
 use bpstd::seals::{mmb, mpc};
-use bpstd::{Psbt, Sats, ScriptPubkey, Unmodifiable, Vout};
+use bpstd::{Psbt, Sats, ScriptPubkey, Vout};
 use rgb::popls::bp::PrefabBundle;
 
+use crate::common::RgbPsbtUnfinalizable;
 use crate::{RgbPsbt, RgbPsbtError, ScriptResolver};
 
 impl RgbPsbt for Psbt {
@@ -48,9 +49,11 @@ impl RgbPsbt for Psbt {
         Ok(())
     }
 
-    fn rgb_complete(&mut self) -> Result<(), Unmodifiable> {
+    fn rgb_complete(&mut self) -> Result<(), RgbPsbtUnfinalizable> {
         if self.outputs().all(|out| !out.is_opret_host()) && self.opret_hosts().count() == 0 {
-            let host = self.construct_output(ScriptPubkey::op_return(&[]), Sats::ZERO)?;
+            let host = self
+                .construct_output(ScriptPubkey::op_return(&[]), Sats::ZERO)
+                .map_err(|_| RgbPsbtUnfinalizable)?;
             host.set_opret_host().ok();
         }
         self.complete_construction();

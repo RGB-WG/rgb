@@ -19,6 +19,7 @@ nonasync = "0.1.2"
 strict_encoding = "2.8.1"
 strict_types = "2.8.1"
 commit_verify = "=0.12.0-beta.4"
+bp-core = "=0.12.0-beta.4"
 bp-std = { version = "=0.12.0-beta.4", features = ["client-side-validation"] }
 bp-electrum = "=0.12.0-beta.4"
 bp-esplora = { version = "=0.12.0-beta.4", default-features = false }

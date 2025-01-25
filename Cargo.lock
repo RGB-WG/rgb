@@ -1515,8 +1515,8 @@ name = "rgb-psbt"
 version = "0.12.0-beta.4"
 dependencies = [
  "amplify",
+ "bp-core",
  "bp-std",
- "commit_verify",
  "rgb-std",
 ]
 
