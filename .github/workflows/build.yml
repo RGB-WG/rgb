@@ -35,11 +35,6 @@ jobs:
       matrix:
         feature:
           - fs
-          - cli
-          - log
-          - esplora_blocking
-          - electrum_blocking
-          - mempool_blocking
           - serde
     steps:
       - uses: actions/checkout@v4
