@@ -1,1 +1,6 @@
 dump/
+*.contract/
+*.dump/
+*.rgb
+*.psbt
+*.pfab
