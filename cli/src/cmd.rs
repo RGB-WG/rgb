@@ -41,7 +41,6 @@ use rgb::popls::bp::{OpRequestSet, PrefabBundle, WoutAssignment};
 use rgb::{AuthToken, Consensus, ContractId, CreateParams, Outpoint};
 use rgbp::descriptor::RgbDescr;
 use rgbp::{CoinselectStrategy, RgbDirRuntime, RgbWallet};
-use rgpsbt::{RgbPsbt, ScriptResolver};
 use strict_encoding::{StrictDeserialize, StrictSerialize};
 
 use crate::opts::WalletOpts;
@@ -200,7 +199,7 @@ pub enum Cmd {
         contract: Option<ContractId>,
     },
 
-    /// Pay an invoice
+    /// Pay an invoice, creating ready-to-be signed PSBT and a consignment
     #[clap(alias = "p")]
     Pay {
         #[clap(flatten)]
@@ -221,6 +220,27 @@ pub enum Cmd {
         /// If not provided, prints PSBT to standard output.
         #[clap(value_hint = ValueHint::FilePath)]
         psbt: Option<PathBuf>,
+
+        /// Location to save the consignment file to
+        #[clap(value_hint = ValueHint::FilePath)]
+        consignment: PathBuf,
+    },
+
+    /// Create a payment script out from invoice
+    Script {
+        #[clap(flatten)]
+        wallet: WalletOpts,
+
+        /// Coinselect strategy to use
+        #[clap(short, long, default_value = "aggregate", env = RGB_COINSELECT_STRATEGY_ENV)]
+        strategy: CoinselectStrategy,
+
+        /// Invoice to fulfill
+        invoice: RgbInvoice<ContractId>,
+
+        /// Location to save the payment script to
+        #[clap(value_hint = ValueHint::FilePath)]
+        output: PathBuf,
     },
 
     /// Execute a script, producing prefabricated operation bundle and PSBT
@@ -267,7 +287,6 @@ pub enum Cmd {
     },
 
     /// Create a consignment transferring part of a contract state to another peer
-    #[clap(alias = "c")]
     Consign {
         /// Contract to use for the consignment
         contract: ContractId,
@@ -501,13 +520,20 @@ impl Args {
                 }
             }
 
-            Cmd::Pay { wallet, strategy, invoice, fee, psbt: psbt_filename } => {
+            Cmd::Pay {
+                wallet,
+                strategy,
+                invoice,
+                fee,
+                psbt: psbt_filename,
+                consignment,
+            } => {
                 let mut runtime = self.runtime(wallet.wallet.as_deref());
                 // TODO: sync wallet if needed
                 // TODO: Add params and giveway to arguments
                 let params = TxParams::with(*fee);
                 let giveaway = Some(Sats::from(500u16));
-                let psbt = runtime.pay_invoice(invoice, *strategy, params, giveaway)?;
+                let (psbt, terminal) = runtime.pay_invoice(invoice, *strategy, params, giveaway)?;
                 if let Some(psbt_filename) = psbt_filename {
                     psbt.encode(
                         psbt.version,
@@ -516,6 +542,18 @@ impl Args {
                 } else {
                     println!("{psbt}");
                 }
+                runtime
+                    .mound
+                    .consign_to_file(invoice.scope, [terminal], consignment)
+                    .expect("Unable to consign contract");
+            }
+
+            Cmd::Script { wallet, strategy, invoice, output } => {
+                let mut runtime = self.runtime(wallet.wallet.as_deref());
+                let giveaway = Some(Sats::from(500u16));
+                let script = runtime.script(invoice, *strategy, giveaway)?;
+                let file = File::create_new(output).expect("Unable to open script file");
+                serde_yaml::to_writer(file, &script).expect("Unable to write script");
             }
 
             Cmd::Exec {
@@ -528,13 +566,11 @@ impl Args {
             } => {
                 let mut runtime = self.runtime(wallet.as_deref());
                 let src = File::open(script).expect("Unable to open script file");
-                let items =
+                let script =
                     serde_yaml::from_reader::<_, OpRequestSet<Option<WoutAssignment>>>(src)?;
 
-                let (mut psbt, meta) = runtime
-                    .wallet
-                    .compose_psbt(&items, TxParams::with(*fee))
-                    .expect("Unable to construct PSBT");
+                let params = TxParams::with(*fee);
+                let (psbt, bundle) = runtime.exec(script, params)?;
                 let mut psbt_file = File::create_new(
                     psbt_filename
                         .as_ref()
@@ -543,18 +579,12 @@ impl Args {
                 )
                 .expect("Unable to create PSBT");
 
-                // Here we send PSBT to other payjoin parties so they add their inputs and outputs,
-                // or even re-order existing ones
-
-                // TODO: Replace this with `color` function
-                let items = items.resolve_seals(psbt.script_resolver(), meta.change_vout)?;
-                let bundle = runtime.bundle(items, meta.change_vout)?;
                 bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
                     .expect("Unable to write output file");
 
-                psbt.rgb_fill_csv(&bundle)
-                    .expect("Unable to embed RGB information to PSBT");
+                // This PSBT can be sent to other payjoin parties so they add their inputs and
+                // outputs, or even re-order existing ones
                 psbt.encode(psbt.version, &mut psbt_file)
                     .expect("Unable to write PSBT");
                 if *print {
@@ -562,24 +592,12 @@ impl Args {
                 }
             }
 
-            // Here we send PSBT to other payjoin parties, so they add their client-side data.
             Cmd::Complete { wallet, bundle, psbt: psbt_file } => {
-                let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
-                let mut psbt =
-                    Psbt::decode(&mut File::open(psbt_file).expect("Unable to open PSBT"))?;
-                psbt.rgb_complete()?;
-
-                // TODO: Check that bundle matches PSBT
-
-                let prevouts = psbt
-                    .inputs()
-                    .map(|inp| inp.previous_outpoint)
-                    .collect::<Vec<_>>();
-
                 let mut runtime = self.runtime(wallet.as_deref());
-                let (mpc, dbc) = psbt.dbc_commit()?;
-                let tx = psbt.to_unsigned_tx();
-                runtime.include(&bundle, &tx.into(), mpc, dbc, &prevouts)?;
+                let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
+                let psbt = Psbt::decode(&mut File::open(psbt_file).expect("Unable to open PSBT"))?;
+
+                let psbt = runtime.complete(psbt, &bundle)?;
 
                 psbt.encode(
                     psbt.version,

@@ -27,8 +27,7 @@ use bpstd::seals::{mmb, mpc};
 use bpstd::{Psbt, Sats, ScriptPubkey, Vout};
 use rgb::popls::bp::PrefabBundle;
 
-use crate::common::RgbPsbtUnfinalizable;
-use crate::{RgbPsbt, RgbPsbtError, ScriptResolver};
+use crate::{RgbPsbt, RgbPsbtError, RgbPsbtUnfinalizable, ScriptResolver};
 
 impl RgbPsbt for Psbt {
     fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtError> {

@@ -27,12 +27,12 @@ use std::ops::{Deref, DerefMut};
 use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
 use bpstd::seals::TxoSeal;
 use bpstd::{Psbt, Sats};
-use rgb::invoice::RgbInvoice;
+use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
-    Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript,
+    Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
 };
-use rgb::{ContractId, Excavate, Pile, Supply};
-use rgpsbt::{RgbPsbt, RgbPsbtError, ScriptResolver};
+use rgb::{AuthToken, ContractId, Excavate, Pile, SealAuthToken, Supply};
+use rgpsbt::{RgbPsbt, RgbPsbtError, RgbPsbtUnfinalizable, ScriptResolver};
 
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
@@ -56,7 +56,7 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRunt
 }
 
 impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
-    /// Pays an invoice producing PSBT ready to be signed
+    /// Pay an invoice producing PSBT ready to be signed.
     ///
     /// Should not be used in multi-party protocols like coinjoins, when a PSBT may needs to be
     /// modified in the number of inputs or outputs. Use `construct_psbt` method for such
@@ -71,30 +71,70 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
         strategy: CoinselectStrategy,
         params: TxParams,
         giveaway: Option<Sats>,
-    ) -> Result<Psbt, PayError> {
+    ) -> Result<(Psbt, AuthToken), PayError> {
         let request = self.fulfill(invoice, strategy, giveaway)?;
-        let bundle = OpRequestSet::with(request);
-        let psbt = self.transfer(bundle, params)?;
-        Ok(psbt)
+        let script = OpRequestSet::with(request.clone());
+        let psbt = self.transfer(script, params)?;
+        let terminal = match invoice.auth {
+            RgbBeneficiary::Token(auth) => auth,
+            RgbBeneficiary::WitnessOut(wout) => request
+                .resolve_seal(wout, psbt.script_resolver())
+                .expect("witness out must be present in the PSBT")
+                .auth_token(),
+        };
+        Ok((psbt, terminal))
     }
 
-    /// Constructs transfer, consisting of PSBT and a consignment stream
+    /// Convert invoice into a payment script.
+    pub fn script(
+        &mut self,
+        invoice: &RgbInvoice<ContractId>,
+        strategy: CoinselectStrategy,
+        giveaway: Option<Sats>,
+    ) -> Result<PaymentScript, PayError> {
+        let request = self.fulfill(invoice, strategy, giveaway)?;
+        Ok(OpRequestSet::with(request))
+    }
+
+    /// Construct transfer, consisting of PSBT and a consignment stream
     // TODO: Return a dedicated Transfer object which can stream a consignment
     pub fn transfer(
         &mut self,
-        set: PaymentScript,
+        script: PaymentScript,
         params: TxParams,
     ) -> Result<Psbt, TransferError> {
-        let (mut psbt, meta) = self.0.wallet.compose_psbt(&set, params)?;
-        let items = set
+        let (psbt, bundle) = self.exec(script, params)?;
+        let psbt = self.complete(psbt, &bundle)?;
+        Ok(psbt)
+    }
+
+    /// Execute payment script creating PSBT and prefabricated operation bundle.
+    ///
+    /// The returned PSBT contain only anonymous client-side validation information and is
+    /// modifiable, thus it can be forwarded to other payjoin participants.
+    pub fn exec(
+        &mut self,
+        script: PaymentScript,
+        params: TxParams,
+    ) -> Result<(Psbt, PrefabBundle), TransferError> {
+        let (mut psbt, meta) = self.0.wallet.compose_psbt(&script, params)?;
+        let items = script
             .resolve_seals(psbt.script_resolver(), meta.change_vout)
             .map_err(|_| TransferError::ChangeRequired)?;
         let bundle = self.bundle(items, meta.change_vout)?;
 
         psbt.rgb_fill_csv(&bundle)?;
 
-        psbt.rgb_complete()
-            .expect("PSBT is modifiable since it is just constructed");
+        Ok((psbt, bundle))
+    }
+
+    /// Completes PSBT and includes prefabricated bundle into the contract stockpile.
+    pub fn complete(
+        &mut self,
+        mut psbt: Psbt,
+        bundle: &PrefabBundle,
+    ) -> Result<Psbt, TransferError> {
+        psbt.rgb_complete()?;
         let (mpc, dbc) = psbt.dbc_commit()?;
         let tx = psbt.to_unsigned_tx();
 
@@ -102,7 +142,7 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
             .inputs()
             .map(|inp| inp.previous_outpoint)
             .collect::<Vec<_>>();
-        self.include(&bundle, &tx.into(), mpc, dbc, &prevouts)?;
+        self.include(bundle, &tx.into(), mpc, dbc, &prevouts)?;
 
         Ok(psbt)
     }
@@ -128,6 +168,9 @@ pub enum TransferError {
 
     #[from]
     PsbtDbc(DbcPsbtError),
+
+    #[from]
+    PsbtUnfinalizable(RgbPsbtUnfinalizable),
 
     #[from]
     Bundle(BundleError),
