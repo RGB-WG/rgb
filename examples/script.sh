@@ -26,3 +26,6 @@ rm examples/transfer.rgb
 $RGB consign qKpMlzOe-Imn6ysZ-a8JjG2p-WHWvaFm-BWMiPi3-_LvnfRw -t at:5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-ViYmlA examples/transfer.rgb
 
 $RGB_2 accept -w bob examples/transfer.rgb
+
+$RGB_2 state -go -w bob
+$RGB state -go -w alice
