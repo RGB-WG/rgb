@@ -142,6 +142,7 @@ impl<K: DeriveSet> Derive<DerivedScript> for RgbDeriver<K> {
                 let terminal = Terminal::new(keychain, index);
                 let mut vec = Vec::with_capacity(tweaks.0.len());
                 for internal_key in tr.as_internal_key().derive(keychain, index) {
+                    vec.push(DerivedScript::TaprootKeyOnly(internal_key.into()));
                     for tweak in tweaks.get(&terminal).into_iter().flatten() {
                         let script_commitment = TapScript::commit(tweak);
                         let tap_tree = TapTree::with_single_leaf(script_commitment);
