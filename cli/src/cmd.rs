@@ -121,7 +121,7 @@ pub enum Cmd {
     /// Export contract articles
     Export {
         /// Contract id to export
-        contract: ContractId,
+        contract: ContractRef,
 
         /// Path to export articles to
         #[clap(value_hint = ValueHint::FilePath)]
@@ -144,7 +144,7 @@ pub enum Cmd {
         force: bool,
 
         /// Contract id to remove
-        contract: ContractId,
+        contract: ContractRef,
     },
 
     /// List known wallets
@@ -228,7 +228,7 @@ pub enum Cmd {
         owned: bool,
 
         /// Print out just a single contract state
-        contract: Option<ContractId>,
+        contract: Option<ContractRef>,
     },
 
     /// Pay an invoice, creating ready-to-be signed PSBT and a consignment
@@ -321,7 +321,7 @@ pub enum Cmd {
     /// Create a consignment transferring part of a contract state to another peer
     Consign {
         /// Contract to use for the consignment
-        contract: ContractId,
+        contract: ContractRef,
 
         /// List of tokens of authority which should serve as a contract terminals
         #[clap(short, long)]
@@ -519,10 +519,19 @@ impl Args {
                     runtime.wallet.update(&indexer, false);
                     println!();
                 }
+                let contract_id = contract
+                    .as_ref()
+                    .map(|r| {
+                        runtime
+                            .mound
+                            .find_contract_id(r.clone())
+                            .ok_or(anyhow::anyhow!("unknown contract '{r}'"))
+                    })
+                    .transpose()?;
                 let state = if *all {
-                    runtime.state_all(*contract).collect::<Vec<_>>()
+                    runtime.state_all(contract_id).collect::<Vec<_>>()
                 } else {
-                    runtime.state_own(*contract).collect()
+                    runtime.state_own(contract_id).collect()
                 };
                 for (contract_id, state) in state {
                     println!("{contract_id}");
@@ -674,8 +683,11 @@ impl Args {
 
             Cmd::Consign { contract, terminals, output } => {
                 let mut mound = self.mound();
+                let contract_id = mound
+                    .find_contract_id(contract.clone())
+                    .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
                 mound
-                    .consign_to_file(*contract, terminals, output)
+                    .consign_to_file(contract_id, terminals, output)
                     .expect("Unable to consign contract");
             }
 
