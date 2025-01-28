@@ -563,9 +563,9 @@ checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
 name = "cmake"
-version = "0.1.52"
+version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c682c223677e0e5b6b7f63a64b9351844c3f1b1678a68b7ee617e30fb082620e"
+checksum = "e24a03c8b52922d68a1589ad61032f2c1aa5a8158d2aa0d93c6e9534944bbad6"
 dependencies = [
  "cc",
 ]
@@ -930,7 +930,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#cb1e332ec4e8450b0fc422d860452a417b19137c"
+source = "git+https://github.com/AluVM/sonic?branch=master#4a8e06cbda2b4fe2a1f83c38d57ef6fcf667282f"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#90f3fc1aee5b2ed5a11b9ff7dd3fcaeba31bdd2c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#0712679e7259f851967a05999332e6bd95cae375"
 dependencies = [
  "amplify",
  "baid64",
@@ -1545,7 +1545,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#90f3fc1aee5b2ed5a11b9ff7dd3fcaeba31bdd2c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#0712679e7259f851967a05999332e6bd95cae375"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1667,9 +1667,9 @@ checksum = "f7c45b9784283f1b2e7fb61b42047c2fd678ef0960d4f6f1eba131594cc369d4"
 
 [[package]]
 name = "ryu"
-version = "1.0.18"
+version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
+checksum = "6ea1a2d0a644769cc99faa24c3ad26b379b786fe7c36fd3c546254801650e6dd"
 
 [[package]]
 name = "same-file"
@@ -1851,7 +1851,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#cb1e332ec4e8450b0fc422d860452a417b19137c"
+source = "git+https://github.com/AluVM/sonic?branch=master#4a8e06cbda2b4fe2a1f83c38d57ef6fcf667282f"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1870,7 +1870,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#cb1e332ec4e8450b0fc422d860452a417b19137c"
+source = "git+https://github.com/AluVM/sonic?branch=master#4a8e06cbda2b4fe2a1f83c38d57ef6fcf667282f"
 dependencies = [
  "amplify",
  "baid64",
@@ -2113,9 +2113,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.15"
+version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11cd88e12b17c6494200a9c1b683a04fcac9573ed74cd1b62aeb2727c5592243"
+checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
 
 [[package]]
 name = "unsafe-libyaml"

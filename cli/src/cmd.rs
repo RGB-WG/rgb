@@ -534,7 +534,8 @@ impl Args {
                     runtime.state_own(contract_id).collect()
                 };
                 for (contract_id, state) in state {
-                    println!("{contract_id}");
+                    let contract = runtime.mound.contract(contract_id);
+                    println!("{contract_id}\t{}", contract.stock().articles().contract.meta.name);
                     if *global {
                         if state.immutable.is_empty() {
                             println!("global: # no known global state is defined by the contract");
