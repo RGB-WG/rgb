@@ -23,6 +23,8 @@
 // the License.
 
 #[macro_use]
+extern crate amplify;
+#[macro_use]
 extern crate clap;
 
 pub mod opts;

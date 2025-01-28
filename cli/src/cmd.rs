@@ -35,13 +35,17 @@ use bpwallet::indexers::esplora;
 use bpwallet::psbt::TxParams;
 use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Wpkh, XpubDerivable};
 use clap::ValueHint;
-use rgb::invoice::RgbInvoice;
+use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::file::{BpDirMound, DirBarrow};
 use rgb::popls::bp::{OpRequestSet, PrefabBundle, WoutAssignment};
-use rgb::{AuthToken, Consensus, ContractId, CreateParams, Outpoint};
+use rgb::{
+    AuthToken, CallScope, Consensus, ContractId, ContractRef, CreateParams, MethodName, Outpoint,
+    StateName,
+};
 use rgbp::descriptor::RgbDescr;
 use rgbp::{CoinselectStrategy, RgbDirRuntime, RgbWallet};
-use strict_encoding::{StrictDeserialize, StrictSerialize};
+use strict_encoding::{StrictDeserialize, StrictSerialize, TypeName};
+use strict_types::StrictVal;
 
 use crate::opts::WalletOpts;
 
@@ -162,19 +166,47 @@ pub enum Cmd {
         wallet: Option<String>,
     },
 
-    // TODO: Convert to `invoice` command, also use contract names to simplify invoice creation
-    /// Generate a seal for an invoice
-    Seal {
+    /// Generate an invoice
+    Invoice {
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,
 
-        /// Generate a witness output-based seal
+        /// Just generate a single-use seal, and not an entire invoice
+        #[clap(long)]
+        seal_only: bool,
+
+        /// Use witness output-based seal
         #[clap(short = 'o', long)]
         wout: bool,
 
         /// Nonce number to use
-        nonce: u64,
+        #[clap(long, global = true)]
+        nonce: Option<u64>,
+
+        /// Contract to use
+        contract: Option<ContractRef>,
+
+        /// API name to interface the contract
+        ///
+        /// If skipped, a default contract API will be used.
+        #[clap(short, long, global = true)]
+        api: Option<TypeName>,
+
+        /// Method name to call the contract with
+        ///
+        /// If skipped, a default API method will be used.
+        #[clap(short, long, global = true)]
+        method: Option<MethodName>,
+
+        /// State name used for the invoice
+        ///
+        /// If skipped, a default API state for the default method will be used.
+        #[clap(short, long, global = true)]
+        state: Option<StateName>,
+
+        /// Invoiced state value
+        value: Option<u64>,
     },
 
     /// Print out a contract state
@@ -429,27 +461,62 @@ impl Args {
                 println!("{addr}");
             }
 
-            Cmd::Seal { wallet, wout, nonce } => {
+            Cmd::Invoice {
+                wallet,
+                seal_only,
+                wout,
+                nonce,
+                contract,
+                api,
+                method,
+                state,
+                value,
+            } => {
                 let mut runtime = self.runtime(wallet.as_deref());
-                if *wout {
+                let beneficiary = if *wout {
                     let wout = runtime.wout(*nonce);
-                    println!("{wout}");
+                    RgbBeneficiary::WitnessOut(wout)
                 } else {
-                    match runtime.auth_token(*nonce) {
-                        None => println!(
-                            "Wallet has no unspent outputs; try `fund` first, or use `-w` flag to \
-                             generate a witness output-based seal"
-                        ),
-                        Some(token) => println!("{token}"),
-                    }
+                    let auth = runtime.auth_token(*nonce).ok_or(anyhow::anyhow!(
+                        "Wallet has no unspent outputs; try `fund` first, or use `-w` flag to \
+                         generate a witness output-based seal"
+                    ))?;
+                    RgbBeneficiary::Token(auth)
+                };
+                if *seal_only {
+                    println!("{beneficiary}");
+                    return Ok(());
                 }
+
+                let contract_id = if let Some(contract) = contract {
+                    let id = runtime
+                        .mound
+                        .find_contract_id(contract.clone())
+                        .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
+                    CallScope::ContractId(id)
+                } else {
+                    CallScope::ContractQuery(s!(""))
+                };
+                let value = value.map(StrictVal::num);
+                let mut invoice = RgbInvoice::new(contract_id, beneficiary, value);
+                if let Some(api) = api {
+                    invoice = invoice.use_api(api.clone());
+                }
+                if let Some(method) = method {
+                    invoice = invoice.use_method(method.clone());
+                }
+                if let Some(state) = state {
+                    invoice = invoice.use_state(state.clone());
+                }
+
+                println!("{invoice}");
             }
 
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet.wallet.as_deref());
                 if wallet.sync {
                     let indexer = self.indexer(&wallet.resolver);
-                    runtime.wallet.update(&indexer);
+                    runtime.wallet.update(&indexer, false);
                     println!();
                 }
                 let state = if *all {

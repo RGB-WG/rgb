@@ -72,6 +72,13 @@ impl WalletProvider for RgbWallet {
     }
 
     fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
+
+    fn next_nonce(&mut self) -> u64 {
+        self.0.descriptor_mut(|d| unsafe {
+            d.with_descriptor_mut(|d| Ok::<_, Infallible>(d.next_nonce()))
+                .unwrap_unchecked()
+        })
+    }
 }
 
 impl RgbWallet {

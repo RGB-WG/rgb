@@ -18,6 +18,7 @@ name = "rgb"
 [dependencies]
 amplify.workspace = true
 strict_encoding.workspace = true
+strict_types.workspace = true
 bp-wallet = { workspace = true, features = ["fs", "serde", "cli"] }
 bp-electrum = { workspace = true }
 bp-esplora = { workspace = true }

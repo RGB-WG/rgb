@@ -434,7 +434,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#39fc36b7ae5706926f519d33e2a2aabbe297435b"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#d58d6659b07e30e5af8628cda5cb08a3e0b2651a"
 dependencies = [
  "amplify",
  "base64",
@@ -930,7 +930,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#cb7d96e7765c6a0f88c3306c887ea4ce77292da5"
+source = "git+https://github.com/AluVM/sonic?branch=master#cb1e332ec4e8450b0fc422d860452a417b19137c"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#0e79e801a6aa4e6d8d6b29bc636b7b17b8e40593"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#90f3fc1aee5b2ed5a11b9ff7dd3fcaeba31bdd2c"
 dependencies = [
  "amplify",
  "baid64",
@@ -1545,7 +1545,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#0e79e801a6aa4e6d8d6b29bc636b7b17b8e40593"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#90f3fc1aee5b2ed5a11b9ff7dd3fcaeba31bdd2c"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1579,6 +1579,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "strict_encoding",
+ "strict_types",
 ]
 
 [[package]]
@@ -1850,7 +1851,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#cb7d96e7765c6a0f88c3306c887ea4ce77292da5"
+source = "git+https://github.com/AluVM/sonic?branch=master#cb1e332ec4e8450b0fc422d860452a417b19137c"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1869,7 +1870,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/sonic?branch=master#cb7d96e7765c6a0f88c3306c887ea4ce77292da5"
+source = "git+https://github.com/AluVM/sonic?branch=master#cb1e332ec4e8450b0fc422d860452a417b19137c"
 dependencies = [
  "amplify",
  "baid64",
@@ -2098,7 +2099,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/AluVM/ultrasonic?branch=master#45569f4bcc4ec9d45132865e25e2a3faac7b7a39"
+source = "git+https://github.com/AluVM/ultrasonic?branch=master#61b4f9c314e1432bf281a2cbf7a0777853c8b7ef"
 dependencies = [
  "amplify",
  "baid64",
@@ -2524,9 +2525,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.6.24"
+version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d71a593cc5c42ad7876e2c1fda56f314f3754c084128833e64f1345ff8a03a"
+checksum = "ad699df48212c6cc6eb4435f35500ac6fd3b9913324f938aea302022ce19d310"
 dependencies = [
  "memchr",
 ]

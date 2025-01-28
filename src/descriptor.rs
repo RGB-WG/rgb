@@ -230,6 +230,7 @@ pub struct RgbDescr<K: DeriveSet = XpubDerivable> {
     deriver: RgbDeriver<K>,
     seals: SealDescr,
     noise: Bytes32,
+    nonce: u64,
 }
 
 impl<K: DeriveSet> RgbDescr<K> {
@@ -239,7 +240,12 @@ impl<K: DeriveSet> RgbDescr<K> {
             StdDescr::TrKey(tr) => RgbDeriver::Universal { tr: Tr::KeyOnly(tr), tweaks: empty!() },
             _ => unreachable!(),
         };
-        Self { deriver, seals: empty!(), noise: noise.into().into() }
+        Self {
+            deriver,
+            seals: empty!(),
+            noise: noise.into().into(),
+            nonce: 0,
+        }
     }
 
     pub fn key_only_unfunded(internal_key: K, noise: impl Into<[u8; 32]>) -> Self
@@ -251,7 +257,14 @@ impl<K: DeriveSet> RgbDescr<K> {
             },
             seals: empty!(),
             noise: noise.into().into(),
+            nonce: 0,
         }
+    }
+
+    pub fn next_nonce(&mut self) -> u64 {
+        let nonce = self.nonce;
+        self.nonce += 1;
+        nonce
     }
 
     pub fn noise(&self) -> Bytes32 { self.noise }
