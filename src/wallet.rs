@@ -49,11 +49,9 @@ impl WalletProvider for RgbWallet {
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 
     fn register_seal(&mut self, seal: TxoSeal) {
-        let _ = self.0.descriptor_mut(|wd| {
-            wd.with_descriptor_mut(|d| {
-                d.add_seal(seal);
-                Ok::<_, Infallible>(())
-            })
+        let _ = self.0.with_descriptor(|d| {
+            d.add_seal(seal);
+            Ok::<_, Infallible>(())
         });
     }
 
@@ -74,10 +72,10 @@ impl WalletProvider for RgbWallet {
     fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
 
     fn next_nonce(&mut self) -> u64 {
-        self.0.descriptor_mut(|d| unsafe {
-            d.with_descriptor_mut(|d| Ok::<_, Infallible>(d.next_nonce()))
-                .unwrap_unchecked()
-        })
+        let res = self
+            .0
+            .with_descriptor(|d| Ok::<_, Infallible>(d.next_nonce()));
+        unsafe { res.unwrap_unchecked() }
     }
 }
 
