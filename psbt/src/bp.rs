@@ -51,7 +51,7 @@ impl RgbPsbt for Psbt {
     fn rgb_complete(&mut self) -> Result<(), RgbPsbtUnfinalizable> {
         if self.outputs().all(|out| !out.is_opret_host()) && self.opret_hosts().count() == 0 {
             let host = self
-                .construct_output(ScriptPubkey::op_return(&[]), Sats::ZERO)
+                .insert_output(0, ScriptPubkey::op_return(&[]), Sats::ZERO)
                 .map_err(|_| RgbPsbtUnfinalizable)?;
             host.set_opret_host().ok();
         }

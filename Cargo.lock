@@ -338,7 +338,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -387,7 +387,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
 dependencies = [
  "amplify",
  "bech32",
@@ -416,7 +416,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -698,7 +698,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1363,7 +1363,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#f34c9a1de88293a37009504f5b2996655c909481"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
 dependencies = [
  "amplify",
  "base64",
