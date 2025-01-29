@@ -27,22 +27,27 @@ use rgb::popls::bp::PrefabBundle;
 use rgb::{ContractId, Outpoint};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
-#[display(
-    "in order to complete RGB processing the PSBT must have PSBT_GLOBAL_TX_MODIFIABLE flag set on"
-)]
-pub struct RgbPsbtUnfinalizable;
+#[display(doc_comments)]
+pub enum RgbPsbtFinalizeError {
+    /// in order to complete RGB processing the PSBT must have PSBT_GLOBAL_TX_MODIFIABLE flag set
+    /// on.
+    Unfinalizable,
+
+    /// multiple transaction outputs are market as DBC commitment hosts (while only one should be).
+    MultipleHosts,
+}
 
 pub trait RgbPsbt {
     // TODO: Add rgb_embed to embed operations for hardware signers
-    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtError>;
+    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtCsvError>;
 
-    fn rgb_complete(&mut self) -> Result<(), RgbPsbtUnfinalizable>;
+    fn rgb_complete(&mut self) -> Result<(), RgbPsbtFinalizeError>;
 }
 
 /// Errors embedding RGB-related information.
 #[derive(Clone, Eq, PartialEq, Debug, Display, Error)]
 #[display(doc_comments)]
-pub enum RgbPsbtError {
+pub enum RgbPsbtCsvError {
     /// input spending {0} which used by RGB operation is absent from PSBT.
     InputAbsent(Outpoint),
 

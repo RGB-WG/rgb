@@ -59,14 +59,12 @@ impl WalletProvider for RgbWallet {
         &self,
         seals: impl Iterator<Item = AuthToken>,
     ) -> impl Iterator<Item = TxoSeal> {
-        seals
-            .flat_map(|auth| {
-                self.0
-                    .descriptor()
-                    .seals()
-                    .filter(move |seal| seal.auth_token() == auth)
-            })
-            .copied()
+        seals.flat_map(|auth| {
+            self.0
+                .descriptor()
+                .seals()
+                .filter(move |seal| seal.auth_token() == auth)
+        })
     }
 
     fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }

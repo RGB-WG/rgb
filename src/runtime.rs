@@ -32,7 +32,7 @@ use rgb::popls::bp::{
     Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
 };
 use rgb::{AuthToken, ContractId, Excavate, Pile, SealAuthToken, Supply};
-use rgpsbt::{RgbPsbt, RgbPsbtError, RgbPsbtUnfinalizable, ScriptResolver};
+use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtFinalizeError, ScriptResolver};
 
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
@@ -164,13 +164,13 @@ pub enum TransferError {
     PsbtConstruct(ConstructionError),
 
     #[from]
-    PsbtRgb(RgbPsbtError),
+    PsbtRgb(RgbPsbtCsvError),
 
     #[from]
     PsbtDbc(DbcPsbtError),
 
     #[from]
-    PsbtUnfinalizable(RgbPsbtUnfinalizable),
+    PsbtFinalize(RgbPsbtFinalizeError),
 
     #[from]
     Bundle(BundleError),

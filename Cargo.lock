@@ -338,7 +338,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#91aaf51498126f6a514f0d9af80888465e5dbfee"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -387,7 +387,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#91aaf51498126f6a514f0d9af80888465e5dbfee"
 dependencies = [
  "amplify",
  "bech32",
@@ -416,7 +416,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#91aaf51498126f6a514f0d9af80888465e5dbfee"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -698,7 +698,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#91aaf51498126f6a514f0d9af80888465e5dbfee"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1363,7 +1363,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#d8e4d74c5f6e43a8d1bab8dc3e80cf62807ada58"
+source = "git+https://github.com/BP-WG/bp-std?branch=v0.12#91aaf51498126f6a514f0d9af80888465e5dbfee"
 dependencies = [
  "amplify",
  "base64",
@@ -1478,7 +1478,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#2be7f6c0926356aae0efb261a2369b1fae6f89fe"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#3f86c299cd46604edd8690ef4914ceb9c9ded0b1"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1494,7 +1494,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#fded522c02827b7354dc06318c133414ef7b9e37"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#ca03e62a13d9d6e82b84e3c560ae883d1e98f563"
 dependencies = [
  "amplify",
  "baid64",
@@ -1543,7 +1543,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#fded522c02827b7354dc06318c133414ef7b9e37"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#ca03e62a13d9d6e82b84e3c560ae883d1e98f563"
 dependencies = [
  "amplify",
  "bp-core",

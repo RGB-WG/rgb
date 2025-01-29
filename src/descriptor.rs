@@ -26,7 +26,6 @@ use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
 use std::collections::HashMap;
 
-use amplify::confinement::Collection;
 use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::tapret::TapretCommitment;
 use bpstd::seals::TxoSeal;
@@ -270,9 +269,9 @@ impl<K: DeriveSet> RgbDescr<K> {
 
     pub fn noise(&self) -> Bytes32 { self.noise }
 
-    pub fn seals(&self) -> impl Iterator<Item = &TxoSeal> { self.seals.iter() }
+    pub fn seals(&self) -> impl Iterator<Item = TxoSeal> + use<'_, K> { self.seals.iter().copied() }
 
-    pub fn add_seal(&mut self, seal: TxoSeal) { self.seals.push(seal); }
+    pub fn add_seal(&mut self, seal: TxoSeal) { self.seals.insert(seal); }
 
     pub fn add_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment) {
         match &mut self.deriver {
