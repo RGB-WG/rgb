@@ -18,7 +18,7 @@ $RGB state -go -w alice
 AUTH_TOKEN=$($RGB_2 invoice -w bob --nonce 0 --seal-only DemoToken)
 INVOICE=$($RGB_2 invoice -w bob --nonce 0 DemoToken 10)
 
-rm examples/transfer.psbt
+rm examples/transfer.psbt examples/Transfer.yaml
 $RGB script -w alice "$INVOICE" examples/Transfer.yaml || exit 1
 $RGB exec -w alice examples/Transfer.yaml examples/transfer.pfab 1000 examples/transfer.psbt || exit 1
 
