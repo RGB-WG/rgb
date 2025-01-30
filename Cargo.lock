@@ -294,7 +294,7 @@ checksum = "3eeab4423108c5d7c744f4d234de88d18d636100093ae04caf4825134b9c3a32"
 [[package]]
 name = "bp-consensus"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
+source = "git+https://github.com/BP-WG/bp-core?branch=wtxoseal#1487568dba4ca18b15dc211583060a7fb01096e7"
 dependencies = [
  "amplify",
  "chrono",
@@ -307,7 +307,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
+source = "git+https://github.com/BP-WG/bp-core?branch=wtxoseal#1487568dba4ca18b15dc211583060a7fb01096e7"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -324,7 +324,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
+source = "git+https://github.com/BP-WG/bp-core?branch=wtxoseal#1487568dba4ca18b15dc211583060a7fb01096e7"
 dependencies = [
  "amplify",
  "base85",
@@ -400,7 +400,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#12ff9e64b21883ffd1124173426bd6531879a522"
+source = "git+https://github.com/BP-WG/bp-core?branch=wtxoseal#1487568dba4ca18b15dc211583060a7fb01096e7"
 dependencies = [
  "amplify",
  "baid64",
@@ -1478,7 +1478,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#3f86c299cd46604edd8690ef4914ceb9c9ded0b1"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=wtxoseal#43d885ffee9d6bce56ea400e5dbf90878d25b443"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1494,7 +1494,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#ca03e62a13d9d6e82b84e3c560ae883d1e98f563"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=wtxoseal#a3c827d4ab90ae69df1968520111c33825db8404"
 dependencies = [
  "amplify",
  "baid64",
@@ -1543,7 +1543,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.4"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#ca03e62a13d9d6e82b84e3c560ae883d1e98f563"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=wtxoseal#a3c827d4ab90ae69df1968520111c33825db8404"
 dependencies = [
  "amplify",
  "bp-core",

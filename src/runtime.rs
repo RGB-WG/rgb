@@ -25,37 +25,43 @@
 use std::ops::{Deref, DerefMut};
 
 use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
-use bpstd::seals::TxoSeal;
+use bpstd::seals::{TxoSeal, WTxoSeal};
 use bpstd::{Psbt, Sats};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
 };
-use rgb::{AuthToken, ContractId, Excavate, Pile, SealAuthToken, Supply};
+use rgb::{AuthToken, ContractId, Excavate, Pile, RgbSealDef, Supply};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtFinalizeError, ScriptResolver};
 
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
 
-pub struct RgbRuntime<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>>(
+pub struct RgbRuntime<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>>(
     Barrow<RgbWallet, S, P, X>,
 );
 
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> From<Barrow<RgbWallet, S, P, X>>
-    for RgbRuntime<S, P, X>
+impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>>
+    From<Barrow<RgbWallet, S, P, X>> for RgbRuntime<S, P, X>
 {
     fn from(barrow: Barrow<RgbWallet, S, P, X>) -> Self { Self(barrow) }
 }
 
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> Deref for RgbRuntime<S, P, X> {
+impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>> Deref
+    for RgbRuntime<S, P, X>
+{
     type Target = Barrow<RgbWallet, S, P, X>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRuntime<S, P, X> {
+impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>> DerefMut
+    for RgbRuntime<S, P, X>
+{
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
+impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>>
+    RgbRuntime<S, P, X>
+{
     /// Pay an invoice producing PSBT ready to be signed.
     ///
     /// Should not be used in multi-party protocols like coinjoins, when a PSBT may needs to be
@@ -190,7 +196,8 @@ pub mod file {
 
     use super::*;
 
-    pub type RgbDirRuntime = RgbRuntime<FileSupply, FilePile<TxoSeal>, DirExcavator<TxoSeal>>;
+    pub type RgbDirRuntime =
+        RgbRuntime<FileSupply, FilePile<WTxoSeal, TxoSeal>, DirExcavator<WTxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;
