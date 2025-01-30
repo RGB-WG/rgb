@@ -36,7 +36,7 @@ use rgbstd::interface::AssignmentsFilter;
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
 use rgbstd::validation::ResolveWitness;
-use rgbstd::{ContractId, DataState};
+use rgbstd::{ChainNet, ContractId, DataState};
 
 use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
@@ -339,6 +339,9 @@ where Self::Descr: DescriptorRgb<K>
             ) -> Result<WitnessOrd, WitnessResolverError> {
                 assert_eq!(witness_id, self.witness_id);
                 Ok(WitnessOrd::Tentative)
+            }
+            fn check_chain_net(&self, _: ChainNet) -> Result<(), WitnessResolverError> {
+                unreachable!()
             }
         }
 

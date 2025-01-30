@@ -24,16 +24,16 @@
 use std::collections::HashMap;
 
 use bp::{Tx, Txid};
-use bpstd::Network;
 use rgbstd::containers::Consignment;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
+use rgbstd::ChainNet;
 
 use crate::vm::WitnessOrd;
 
 // We need to repeat methods of `WitnessResolve` trait here to avoid making
 // wrappers around resolver types. TODO: Use wrappers instead
 pub trait RgbResolver: Send {
-    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String>;
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String>;
     fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String>;
     fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String>;
 }
@@ -79,16 +79,9 @@ impl AnyResolver {
             terminal_txes: Default::default(),
         })
     }
-    pub fn check(&self, network: Network) -> Result<(), String> {
-        let expected_block_hash = match network {
-            Network::Mainnet => "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-            Network::Testnet3 => "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943",
-            Network::Testnet4 => "00000000da84f2bafbbc53dee25a72ae507ff4914b867c565be350b0da8bf043",
-            Network::Signet => "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6",
-            Network::Regtest => "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
-        }
-        .to_string();
-        self.inner.check(network, expected_block_hash)
+
+    pub fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String> {
+        self.inner.check_chain_net(chain_net)
     }
 
     pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
@@ -125,5 +118,11 @@ impl ResolveWitness for AnyResolver {
         self.inner
             .resolve_pub_witness_ord(witness_id)
             .map_err(|e| WitnessResolverError::Other(witness_id, e))
+    }
+
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), WitnessResolverError> {
+        self.inner
+            .check_chain_net(chain_net)
+            .map_err(|_| WitnessResolverError::WrongChainNet)
     }
 }

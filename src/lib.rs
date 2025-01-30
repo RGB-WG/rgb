@@ -38,6 +38,7 @@ pub use pay::{TransferParams, WalletProvider};
 pub use rgbstd::*;
 pub mod resolvers {
     use bp::Tx;
+    use rgbstd::ChainNet;
 
     #[cfg(any(feature = "electrum_blocking", feature = "esplora_blocking"))]
     pub use super::indexers::*;
@@ -52,6 +53,9 @@ pub mod resolvers {
             panic!("contract issue resolver must not be used for an already-existing contracts")
         }
         fn resolve_pub_witness_ord(&self, _: Txid) -> Result<WitnessOrd, WitnessResolverError> {
+            panic!("contract issue resolver must not be used for an already-existing contracts")
+        }
+        fn check_chain_net(&self, _: ChainNet) -> Result<(), WitnessResolverError> {
             panic!("contract issue resolver must not be used for an already-existing contracts")
         }
     }
