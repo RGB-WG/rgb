@@ -26,8 +26,8 @@ $RGB complete -w alice examples/transfer.pfab examples/transfer.psbt || exit 1
 
 rm examples/transfer.rgb
 $RGB consign DemoToken -t "$AUTH_TOKEN" examples/transfer.rgb || exit 1
+$RGB state -goa -w alice --sync --mempool
 
 $RGB_2 accept -w bob examples/transfer.rgb || exit 1
 
-$RGB_2 state -go -w bob
-$RGB state -go -w alice
+$RGB_2 state -go -w bob --sync --mempool

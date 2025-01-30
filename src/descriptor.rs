@@ -28,7 +28,7 @@ use std::collections::HashMap;
 
 use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::tapret::TapretCommitment;
-use bpstd::seals::TxoSeal;
+use bpstd::seals::WTxoSeal;
 use bpstd::{
     Derive, DeriveCompr, DeriveKey, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin,
     Keychain, LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation,
@@ -39,14 +39,14 @@ use commit_verify::CommitVerify;
 use indexmap::IndexMap;
 
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
-    fn add_seal(&self, seal: TxoSeal);
+    fn add_seal(&self, seal: WTxoSeal);
 }
 
 #[derive(Wrapper, WrapperMut, Clone, Eq, PartialEq, Debug, Default, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
-pub struct SealDescr(BTreeSet<TxoSeal>);
+pub struct SealDescr(BTreeSet<WTxoSeal>);
 
 impl Display for SealDescr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -269,9 +269,11 @@ impl<K: DeriveSet> RgbDescr<K> {
 
     pub fn noise(&self) -> Bytes32 { self.noise }
 
-    pub fn seals(&self) -> impl Iterator<Item = TxoSeal> + use<'_, K> { self.seals.iter().copied() }
+    pub fn seals(&self) -> impl Iterator<Item = WTxoSeal> + use<'_, K> {
+        self.seals.iter().copied()
+    }
 
-    pub fn add_seal(&mut self, seal: TxoSeal) { self.seals.insert(seal); }
+    pub fn add_seal(&mut self, seal: WTxoSeal) { self.seals.insert(seal); }
 
     pub fn add_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment) {
         match &mut self.deriver {

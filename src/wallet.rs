@@ -26,12 +26,12 @@ use std::convert::Infallible;
 
 use amplify::Bytes32;
 use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
-use bpstd::seals::TxoSeal;
+use bpstd::seals::WTxoSeal;
 use bpstd::{Address, Keychain, Network, Outpoint, Psbt, XpubDerivable};
 use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::{PaymentScript, WalletProvider};
-use rgb::{AuthToken, EitherSeal, SealAuthToken};
+use rgb::{AuthToken, EitherSeal, RgbSealDef};
 
 use crate::descriptor::RgbDescr;
 
@@ -48,7 +48,7 @@ impl WalletProvider for RgbWallet {
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
 
-    fn register_seal(&mut self, seal: TxoSeal) {
+    fn register_seal(&mut self, seal: WTxoSeal) {
         let _ = self.0.with_descriptor(|d| {
             d.add_seal(seal);
             Ok::<_, Infallible>(())
@@ -58,7 +58,7 @@ impl WalletProvider for RgbWallet {
     fn resolve_seals(
         &self,
         seals: impl Iterator<Item = AuthToken>,
-    ) -> impl Iterator<Item = TxoSeal> {
+    ) -> impl Iterator<Item = WTxoSeal> {
         seals.flat_map(|auth| {
             self.0
                 .descriptor()

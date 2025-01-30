@@ -7,7 +7,10 @@ headers: []
 tx:
   efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:
     txid: efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356
-    status: mempool
+    status: !mined
+      height: 58373
+      time: 1734446715
+      blockHash: 000000003e3bb07f6583add889b2ece51f9ef2c422a02ede87615f22fdadc993
     inputs:
     - outpoint: d0455f0a1f4f8a699d33c78967d1285102568aaad84ee347787b18271503a400:0
       payer: !counterparty tb1q0dzcgv7scppjxsnwlzpkt02vlmc5rtr40wyjgr
@@ -136,6 +139,11 @@ addr:
     balance: 0
   - terminal: '&1/8'
     addr: tb1qmp3mvxy07kztt5mwyw4asfa2l6kggyzh9p8yym
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/9'
+    addr: tb1qld0axaw9urkyjruhel2cvpc0fmj9krkqvhcz03
     used: 0
     volume: 0
     balance: 0

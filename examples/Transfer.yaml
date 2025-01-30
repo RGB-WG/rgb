@@ -1,14 +1,14 @@
-- contractId: contract:qKpMlzOe-Imn6ysZ-a8JjG2p-WHWvaFm-BWMiPi3-_LvnfRw
+- contractId: contract:G2KKVrys-4zQs3fu-yGt_7dH-A~IJUVA-6TURwEs-3fZUy3E
   method: transfer
   reading: []
   using:
-  - addr: L28_t0y5~n3eYz4hR40Vt3rRaH9PptXJragTHTvZTCU:0
+  - addr: iX33C_EhQPmp0pRj0VslnKqHTW2SJ53V5SEefJUclpE:0
     outpoint: b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
     val: 10000
   global: []
   owned:
   - name: owned
-    seal: at:5WIb5EMY-RCLbO3Wq-hGdddRP4-IeCQzP1y-S5H_UKzd-ViYmlA
+    seal: at:FWKMBVDc-NBk8dAZA-tYGt2HIP-MtzSRO17-8g3QvRIN-nuPjug
     data: 10
   - name: owned
     seal: null
