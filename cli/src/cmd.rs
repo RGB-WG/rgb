@@ -37,7 +37,7 @@ use bpwallet::{AnyIndexer, Keychain, Network, Psbt, Sats, Wpkh, XpubDerivable};
 use clap::ValueHint;
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::file::{BpDirMound, DirBarrow};
-use rgb::popls::bp::{OpRequestSet, PrefabBundle, WoutAssignment};
+use rgb::popls::bp::{PaymentScript, PrefabBundle};
 use rgb::{
     AuthToken, CallScope, Consensus, ContractId, ContractRef, CreateParams, MethodName, Outpoint,
     StateName,
@@ -651,8 +651,7 @@ impl Args {
             } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let src = File::open(script).expect("Unable to open script file");
-                let script =
-                    serde_yaml::from_reader::<_, OpRequestSet<Option<WoutAssignment>>>(src)?;
+                let script = serde_yaml::from_reader::<_, PaymentScript>(src)?;
 
                 let params = TxParams::with(*fee);
                 let (psbt, bundle) = runtime.exec(script, params)?;

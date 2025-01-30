@@ -127,7 +127,7 @@ impl RgbWallet {
             .map(|seal| {
                 let address = Address::with(&seal.wout.script_pubkey(), network)
                     .expect("script pubkey which is not representable as an address");
-                Beneficiary::new(address, seal.amount)
+                Beneficiary::new(address, seal.sats)
             });
         self.construct_psbt(closes, beneficiaries, params)
     }
