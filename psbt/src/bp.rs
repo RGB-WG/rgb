@@ -54,7 +54,6 @@ impl RgbPsbt for Psbt {
                 let host = self
                     .insert_output(0, ScriptPubkey::op_return(&[]), Sats::ZERO)
                     .map_err(|_| RgbPsbtFinalizeError::Unfinalizable)?;
-                eprintln!("{host:?}");
                 host.set_opret_host().ok();
             }
             1 => {}

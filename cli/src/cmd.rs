@@ -378,19 +378,27 @@ impl Args {
         FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
     }
 
-    pub fn runtime(&self, name: Option<&str>) -> RgbDirRuntime {
-        let provider = self.wallet_provider(name);
+    pub fn runtime(&self, opts: &WalletOpts) -> RgbDirRuntime {
+        let provider = self.wallet_provider(opts.wallet.as_deref());
         let wallet = RgbWallet::load(provider, true).unwrap_or_else(|_| {
-            panic!("Error: unable to load wallet from path `{}`", self.wallet_dir(name).display())
+            panic!(
+                "Error: unable to load wallet from path `{}`",
+                self.wallet_dir(opts.wallet.as_deref()).display()
+            )
         });
-        RgbDirRuntime::from(DirBarrow::with(wallet, self.mound()))
-        // TODO: Sync wallet if needed
+        let mut runtime = RgbDirRuntime::from(DirBarrow::with(wallet, self.mound()));
+        if opts.sync {
+            eprintln!("Synchronizing wallet");
+            runtime.wallet.update(&self.indexer(&opts.resolver), false);
+        }
+        runtime
     }
 
     pub fn indexer(&self, resolver: &ResolverOpt) -> AnyIndexer {
         let network = self.network.to_string();
         match (&resolver.esplora, &resolver.electrum, &resolver.mempool) {
             (None, Some(url), None) => AnyIndexer::Electrum(Box::new(
+                // TODO: Check network match
                 electrum::Client::new(url).expect("Unable to initialize indexer"),
             )),
             (Some(url), None, None) => AnyIndexer::Esplora(Box::new(
@@ -425,7 +433,7 @@ impl Args {
                 }
             }
             Cmd::Issue { params: Some(params), wallet } => {
-                let mut runtime = self.runtime(wallet.as_deref());
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let file = File::open(params).expect("Unable to open parameters file");
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
                 let contract_id = runtime.issue_to_file(params)?;
@@ -456,7 +464,7 @@ impl Args {
             }
 
             Cmd::Fund { wallet } => {
-                let mut runtime = self.runtime(wallet.as_deref());
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let addr = runtime.wallet.next_address(Keychain::OUTER, true);
                 println!("{addr}");
             }
@@ -472,7 +480,7 @@ impl Args {
                 state,
                 value,
             } => {
-                let mut runtime = self.runtime(wallet.as_deref());
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let beneficiary = if *wout {
                     let wout = runtime.wout(*nonce);
                     RgbBeneficiary::WitnessOut(wout)
@@ -513,7 +521,7 @@ impl Args {
             }
 
             Cmd::State { wallet, all, global, owned, contract } => {
-                let mut runtime = self.runtime(wallet.wallet.as_deref());
+                let mut runtime = self.runtime(wallet);
                 if wallet.sync {
                     let indexer = self.indexer(&wallet.resolver);
                     runtime.wallet.update(&indexer, false);
@@ -605,7 +613,7 @@ impl Args {
                 psbt: psbt_filename,
                 consignment,
             } => {
-                let mut runtime = self.runtime(wallet.wallet.as_deref());
+                let mut runtime = self.runtime(wallet);
                 // TODO: sync wallet if needed
                 // TODO: Add params and giveway to arguments
                 let params = TxParams::with(*fee);
@@ -626,7 +634,7 @@ impl Args {
             }
 
             Cmd::Script { wallet, strategy, invoice, output } => {
-                let mut runtime = self.runtime(wallet.wallet.as_deref());
+                let mut runtime = self.runtime(wallet);
                 let giveaway = Some(Sats::from(500u16));
                 let script = runtime.script(invoice, *strategy, giveaway)?;
                 let file = File::create_new(output).expect("Unable to open script file");
@@ -641,7 +649,7 @@ impl Args {
                 psbt: psbt_filename,
                 print,
             } => {
-                let mut runtime = self.runtime(wallet.as_deref());
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let src = File::open(script).expect("Unable to open script file");
                 let script =
                     serde_yaml::from_reader::<_, OpRequestSet<Option<WoutAssignment>>>(src)?;
@@ -670,7 +678,7 @@ impl Args {
             }
 
             Cmd::Complete { wallet, bundle, psbt: psbt_file } => {
-                let mut runtime = self.runtime(wallet.as_deref());
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
                 let psbt = Psbt::decode(&mut File::open(psbt_file).expect("Unable to open PSBT"))?;
 
@@ -693,7 +701,7 @@ impl Args {
             }
 
             Cmd::Accept { wallet, input } => {
-                let mut runtime = self.runtime(wallet.as_deref());
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 runtime.consume_from_file(input)?;
             }
 

@@ -38,3 +38,13 @@ pub struct WalletOpts {
     #[clap(flatten)]
     pub resolver: ResolverOpt,
 }
+
+impl WalletOpts {
+    pub fn default_with_name(name: &Option<String>) -> Self {
+        WalletOpts {
+            wallet: name.clone(),
+            sync: false,
+            resolver: ResolverOpt { electrum: None, esplora: None, mempool: None },
+        }
+    }
+}
