@@ -25,12 +25,37 @@
 use amplify::ByteArray;
 use bpstd::seals::{mmb, mpc};
 use bpstd::{Psbt, Sats, ScriptPubkey, Vout};
-use rgb::popls::bp::PrefabBundle;
+use rgb::popls::bp::{OpRequestSet, PaymentScript, PrefabBundle, PrefabSeal};
 
-use crate::{RgbPsbt, RgbPsbtCsvError, RgbPsbtFinalizeError, ScriptResolver};
+use crate::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
 impl RgbPsbt for Psbt {
+    fn rgb_resolve(
+        &mut self,
+        script: PaymentScript,
+        change_vout: Option<Vout>,
+    ) -> Result<OpRequestSet<PrefabSeal>, RgbPsbtPrepareError> {
+        match self.opret_hosts().count() {
+            0 => {
+                let host = self
+                    .insert_output(0, ScriptPubkey::op_return(&[]), Sats::ZERO)
+                    .map_err(|_| RgbPsbtPrepareError::Unfinalizable)?;
+                host.set_opret_host().ok();
+            }
+            1 => {}
+            _ => return Err(RgbPsbtPrepareError::MultipleHosts),
+        }
+        self.complete_construction();
+
+        script
+            .resolve_seals(self.script_resolver(), change_vout)
+            .map_err(|_| RgbPsbtPrepareError::ChangeRequired)
+    }
+
     fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtCsvError> {
+        if self.is_modifiable() {
+            return Err(RgbPsbtCsvError::Modifiable);
+        }
         for prefab in bundle {
             let id = mpc::ProtocolId::from_byte_array(prefab.operation.contract_id.to_byte_array());
             let opid = prefab.operation.opid();
@@ -45,21 +70,6 @@ impl RgbPsbt for Psbt {
                 })?;
             }
         }
-        Ok(())
-    }
-
-    fn rgb_complete(&mut self) -> Result<(), RgbPsbtFinalizeError> {
-        match self.opret_hosts().count() {
-            0 => {
-                let host = self
-                    .insert_output(0, ScriptPubkey::op_return(&[]), Sats::ZERO)
-                    .map_err(|_| RgbPsbtFinalizeError::Unfinalizable)?;
-                host.set_opret_host().ok();
-            }
-            1 => {}
-            _ => return Err(RgbPsbtFinalizeError::MultipleHosts),
-        }
-        self.complete_construction();
         Ok(())
     }
 }

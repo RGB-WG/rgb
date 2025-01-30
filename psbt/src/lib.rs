@@ -29,4 +29,4 @@ mod common;
 #[cfg(feature = "bp")]
 mod bp;
 
-pub use common::{RgbPsbt, RgbPsbtCsvError, RgbPsbtFinalizeError, ScriptResolver};
+pub use common::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};

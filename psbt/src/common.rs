@@ -23,25 +23,35 @@
 // the License.
 
 use bp::{ScriptPubkey, Vout};
-use rgb::popls::bp::PrefabBundle;
+use rgb::popls::bp::{OpRequestSet, PaymentScript, PrefabBundle, PrefabSeal};
 use rgb::{ContractId, Outpoint};
+
+pub trait RgbPsbt {
+    fn rgb_resolve(
+        &mut self,
+        script: PaymentScript,
+        change_vout: Option<Vout>,
+    ) -> Result<OpRequestSet<PrefabSeal>, RgbPsbtPrepareError>;
+
+    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtCsvError>;
+}
+
+pub trait ScriptResolver {
+    fn script_resolver(&self) -> impl Fn(&ScriptPubkey) -> Option<Vout>;
+}
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
 #[display(doc_comments)]
-pub enum RgbPsbtFinalizeError {
+pub enum RgbPsbtPrepareError {
     /// in order to complete RGB processing the PSBT must have PSBT_GLOBAL_TX_MODIFIABLE flag set
     /// on.
     Unfinalizable,
 
     /// multiple transaction outputs are market as DBC commitment hosts (while only one should be).
     MultipleHosts,
-}
 
-pub trait RgbPsbt {
-    // TODO: Add rgb_embed to embed operations for hardware signers
-    fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtCsvError>;
-
-    fn rgb_complete(&mut self) -> Result<(), RgbPsbtFinalizeError>;
+    /// transfer doesn't create BTC change output, which is required for RGB change.
+    ChangeRequired,
 }
 
 /// Errors embedding RGB-related information.
@@ -51,10 +61,9 @@ pub enum RgbPsbtCsvError {
     /// input spending {0} which used by RGB operation is absent from PSBT.
     InputAbsent(Outpoint),
 
-    /// input {0} is already used for {1}
+    /// input {0} is already used for {1}.
     InputAlreadyUsed(usize, ContractId),
-}
 
-pub trait ScriptResolver {
-    fn script_resolver(&self) -> impl Fn(&ScriptPubkey) -> Option<Vout>;
+    /// transaction is still modifiable.
+    Modifiable,
 }

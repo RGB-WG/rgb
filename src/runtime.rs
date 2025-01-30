@@ -32,7 +32,7 @@ use rgb::popls::bp::{
     Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
 };
 use rgb::{AuthToken, ContractId, Excavate, Pile, RgbSealDef, Supply};
-use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtFinalizeError, ScriptResolver};
+use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
@@ -118,16 +118,17 @@ impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P
     ///
     /// The returned PSBT contain only anonymous client-side validation information and is
     /// modifiable, thus it can be forwarded to other payjoin participants.
+    // TODO: PSBT is not modifiable since it commits to Vouts in the bundle!
     pub fn exec(
         &mut self,
         script: PaymentScript,
         params: TxParams,
     ) -> Result<(Psbt, PrefabBundle), TransferError> {
         let (mut psbt, meta) = self.0.wallet.compose_psbt(&script, params)?;
-        let items = script
-            .resolve_seals(psbt.script_resolver(), meta.change_vout)
-            .map_err(|_| TransferError::ChangeRequired)?;
-        let bundle = self.bundle(items, meta.change_vout)?;
+
+        // From this moment transaction becomes unmodifiable
+        let request = psbt.rgb_resolve(script, meta.change_vout)?;
+        let bundle = self.bundle(request, meta.change_vout)?;
 
         psbt.rgb_fill_csv(&bundle)?;
 
@@ -140,7 +141,6 @@ impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P
         mut psbt: Psbt,
         bundle: &PrefabBundle,
     ) -> Result<Psbt, TransferError> {
-        psbt.rgb_complete()?;
         let (mpc, dbc) = psbt.dbc_commit()?;
         let tx = psbt.to_unsigned_tx();
 
@@ -170,22 +170,19 @@ pub enum TransferError {
     PsbtConstruct(ConstructionError),
 
     #[from]
-    PsbtRgb(RgbPsbtCsvError),
+    PsbtRgbCsv(RgbPsbtCsvError),
 
     #[from]
     PsbtDbc(DbcPsbtError),
 
     #[from]
-    PsbtFinalize(RgbPsbtFinalizeError),
+    PsbtPrepare(RgbPsbtPrepareError),
 
     #[from]
     Bundle(BundleError),
 
     #[from]
     Include(IncludeError),
-
-    #[display("transfer doesn't create BTC change output, which is required for RGB change")]
-    ChangeRequired,
 }
 
 #[cfg(feature = "fs")]

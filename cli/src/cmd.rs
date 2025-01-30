@@ -241,21 +241,22 @@ pub enum Cmd {
         #[clap(short, long, default_value = "aggregate", env = RGB_COINSELECT_STRATEGY_ENV)]
         strategy: CoinselectStrategy,
 
+        /// Fees for PSBT
+        #[clap(long, global = true, default_value = "1000")]
+        fee: Sats,
+
         /// Invoice to fulfill
         invoice: RgbInvoice<ContractId>,
 
-        /// Fees for PSBT
-        fee: Sats,
+        /// Location to save the consignment file to
+        #[clap(value_hint = ValueHint::FilePath)]
+        consignment: PathBuf,
 
         /// File to save the produced PSBT
         ///
         /// If not provided, prints PSBT to standard output.
         #[clap(value_hint = ValueHint::FilePath)]
         psbt: Option<PathBuf>,
-
-        /// Location to save the consignment file to
-        #[clap(value_hint = ValueHint::FilePath)]
-        consignment: PathBuf,
     },
 
     /// Create a payment script out from invoice
