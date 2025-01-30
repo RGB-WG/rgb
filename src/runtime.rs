@@ -196,8 +196,7 @@ pub mod file {
 
     use super::*;
 
-    pub type RgbDirRuntime =
-        RgbRuntime<FileSupply, FilePile<WTxoSeal, TxoSeal>, DirExcavator<WTxoSeal>>;
+    pub type RgbDirRuntime = RgbRuntime<FileSupply, FilePile<WTxoSeal>, DirExcavator<WTxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;
