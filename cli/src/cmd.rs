@@ -152,6 +152,12 @@ pub enum Cmd {
 
     /// Create a new wallet
     Create {
+        #[clap(long, conflicts_with = "wpkh")]
+        tapret_key_only: bool,
+
+        #[clap(long)]
+        wpkh: bool,
+
         /// Wallet name
         name: String,
 
@@ -443,17 +449,21 @@ impl Args {
 
             //Cmd::Import { articles } => self.mound().import_file(articles),
             //Cmd::Export { contract, file } => self.mound().export_file(contract, file),
-            Cmd::Create { name, descriptor } => {
+            Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
                 let provider = self.wallet_provider(Some(name));
                 let xpub = XpubDerivable::from_str(descriptor).expect("Invalid extended pubkey");
                 let noise = xpub.xpub().chain_code().to_byte_array();
-                RgbWallet::create(
-                    provider,
-                    RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
-                    self.network,
-                    true,
-                )
-                .expect("Unable to create wallet");
+                let descr = match (tapret_key_only, wpkh) {
+                    (false, true) => RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
+                    (true, false) => RgbDescr::key_only_unfunded(xpub, noise),
+                    (true, true) => unreachable!(),
+                    (false, false) => anyhow::bail!(
+                        "a type of wallet descriptor must be specified either with \
+                         `--tapret-key-only` or `--wpkh`"
+                    ),
+                };
+                RgbWallet::create(provider, descr, self.network, true)
+                    .expect("Unable to create wallet");
             }
 
             Cmd::Contracts => {
