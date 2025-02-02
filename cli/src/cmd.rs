@@ -183,7 +183,7 @@ pub enum Cmd {
         seal_only: bool,
 
         /// Use witness output-based seal
-        #[clap(short = 'o', long)]
+        #[clap(long)]
         wout: bool,
 
         /// Nonce number to use
@@ -246,6 +246,10 @@ pub enum Cmd {
         /// Coinselect strategy to use
         #[clap(short, long, default_value = "aggregate", env = RGB_COINSELECT_STRATEGY_ENV)]
         strategy: CoinselectStrategy,
+
+        /// Amount of sats to send to pay-to-address invoice
+        #[clap(long, global = true)]
+        sats: Option<Sats>,
 
         /// Fees for PSBT
         #[clap(long, global = true, default_value = "1000")]
@@ -620,6 +624,7 @@ impl Args {
                 wallet,
                 strategy,
                 invoice,
+                sats,
                 fee,
                 psbt: psbt_filename,
                 consignment,
@@ -628,8 +633,7 @@ impl Args {
                 // TODO: sync wallet if needed
                 // TODO: Add params and giveway to arguments
                 let params = TxParams::with(*fee);
-                let giveaway = Some(Sats::from(500u16));
-                let (psbt, terminal) = runtime.pay_invoice(invoice, *strategy, params, giveaway)?;
+                let (psbt, terminal) = runtime.pay_invoice(invoice, *strategy, params, *sats)?;
                 if let Some(psbt_filename) = psbt_filename {
                     psbt.encode(
                         psbt.version,
