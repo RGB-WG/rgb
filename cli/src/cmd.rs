@@ -29,6 +29,7 @@ use std::process::exit;
 use std::str::FromStr;
 
 use amplify::ByteArray;
+use anyhow::Context;
 use bpwallet::cli::ResolverOpt;
 use bpwallet::fs::FsTextStore;
 use bpwallet::indexers::esplora;
@@ -445,7 +446,7 @@ impl Args {
             }
             Cmd::Issue { params: Some(params), wallet } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let file = File::open(params).expect("Unable to open parameters file");
+                let file = File::open(params).context("Unable to open parameters file")?;
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
                 let contract_id = runtime.issue_to_file(params)?;
                 println!("A new contract issued with ID {contract_id}");
@@ -455,7 +456,7 @@ impl Args {
             //Cmd::Export { contract, file } => self.mound().export_file(contract, file),
             Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
                 let provider = self.wallet_provider(Some(name));
-                let xpub = XpubDerivable::from_str(descriptor).expect("Invalid extended pubkey");
+                let xpub = XpubDerivable::from_str(descriptor)?;
                 let noise = xpub.xpub().chain_code().to_byte_array();
                 let descr = match (tapret_key_only, wpkh) {
                     (false, true) => RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
