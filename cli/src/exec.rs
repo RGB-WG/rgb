@@ -94,6 +94,13 @@ impl Args {
                     .expect("Unable to create wallet");
             }
 
+            Cmd::Sync { wallet, resolver } => {
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
+                let indexer = self.indexer(resolver);
+                runtime.wallet.update(&indexer, false);
+                println!();
+            }
+
             Cmd::Fund { wallet } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let addr = runtime.wallet.next_address(Keychain::OUTER, true);

@@ -24,6 +24,7 @@
 
 use std::path::PathBuf;
 
+use bpwallet::cli::ResolverOpt;
 use bpwallet::Sats;
 use clap::ValueHint;
 use rgb::invoice::RgbInvoice;
@@ -56,6 +57,16 @@ pub enum Cmd {
 
         /// Extended pubkey descriptor
         descriptor: String,
+    },
+
+    /// Synchronize wallet with blockchain data
+    Sync {
+        #[clap(flatten)]
+        resolver: ResolverOpt,
+
+        /// Wallet to use
+        #[clap(env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
     },
 
     /// Receiving a wallet address for gas funding
