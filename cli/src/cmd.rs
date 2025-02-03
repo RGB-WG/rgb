@@ -433,6 +433,70 @@ impl Args {
 
     pub fn exec(&self) -> anyhow::Result<()> {
         match &self.command {
+            // =====================================================================================
+            // I. Wallet management
+            Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
+                let provider = self.wallet_provider(Some(name));
+                let xpub = XpubDerivable::from_str(descriptor)?;
+                let noise = xpub.xpub().chain_code().to_byte_array();
+                let descr = match (tapret_key_only, wpkh) {
+                    (false, true) => RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
+                    (true, false) => RgbDescr::key_only_unfunded(xpub, noise),
+                    (true, true) => unreachable!(),
+                    (false, false) => anyhow::bail!(
+                        "a type of wallet descriptor must be specified either with \
+                         `--tapret-key-only` or `--wpkh`"
+                    ),
+                };
+                RgbWallet::create(provider, descr, self.network, true)
+                    .expect("Unable to create wallet");
+            }
+
+            Cmd::Wallets => {
+                let data_dir = self.data_dir();
+                for dir in data_dir
+                    .read_dir()
+                    .context("Unable to read data directory")?
+                {
+                    let dir = match dir {
+                        Ok(dir) => dir,
+                        Err(err) => {
+                            eprintln!("Can't read directory entry: {err}");
+                            continue;
+                        }
+                    };
+                    let path = dir.path();
+                    if dir
+                        .file_type()
+                        .context("Unable to read directory entry")?
+                        .is_dir()
+                        && path.extension() == Some("wallet".as_ref())
+                    {
+                        let Some(wallet_name) = path
+                            .file_stem()
+                            .context("Unable to parse wallet file name")?
+                            .to_str()
+                        else {
+                            continue;
+                        };
+                        println!("{wallet_name}");
+                    }
+                }
+            }
+
+            // =====================================================================================
+            // II. Contract management
+            Cmd::Contracts => {
+                let mound = self.mound();
+                for info in mound.contracts_info() {
+                    println!("---");
+                    println!(
+                        "{}",
+                        serde_yaml::to_string(&info).context("Unable to generate YAML")?
+                    );
+                }
+            }
+
             Cmd::Issue { params: None, wallet: _ } => {
                 println!(
                     "To issue a new contract please specify a parameters file. A contract may be \
@@ -452,33 +516,27 @@ impl Args {
                 println!("A new contract issued with ID {contract_id}");
             }
 
-            //Cmd::Import { articles } => self.mound().import_file(articles),
-            //Cmd::Export { contract, file } => self.mound().export_file(contract, file),
-            Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
-                let provider = self.wallet_provider(Some(name));
-                let xpub = XpubDerivable::from_str(descriptor)?;
-                let noise = xpub.xpub().chain_code().to_byte_array();
-                let descr = match (tapret_key_only, wpkh) {
-                    (false, true) => RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
-                    (true, false) => RgbDescr::key_only_unfunded(xpub, noise),
-                    (true, true) => unreachable!(),
-                    (false, false) => anyhow::bail!(
-                        "a type of wallet descriptor must be specified either with \
-                         `--tapret-key-only` or `--wpkh`"
-                    ),
-                };
-                RgbWallet::create(provider, descr, self.network, true)
-                    .expect("Unable to create wallet");
+            Cmd::Purge { force, contract } => {
+                todo!();
+                //self.mound().purge(contract)
             }
 
-            Cmd::Contracts => {
-                let mound = self.mound();
-                for info in mound.contracts_info() {
-                    println!("---");
-                    println!("{}", serde_yaml::to_string(&info).expect("Unable to generate YAML"));
-                }
+            Cmd::Import { articles } => {
+                todo!();
+                //self.mound().import_file(articles)
             }
 
+            Cmd::Export { contract, file } => {
+                todo!();
+                //self.mound().export_file(contract, file)
+            }
+
+            Cmd::Backup { file } => {
+                todo!();
+            }
+
+            // =====================================================================================
+            // III. Combined contract/wallet operations
             Cmd::Fund { wallet } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let addr = runtime.wallet.next_address(Keychain::OUTER, true);
@@ -638,7 +696,7 @@ impl Args {
                 if let Some(psbt_filename) = psbt_filename {
                     psbt.encode(
                         psbt.version,
-                        &mut File::create(psbt_filename).expect("Unable to write PSBT"),
+                        &mut File::create(psbt_filename).context("Unable to write PSBT")?,
                     )?;
                 } else {
                     println!("{psbt}");
@@ -646,15 +704,15 @@ impl Args {
                 runtime
                     .mound
                     .consign_to_file(invoice.scope, [terminal], consignment)
-                    .expect("Unable to consign contract");
+                    .context("Unable to consign contract")?;
             }
 
             Cmd::Script { wallet, strategy, invoice, output } => {
                 let mut runtime = self.runtime(wallet);
                 let giveaway = Some(Sats::from(500u16));
                 let script = runtime.script(invoice, *strategy, giveaway)?;
-                let file = File::create_new(output).expect("Unable to open script file");
-                serde_yaml::to_writer(file, &script).expect("Unable to write script");
+                let file = File::create_new(output).context("Unable to open script file")?;
+                serde_yaml::to_writer(file, &script).context("Unable to write script")?;
             }
 
             Cmd::Exec {
@@ -666,7 +724,7 @@ impl Args {
                 print,
             } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let src = File::open(script).expect("Unable to open script file");
+                let src = File::open(script).context("Unable to open script file")?;
                 let script = serde_yaml::from_reader::<_, PaymentScript>(src)?;
 
                 let params = TxParams::with(*fee);
@@ -677,32 +735,31 @@ impl Args {
                         .unwrap_or(bundle_filename)
                         .with_extension("psbt"),
                 )
-                .expect("Unable to create PSBT");
+                .context("Unable to create PSBT")?;
 
                 bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
-                    .expect("Unable to write output file");
+                    .context("Unable to write output file")?;
 
                 // This PSBT can be sent to other payjoin parties so they add their inputs and
                 // outputs, or even re-order existing ones
                 psbt.encode(psbt.version, &mut psbt_file)
-                    .expect("Unable to write PSBT");
+                    .context("Unable to write PSBT")?;
                 if *print {
                     println!("{psbt}");
                 }
             }
 
-            Cmd::Complete { wallet, bundle, psbt: psbt_file } => {
+            Cmd::Complete { wallet, bundle, psbt: psbt_filename } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
-                let psbt = Psbt::decode(&mut File::open(psbt_file).expect("Unable to open PSBT"))?;
+                let mut psbt_file = File::open(psbt_filename).context("Unable to open PSBT")?;
+                let psbt = Psbt::decode(&mut psbt_file)?;
 
                 let psbt = runtime.complete(psbt, &bundle)?;
 
-                psbt.encode(
-                    psbt.version,
-                    &mut File::create(psbt_file).expect("Unable to write PSBT"),
-                )?;
+                let mut psbt_file = File::create(psbt_filename).context("Unable to write PSBT")?;
+                psbt.encode(psbt.version, &mut psbt_file)?;
             }
 
             Cmd::Consign { contract, terminals, output } => {
@@ -712,15 +769,13 @@ impl Args {
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
                 mound
                     .consign_to_file(contract_id, terminals, output)
-                    .expect("Unable to consign contract");
+                    .context("Unable to consign contract")?;
             }
 
             Cmd::Accept { wallet, input } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 runtime.consume_from_file(input)?;
             }
-
-            _ => todo!(),
         }
         Ok(())
     }
