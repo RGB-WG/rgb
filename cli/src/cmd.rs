@@ -76,6 +76,13 @@ pub enum Cmd {
         wallet: Option<String>,
     },
 
+    /// List available wallet seals
+    Seals {
+        /// Wallet to use
+        #[clap(env = RGB_WALLET_ENV)]
+        wallet: Option<String>,
+    },
+
     // =====================================================================================
     // II. Contract management
     /// List contracts

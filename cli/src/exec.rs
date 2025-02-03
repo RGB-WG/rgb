@@ -27,9 +27,9 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use bpwallet::psbt::TxParams;
-use bpwallet::{Keychain, Outpoint, Psbt, Sats, Wpkh, XpubDerivable};
+use bpwallet::{Outpoint, Psbt, Sats, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
-use rgb::popls::bp::{PaymentScript, PrefabBundle};
+use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, CreateParams};
 use rgbp::descriptor::RgbDescr;
 use rgbp::RgbWallet;
@@ -103,8 +103,15 @@ impl Args {
 
             Cmd::Fund { wallet } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let addr = runtime.wallet.next_address(Keychain::OUTER, true);
+                let addr = runtime.wallet.next_address();
                 println!("{addr}");
+            }
+
+            Cmd::Seals { wallet } => {
+                let runtime = self.runtime(&WalletOpts::default_with_name(wallet));
+                for utxo in runtime.wallet.utxos() {
+                    println!("{utxo}");
+                }
             }
 
             // =====================================================================================
