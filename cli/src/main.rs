@@ -32,8 +32,23 @@ pub mod args;
 pub mod cmd;
 mod exec;
 
+use std::fmt::Display;
+use std::panic::set_hook;
+
 use clap::Parser;
 
 use crate::args::Args;
 
-fn main() -> anyhow::Result<()> { Args::parse().exec() }
+fn main() -> anyhow::Result<()> {
+    set_hook(Box::new(|info| {
+        if let Some(error) = info.payload().downcast_ref::<&dyn Display>() {
+            eprintln!("Error: {error}");
+            if let Some(location) = info.location() {
+                eprintln!("Happened in {location}");
+            }
+        } else {
+            eprintln!("Error: {info}");
+        }
+    }));
+    Args::parse().exec()
+}
