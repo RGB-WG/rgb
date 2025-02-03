@@ -45,23 +45,6 @@ impl Args {
         match &self.command {
             // =====================================================================================
             // I. Wallet management
-            Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
-                let provider = self.wallet_provider(Some(name));
-                let xpub = XpubDerivable::from_str(descriptor)?;
-                let noise = xpub.xpub().chain_code().to_byte_array();
-                let descr = match (tapret_key_only, wpkh) {
-                    (false, true) => RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
-                    (true, false) => RgbDescr::key_only_unfunded(xpub, noise),
-                    (true, true) => unreachable!(),
-                    (false, false) => anyhow::bail!(
-                        "a type of wallet descriptor must be specified either with \
-                         `--tapret-key-only` or `--wpkh`"
-                    ),
-                };
-                RgbWallet::create(provider, descr, self.network, true)
-                    .expect("Unable to create wallet");
-            }
-
             Cmd::Wallets => {
                 let data_dir = self.data_dir();
                 for dir in data_dir
@@ -92,6 +75,23 @@ impl Args {
                         println!("{wallet_name}");
                     }
                 }
+            }
+
+            Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
+                let provider = self.wallet_provider(Some(name));
+                let xpub = XpubDerivable::from_str(descriptor)?;
+                let noise = xpub.xpub().chain_code().to_byte_array();
+                let descr = match (tapret_key_only, wpkh) {
+                    (false, true) => RgbDescr::new_unfunded(Wpkh::from(xpub), noise),
+                    (true, false) => RgbDescr::key_only_unfunded(xpub, noise),
+                    (true, true) => unreachable!(),
+                    (false, false) => anyhow::bail!(
+                        "a type of wallet descriptor must be specified either with \
+                         `--tapret-key-only` or `--wpkh`"
+                    ),
+                };
+                RgbWallet::create(provider, descr, self.network, true)
+                    .expect("Unable to create wallet");
             }
 
             Cmd::Fund { wallet } => {
@@ -153,57 +153,6 @@ impl Args {
 
             // =====================================================================================
             // III. Combined contract/wallet operations
-            Cmd::Invoice {
-                wallet,
-                seal_only,
-                wout,
-                nonce,
-                contract,
-                api,
-                method,
-                state,
-                value,
-            } => {
-                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let beneficiary = if *wout {
-                    let wout = runtime.wout(*nonce);
-                    RgbBeneficiary::WitnessOut(wout)
-                } else {
-                    let auth = runtime.auth_token(*nonce).ok_or(anyhow::anyhow!(
-                        "Wallet has no unspent outputs; try `fund` first, or use `-w` flag to \
-                         generate a witness output-based seal"
-                    ))?;
-                    RgbBeneficiary::Token(auth)
-                };
-                if *seal_only {
-                    println!("{beneficiary}");
-                    return Ok(());
-                }
-
-                let contract_id = if let Some(contract) = contract {
-                    let id = runtime
-                        .mound
-                        .find_contract_id(contract.clone())
-                        .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
-                    CallScope::ContractId(id)
-                } else {
-                    CallScope::ContractQuery(s!(""))
-                };
-                let value = value.map(StrictVal::num);
-                let mut invoice = RgbInvoice::new(contract_id, beneficiary, value);
-                if let Some(api) = api {
-                    invoice = invoice.use_api(api.clone());
-                }
-                if let Some(method) = method {
-                    invoice = invoice.use_method(method.clone());
-                }
-                if let Some(state) = state {
-                    invoice = invoice.use_state(state.clone());
-                }
-
-                println!("{invoice}");
-            }
-
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet);
                 if wallet.sync {
@@ -287,6 +236,57 @@ impl Args {
                         }
                     }
                 }
+            }
+
+            Cmd::Invoice {
+                wallet,
+                seal_only,
+                wout,
+                nonce,
+                contract,
+                api,
+                method,
+                state,
+                value,
+            } => {
+                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
+                let beneficiary = if *wout {
+                    let wout = runtime.wout(*nonce);
+                    RgbBeneficiary::WitnessOut(wout)
+                } else {
+                    let auth = runtime.auth_token(*nonce).ok_or(anyhow::anyhow!(
+                        "Wallet has no unspent outputs; try `fund` first, or use `-w` flag to \
+                         generate a witness output-based seal"
+                    ))?;
+                    RgbBeneficiary::Token(auth)
+                };
+                if *seal_only {
+                    println!("{beneficiary}");
+                    return Ok(());
+                }
+
+                let contract_id = if let Some(contract) = contract {
+                    let id = runtime
+                        .mound
+                        .find_contract_id(contract.clone())
+                        .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
+                    CallScope::ContractId(id)
+                } else {
+                    CallScope::ContractQuery(s!(""))
+                };
+                let value = value.map(StrictVal::num);
+                let mut invoice = RgbInvoice::new(contract_id, beneficiary, value);
+                if let Some(api) = api {
+                    invoice = invoice.use_api(api.clone());
+                }
+                if let Some(method) = method {
+                    invoice = invoice.use_method(method.clone());
+                }
+                if let Some(state) = state {
+                    invoice = invoice.use_state(state.clone());
+                }
+
+                println!("{invoice}");
             }
 
             Cmd::Pay {

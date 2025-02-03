@@ -65,6 +65,11 @@ pub enum Cmd {
         wallet: Option<String>,
     },
 
+    // =====================================================================================
+    // II. Contract management
+    /// List contracts
+    Contracts,
+
     /// Issue a new RGB contract
     Issue {
         /// Wallet to use
@@ -74,6 +79,16 @@ pub enum Cmd {
         /// Parameters and data for the contract
         #[clap(value_hint = ValueHint::FilePath)]
         params: Option<PathBuf>,
+    },
+
+    /// Remove contract
+    Purge {
+        /// Force removal of a contract with a known state
+        #[clap(short, long)]
+        force: bool,
+
+        /// Contract id to remove
+        contract: ContractRef,
     },
 
     /// Import contract articles
@@ -99,17 +114,28 @@ pub enum Cmd {
         file: PathBuf,
     },
 
-    /// List contracts
-    Contracts,
+    // =====================================================================================
+    // III. Combined contract/wallet operations
+    /// Print out a contract state
+    #[clap(alias = "s")]
+    State {
+        #[clap(flatten)]
+        wallet: WalletOpts,
 
-    /// Remove contract
-    Purge {
-        /// Force removal of a contract with a known state
+        /// Present all the state, not just the one owned by the wallet
         #[clap(short, long)]
-        force: bool,
+        all: bool,
 
-        /// Contract id to remove
-        contract: ContractRef,
+        /// Display global state entries
+        #[clap(short, long, required_unless_present = "owned")]
+        global: bool,
+
+        /// Display owned state entries
+        #[clap(short, long)]
+        owned: bool,
+
+        /// Print out just a single contract state
+        contract: Option<ContractRef>,
     },
 
     /// Generate an invoice
@@ -153,28 +179,6 @@ pub enum Cmd {
 
         /// Invoiced state value
         value: Option<u64>,
-    },
-
-    /// Print out a contract state
-    #[clap(alias = "s")]
-    State {
-        #[clap(flatten)]
-        wallet: WalletOpts,
-
-        /// Present all the state, not just the one owned by the wallet
-        #[clap(short, long)]
-        all: bool,
-
-        /// Display global state entries
-        #[clap(short, long, required_unless_present = "owned")]
-        global: bool,
-
-        /// Display owned state entries
-        #[clap(short, long)]
-        owned: bool,
-
-        /// Print out just a single contract state
-        contract: Option<ContractRef>,
     },
 
     /// Pay an invoice, creating ready-to-be signed PSBT and a consignment
