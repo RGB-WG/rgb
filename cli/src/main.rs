@@ -28,10 +28,12 @@ extern crate amplify;
 extern crate clap;
 
 pub mod opts;
+pub mod args;
 pub mod cmd;
+mod exec;
 
 use clap::Parser;
 
-use crate::cmd::Args;
+use crate::args::Args;
 
 fn main() -> anyhow::Result<()> { Args::parse().exec() }
