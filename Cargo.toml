@@ -94,6 +94,7 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
 ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
 hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
 sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }
