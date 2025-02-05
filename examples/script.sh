@@ -15,17 +15,17 @@ cp -r examples/data/bitcoin.testnet/DemoToken.contract examples/data2/bitcoin.te
 $RGB contracts
 $RGB state -go -w alice
 #$RGB fund alice
-AUTH_TOKEN=$($RGB_2 invoice -w bob --nonce 0 --seal-only DemoToken)
+#AUTH_TOKEN=$($RGB_2 invoice -w bob --nonce 0 --seal-only DemoToken)
 INVOICE=$($RGB_2 invoice -w bob --nonce 0 DemoToken 10)
 
 rm examples/transfer.psbt examples/Transfer.yaml
-$RGB script -w alice "$INVOICE" examples/Transfer.yaml || exit 1
-$RGB exec -w alice examples/Transfer.yaml examples/transfer.pfab 1000 examples/transfer.psbt || exit 1
-
-$RGB complete -w alice examples/transfer.pfab examples/transfer.psbt || exit 1
+#$RGB script -w alice "$INVOICE" examples/Transfer.yaml || exit 1
+#$RGB exec -w alice examples/Transfer.yaml examples/transfer.pfab 1000 examples/transfer.psbt || exit 1
+#$RGB complete -w alice examples/transfer.pfab examples/transfer.psbt || exit 1
 
 rm examples/transfer.rgb
-$RGB consign DemoToken -t "$AUTH_TOKEN" examples/transfer.rgb || exit 1
+$RGB pay -w alice "$INVOICE"  examples/transfer.rgb || exit 1
+#$RGB consign DemoToken -t "$AUTH_TOKEN" examples/transfer.rgb || exit 1
 $RGB state -goa -w alice --sync --mempool
 
 $RGB_2 accept -w bob examples/transfer.rgb || exit 1
