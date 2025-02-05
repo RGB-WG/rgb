@@ -146,22 +146,22 @@ impl Args {
                 println!("A new contract issued with ID {contract_id}");
             }
 
-            Cmd::Purge { force, contract } => {
+            Cmd::Purge { force: _, contract: _ } => {
                 todo!();
                 //self.mound().purge(contract)
             }
 
-            Cmd::Import { articles } => {
+            Cmd::Import { articles: _ } => {
                 todo!();
                 //self.mound().import_file(articles)
             }
 
-            Cmd::Export { contract, file } => {
+            Cmd::Export { contract: _, file: _ } => {
                 todo!();
                 //self.mound().export_file(contract, file)
             }
 
-            Cmd::Backup { file } => {
+            Cmd::Backup { file: _ } => {
                 todo!();
             }
 
