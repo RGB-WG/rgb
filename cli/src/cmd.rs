@@ -36,6 +36,7 @@ use crate::opts::WalletOpts;
 
 pub const RGB_COINSELECT_STRATEGY_ENV: &str = "RGB_COINSELECT_STRATEGY";
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
+pub const RGB_PSBT_VER: &str = "RGB_PSBT_VER2";
 
 #[derive(Parser)]
 pub enum Cmd {
@@ -217,6 +218,14 @@ pub enum Cmd {
         #[clap(long, global = true, default_value = "1000")]
         fee: Sats,
 
+        /// Use PSBT version 2
+        #[clap(short = '2', long, global = true, env = "RGB_PSBT_VER2")]
+        psbt2: bool,
+
+        /// Print PSBT to STDOUT
+        #[clap(short, long, global = true)]
+        print: bool,
+
         /// Invoice to fulfill
         invoice: RgbInvoice<ContractId>,
 
@@ -226,7 +235,8 @@ pub enum Cmd {
 
         /// File to save the produced PSBT
         ///
-        /// If not provided, prints PSBT to standard output.
+        /// If not provided, uses the same path and filename as for the consignment, adding *.psbt
+        /// extension.
         #[clap(value_hint = ValueHint::FilePath)]
         psbt: Option<PathBuf>,
     },
@@ -235,6 +245,10 @@ pub enum Cmd {
     Script {
         #[clap(flatten)]
         wallet: WalletOpts,
+
+        /// Amount of sats to send to pay-to-address invoice
+        #[clap(long, global = true)]
+        sats: Option<Sats>,
 
         /// Coinselect strategy to use
         #[clap(short, long, default_value = "aggregate", env = RGB_COINSELECT_STRATEGY_ENV)]
@@ -251,10 +265,6 @@ pub enum Cmd {
     /// Execute a script, producing prefabricated operation bundle and PSBT
     #[clap(alias = "x")]
     Exec {
-        /// Print PSBT to STDOUT
-        #[clap(short, long, global = true)]
-        print: bool,
-
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,
@@ -269,6 +279,14 @@ pub enum Cmd {
 
         /// Fees for PSBT
         fee: Sats,
+
+        /// Use PSBT version 2
+        #[clap(short = '2', long, global = true, env = "RGB_PSBT_VER2")]
+        psbt2: bool,
+
+        /// Print PSBT to STDOUT
+        #[clap(short, long, global = true)]
+        print: bool,
 
         /// File to save the produced PSBT
         ///

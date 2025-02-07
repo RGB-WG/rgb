@@ -27,7 +27,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use bpwallet::psbt::TxParams;
-use bpwallet::{Outpoint, Psbt, Sats, Wpkh, XpubDerivable};
+use bpwallet::{Outpoint, Psbt, PsbtVer, Sats, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, CreateParams};
@@ -309,6 +309,8 @@ impl Args {
                 invoice,
                 sats,
                 fee,
+                psbt2,
+                print,
                 psbt: psbt_filename,
                 consignment,
             } => {
@@ -316,13 +318,19 @@ impl Args {
                 // TODO: sync wallet if needed
                 // TODO: Add params and giveway to arguments
                 let params = TxParams::with(*fee);
-                let (psbt, terminal) = runtime.pay_invoice(invoice, *strategy, params, *sats)?;
-                if let Some(psbt_filename) = psbt_filename {
-                    psbt.encode(
-                        psbt.version,
-                        &mut File::create(psbt_filename).context("Unable to write PSBT")?,
-                    )?;
-                } else {
+                let (mut psbt, terminal) =
+                    runtime.pay_invoice(invoice, *strategy, params, *sats)?;
+                let ver = if *psbt2 { PsbtVer::V2 } else { PsbtVer::V0 };
+
+                let psbt_filename = psbt_filename
+                    .as_ref()
+                    .unwrap_or(consignment)
+                    .with_extension("psbt");
+                let mut psbt_file =
+                    File::create_new(psbt_filename).context("Unable to create PSBT")?;
+                psbt.encode(ver, &mut psbt_file)?;
+                if *print {
+                    psbt.version = ver;
                     println!("{psbt}");
                 }
                 runtime
@@ -331,35 +339,34 @@ impl Args {
                     .context("Unable to consign contract")?;
             }
 
-            Cmd::Script { wallet, strategy, invoice, output } => {
+            Cmd::Script { wallet, sats, strategy, invoice, output } => {
                 let mut runtime = self.runtime(wallet);
-                let giveaway = Some(Sats::from(500u16));
-                let script = runtime.script(invoice, *strategy, giveaway)?;
+                let script = runtime.script(invoice, *strategy, *sats)?;
                 let file = File::create_new(output).context("Unable to open script file")?;
                 serde_yaml::to_writer(file, &script).context("Unable to write script")?;
             }
 
             Cmd::Exec {
                 wallet,
+                print,
                 script,
                 fee,
+                psbt2,
                 bundle: bundle_filename,
                 psbt: psbt_filename,
-                print,
             } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let src = File::open(script).context("Unable to open script file")?;
                 let script = serde_yaml::from_reader::<_, PaymentScript>(src)?;
 
                 let params = TxParams::with(*fee);
-                let (psbt, bundle) = runtime.exec(script, params)?;
-                let mut psbt_file = File::create_new(
-                    psbt_filename
-                        .as_ref()
-                        .unwrap_or(bundle_filename)
-                        .with_extension("psbt"),
-                )
-                .context("Unable to create PSBT")?;
+                let (mut psbt, bundle) = runtime.exec(script, params)?;
+                let psbt_filename = psbt_filename
+                    .as_ref()
+                    .unwrap_or(bundle_filename)
+                    .with_extension("psbt");
+                let mut psbt_file =
+                    File::create_new(psbt_filename).context("Unable to create PSBT")?;
 
                 bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
@@ -367,9 +374,11 @@ impl Args {
 
                 // This PSBT can be sent to other payjoin parties so they add their inputs and
                 // outputs, or even re-order existing ones
-                psbt.encode(psbt.version, &mut psbt_file)
+                let ver = if *psbt2 { PsbtVer::V2 } else { PsbtVer::V0 };
+                psbt.encode(ver, &mut psbt_file)
                     .context("Unable to write PSBT")?;
                 if *print {
+                    psbt.version = ver;
                     println!("{psbt}");
                 }
             }
