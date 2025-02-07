@@ -32,6 +32,7 @@ pub mod args;
 pub mod cmd;
 mod exec;
 
+use std::backtrace::Backtrace;
 use std::fmt::Display;
 use std::panic::set_hook;
 
@@ -41,6 +42,7 @@ use crate::args::Args;
 
 fn main() -> anyhow::Result<()> {
     set_hook(Box::new(|info| {
+        eprintln!("Abnormal program termination through panic.");
         if let Some(error) = info.payload().downcast_ref::<&dyn Display>() {
             eprintln!("Error: {error}");
             if let Some(location) = info.location() {
@@ -49,6 +51,8 @@ fn main() -> anyhow::Result<()> {
         } else {
             eprintln!("Error: {info}");
         }
+        let backtrace = Backtrace::capture();
+        eprintln!("Backtrace: {backtrace}");
     }));
     Args::parse().exec()
 }
