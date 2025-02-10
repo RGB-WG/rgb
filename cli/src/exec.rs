@@ -108,7 +108,7 @@ impl Args {
             }
 
             Cmd::Seals { wallet } => {
-                let runtime = self.runtime(&WalletOpts::default_with_name(wallet));
+                let runtime = self.runtime(wallet);
                 for utxo in runtime.wallet.utxos() {
                     println!("{utxo}");
                 }

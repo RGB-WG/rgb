@@ -79,9 +79,8 @@ pub enum Cmd {
 
     /// List available wallet seals
     Seals {
-        /// Wallet to use
-        #[clap(env = RGB_WALLET_ENV)]
-        wallet: Option<String>,
+        #[clap(flatten)]
+        wallet: WalletOpts,
     },
 
     // =====================================================================================
