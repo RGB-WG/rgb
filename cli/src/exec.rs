@@ -26,8 +26,8 @@ use std::fs::File;
 use std::str::FromStr;
 
 use anyhow::Context;
-use bpwallet::psbt::TxParams;
-use bpwallet::{Outpoint, Psbt, PsbtVer, Sats, Wpkh, XpubDerivable};
+use bpwallet::psbt::{PsbtConstructor, TxParams};
+use bpwallet::{ConsensusEncode, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, CreateParams};
@@ -403,6 +403,45 @@ impl Args {
                 mound
                     .consign_to_file(contract_id, terminals, output)
                     .context("Unable to consign contract")?;
+            }
+
+            Cmd::Finalize { broadcast, wallet, psbt: psbt_filename, tx: tx_filename } => {
+                let runtime = self.runtime(wallet);
+                let mut psbt_file = File::open(psbt_filename).context("Unable to open PSBT")?;
+                let mut psbt = Psbt::decode(&mut psbt_file)?;
+                let inputs = psbt.finalize(runtime.wallet.descriptor());
+                eprint!("{inputs} of {} inputs were finalized", psbt.inputs().count());
+                if psbt.is_finalized() {
+                    eprintln!(", transaction is ready for the extraction");
+                } else {
+                    eprintln!(" and some non-finalized inputs remains");
+                }
+
+                eprint!("Extracting signed transaction ... ");
+                match psbt.extract() {
+                    Ok(extracted) => {
+                        eprintln!("success");
+                        if !*broadcast && tx_filename.is_none() {
+                            println!("{extracted}");
+                        }
+                        if let Some(file) = tx_filename {
+                            eprint!("Saving transaction to file {} ...", file.display());
+                            let mut file = File::create(file)?;
+                            extracted.consensus_encode(&mut file)?;
+                            eprintln!("success");
+                        }
+                    }
+                    Err(e) if *broadcast || tx_filename.is_some() => {
+                        anyhow::bail!(
+                            "PSBT still contains {} non-finalized inputs, failing to extract \
+                             transaction",
+                            e.0
+                        );
+                    }
+                    Err(e) => {
+                        anyhow::bail!("{} more inputs still have to be finalized", e.0);
+                    }
+                }
             }
 
             Cmd::Accept { wallet, input } => {

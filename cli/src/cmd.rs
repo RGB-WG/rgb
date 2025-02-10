@@ -323,6 +323,22 @@ pub enum Cmd {
         output: PathBuf,
     },
 
+    /// Finalize signed PSBT, extract raw transaction and, optionally, broadcast it
+    Finalize {
+        #[clap(flatten)]
+        wallet: WalletOpts,
+
+        /// Broadcast the transaction.
+        #[clap(short, long, global = true)]
+        broadcast: bool,
+
+        /// Name of PSBT file to finalize.
+        psbt: PathBuf,
+
+        /// File to save the extracted signed transaction.
+        tx: Option<PathBuf>,
+    },
+
     /// Verify and accept a consignment
     #[clap(alias = "a")]
     Accept {
