@@ -201,9 +201,8 @@ impl Args {
                             );
                         }
                         for (name, map) in &state.immutable {
-                            let mut first = true;
                             for (addr, atom) in map {
-                                print!("\t{:<16}", if first { name.as_str() } else { " " });
+                                print!("\t{:<16}", name.as_str());
                                 print!("\t{:<32}", atom.verified.to_string());
                                 if let Some(unverified) = &atom.unverified {
                                     print!("\t{unverified:<32}");
@@ -211,7 +210,6 @@ impl Args {
                                     print!("\t{:<32}", "~")
                                 }
                                 println!("\t{addr}");
-                                first = false;
                             }
                         }
 
@@ -239,13 +237,11 @@ impl Args {
                             );
                         }
                         for (name, map) in &state.owned {
-                            let mut first = true;
                             for (addr, assignment) in map {
-                                print!("\t{:<16}", if first { name.as_str() } else { " " });
+                                print!("\t{:<16}", name.as_str());
                                 print!("\t{:<32}", assignment.data.to_string());
                                 print!("\t{addr:<46}");
                                 println!("\t{}", assignment.seal);
-                                first = false;
                             }
                         }
                     }
