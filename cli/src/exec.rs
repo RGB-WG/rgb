@@ -27,7 +27,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use bpwallet::psbt::{PsbtConstructor, TxParams};
-use bpwallet::{ConsensusEncode, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
+use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, CreateParams};
@@ -97,7 +97,7 @@ impl Args {
             Cmd::Sync { wallet, resolver } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let indexer = self.indexer(resolver);
-                runtime.wallet.update(&indexer, false);
+                runtime.wallet.update(&indexer);
                 println!();
             }
 
@@ -171,7 +171,7 @@ impl Args {
                 let mut runtime = self.runtime(wallet);
                 if wallet.sync {
                     let indexer = self.indexer(&wallet.resolver);
-                    runtime.wallet.update(&indexer, false);
+                    runtime.wallet.update(&indexer);
                     println!();
                 }
                 let contract_id = contract

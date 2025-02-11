@@ -85,6 +85,7 @@ fs = [
     "rgb-std/fs",
     "bp-wallet/fs",
 ]
+log = ["dep:log", "bp-wallet/log"]
 serde = [
     "dep:serde", "serde_yaml",
     "bp-std/serde", "rgb-std/serde"
