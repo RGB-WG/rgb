@@ -33,7 +33,7 @@ impl RgbPsbt for Psbt {
     fn rgb_resolve(
         &mut self,
         script: PaymentScript,
-        change_vout: Option<Vout>,
+        mut change_vout: Option<Vout>,
     ) -> Result<OpRequestSet<PrefabSeal>, RgbPsbtPrepareError> {
         match self.opret_hosts().count() {
             0 => {
@@ -41,6 +41,9 @@ impl RgbPsbt for Psbt {
                     .insert_output(0, ScriptPubkey::op_return(&[]), Sats::ZERO)
                     .map_err(|_| RgbPsbtPrepareError::Unfinalizable)?;
                 host.set_opret_host().ok();
+                change_vout
+                    .as_mut()
+                    .map(|vout| *vout = Vout::from_u32(vout.to_u32() + 1));
             }
             1 => {}
             _ => return Err(RgbPsbtPrepareError::MultipleHosts),
