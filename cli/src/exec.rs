@@ -414,7 +414,7 @@ impl Args {
                 }
 
                 eprint!("Extracting signed transaction ... ");
-                match psbt.extract() {
+                let extracted = match psbt.extract() {
                     Ok(extracted) => {
                         eprintln!("success");
                         if !*broadcast && tx_filename.is_none() {
@@ -426,6 +426,7 @@ impl Args {
                             extracted.consensus_encode(&mut file)?;
                             eprintln!("success");
                         }
+                        extracted
                     }
                     Err(e) if *broadcast || tx_filename.is_some() => {
                         anyhow::bail!(
@@ -437,6 +438,10 @@ impl Args {
                     Err(e) => {
                         anyhow::bail!("{} more inputs still have to be finalized", e.0);
                     }
+                };
+
+                if *broadcast {
+                    self.indexer(&wallet.resolver).broadcast(&extracted)?;
                 }
             }
 
