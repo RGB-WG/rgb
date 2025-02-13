@@ -1246,7 +1246,7 @@ impl Exec for RgbArgs {
             Command::Validate { file } => {
                 let mut resolver = self.resolver()?;
                 let consignment = Transfer::load_file(file)?;
-                resolver.add_terminals(&consignment);
+                resolver.add_consignment_txes(&consignment);
                 let status = match consignment.validate(&resolver, self.chain_net()) {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err((status, _)) => status,
@@ -1262,7 +1262,7 @@ impl Exec for RgbArgs {
                 let mut stock = self.rgb_stock()?;
                 let mut resolver = self.resolver()?;
                 let transfer = Transfer::load_file(file)?;
-                resolver.add_terminals(&transfer);
+                resolver.add_consignment_txes(&transfer);
                 let valid = transfer
                     .validate(&resolver, self.chain_net())
                     .map_err(|(status, _)| status)?;

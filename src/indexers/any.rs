@@ -43,7 +43,7 @@ pub trait RgbResolver: Send {
 #[non_exhaustive]
 pub struct AnyResolver {
     inner: Box<dyn RgbResolver>,
-    terminal_txes: HashMap<Txid, Tx>,
+    consignment_txes: HashMap<Txid, Tx>,
 }
 
 impl AnyResolver {
@@ -54,7 +54,7 @@ impl AnyResolver {
                 electrum::Client::from_config(url, config.unwrap_or_default())
                     .map_err(|e| e.to_string())?,
             ),
-            terminal_txes: Default::default(),
+            consignment_txes: Default::default(),
         })
     }
 
@@ -65,7 +65,7 @@ impl AnyResolver {
                 esplora::BlockingClient::from_config(url, config.unwrap_or_default())
                     .map_err(|e| e.to_string())?,
             ),
-            terminal_txes: Default::default(),
+            consignment_txes: Default::default(),
         })
     }
 
@@ -76,7 +76,7 @@ impl AnyResolver {
                 url,
                 config.unwrap_or_default(),
             )?),
-            terminal_txes: Default::default(),
+            consignment_txes: Default::default(),
         })
     }
 
@@ -84,8 +84,12 @@ impl AnyResolver {
         self.inner.check_chain_net(chain_net)
     }
 
-    pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
-        self.terminal_txes.extend(
+    /// Add to the resolver the TXs found in the consignment bundles. Those TXs
+    /// will not be resolved by an indexer and will be considered tentative.
+    /// Use with caution, this could allow accepting a consignment containing TXs that have not
+    /// been broadcasted.
+    pub fn add_consignment_txes<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
+        self.consignment_txes.extend(
             consignment
                 .bundles
                 .iter()
@@ -97,7 +101,7 @@ impl AnyResolver {
 
 impl ResolveWitness for AnyResolver {
     fn resolve_pub_witness(&self, witness_id: Txid) -> Result<Tx, WitnessResolverError> {
-        if let Some(tx) = self.terminal_txes.get(&witness_id) {
+        if let Some(tx) = self.consignment_txes.get(&witness_id) {
             return Ok(tx.clone());
         }
 
@@ -111,7 +115,7 @@ impl ResolveWitness for AnyResolver {
         &self,
         witness_id: Txid,
     ) -> Result<WitnessOrd, WitnessResolverError> {
-        if self.terminal_txes.contains_key(&witness_id) {
+        if self.consignment_txes.contains_key(&witness_id) {
             return Ok(WitnessOrd::Tentative);
         }
 
