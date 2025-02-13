@@ -42,14 +42,23 @@ use crate::args::Args;
 
 fn main() -> anyhow::Result<()> {
     set_hook(Box::new(|info| {
-        eprintln!("Abnormal program termination through panic.");
-        if let Some(error) = info.payload().downcast_ref::<&dyn Display>() {
-            eprintln!("Error: {error}");
+        let payload = if let Some(s) = info.payload().downcast_ref::<&str>() {
+            Some(s.to_string())
+        } else if let Some(s) = info.payload().downcast_ref::<String>() {
+            Some(s.clone())
+        } else if let Some(s) = info.payload().downcast_ref::<&dyn Display>() {
+            Some(s.to_string())
+        } else {
+            None
+        };
+        if let Some(error) = payload {
+            eprintln!("Abnormal program termination through panic.");
+            eprintln!("{error}");
             if let Some(location) = info.location() {
                 eprintln!("Happened in {location}");
             }
         } else {
-            eprintln!("Error: {info}");
+            eprintln!("Program {}", info);
         }
         let backtrace = Backtrace::capture();
         eprintln!("Backtrace: {backtrace}");
