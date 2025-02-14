@@ -124,10 +124,10 @@ impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P
         script: PaymentScript,
         params: TxParams,
     ) -> Result<(Psbt, PrefabBundle), TransferError> {
-        let (mut psbt, meta) = self.0.wallet.compose_psbt(&script, params)?;
+        let (mut psbt, mut meta) = self.0.wallet.compose_psbt(&script, params)?;
 
         // From this moment transaction becomes unmodifiable
-        let request = psbt.rgb_resolve(script, meta.change_vout)?;
+        let request = psbt.rgb_resolve(script, &mut meta.change_vout)?;
         let bundle = self.bundle(request, meta.change_vout)?;
 
         psbt.rgb_fill_csv(&bundle)?;

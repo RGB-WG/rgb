@@ -30,7 +30,7 @@ pub trait RgbPsbt {
     fn rgb_resolve(
         &mut self,
         script: PaymentScript,
-        change_vout: Option<Vout>,
+        change_vout: &mut Option<Vout>,
     ) -> Result<OpRequestSet<PrefabSeal>, RgbPsbtPrepareError>;
 
     fn rgb_fill_csv(&mut self, bundle: &PrefabBundle) -> Result<(), RgbPsbtCsvError>;

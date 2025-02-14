@@ -33,7 +33,7 @@ impl RgbPsbt for Psbt {
     fn rgb_resolve(
         &mut self,
         script: PaymentScript,
-        mut change_vout: Option<Vout>,
+        change_vout: &mut Option<Vout>,
     ) -> Result<OpRequestSet<PrefabSeal>, RgbPsbtPrepareError> {
         match self.opret_hosts().count() {
             0 => {
@@ -51,7 +51,7 @@ impl RgbPsbt for Psbt {
         self.complete_construction();
 
         script
-            .resolve_seals(self.script_resolver(), change_vout)
+            .resolve_seals(self.script_resolver(), *change_vout)
             .map_err(|_| RgbPsbtPrepareError::ChangeRequired)
     }
 
