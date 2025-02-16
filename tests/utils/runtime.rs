@@ -1,18 +1,18 @@
 use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::OnceLock;
 use std::time::Instant;
 
 use bpstd::psbt::{PsbtConstructor, TxParams};
 use bpstd::signers::TestnetSigner;
-use bpstd::{Network, Psbt, Sats, Tx};
+use bpstd::{Network, Psbt, Sats, Tx, Txid};
 use bpwallet::AnyIndexer;
 use rgb::invoice::RgbInvoice;
 use rgb::ContractId;
 use rgbp::{CoinselectStrategy, RgbDirRuntime};
 
-use crate::utils::chain::{broadcast_tx, get_indexer, indexer_url};
+use crate::utils::chain::{broadcast_tx, get_indexer, indexer_url, is_tx_mined, mine_custom};
 use crate::utils::report::Report;
 use crate::utils::DEFAULT_FEE_ABS;
 
@@ -44,6 +44,7 @@ impl TestRuntime {
         let invoice = recv_wlt.invoice(contract_id, amount, transfer_type.into());
         self.send_to_invoice(recv_wlt, invoice, Some(sats), None, report)
     }
+     */
 
     pub fn send_to_invoice(
         &mut self,
@@ -54,12 +55,11 @@ impl TestRuntime {
         report: Option<&Report>,
     ) -> (PathBuf, Tx) {
         let (consignment, tx) = self.transfer(invoice, sats, fee, true, report);
-        self.mine_tx(&tx.txid(), false);
-        recv_wlt.accept_transfer(consignment.clone(), report);
+        self.mine_tx(tx.txid(), false);
+        recv_wlt.accept_transfer(&consignment, report);
         self.sync();
         (consignment, tx)
     }
-     */
 
     pub fn transfer(
         &mut self,
@@ -71,7 +71,7 @@ impl TestRuntime {
     ) -> (PathBuf, Tx) {
         static COUNTER: OnceLock<AtomicU32> = OnceLock::new();
 
-        let mut counter = COUNTER.get_or_init(|| AtomicU32::new(0));
+        let counter = COUNTER.get_or_init(|| AtomicU32::new(0));
         counter.fetch_add(1, Ordering::SeqCst);
         let consignment_no = counter.load(Ordering::SeqCst);
 
@@ -110,6 +110,16 @@ impl TestRuntime {
         (consignment, tx)
     }
 
+    pub fn accept_transfer(&mut self, consignment: &Path, report: Option<&Report>) {
+        self.sync();
+        let accept_start = Instant::now();
+        self.consume_from_file(consignment).unwrap();
+        let accept_duration = accept_start.elapsed();
+        if let Some(report) = report {
+            report.write_duration(accept_duration);
+        }
+    }
+
     pub fn sync(&mut self) {
         let indexer = self.get_indexer();
         self.wallet.update(&indexer).into_result().unwrap();
@@ -129,6 +139,20 @@ impl TestRuntime {
     pub fn sign_finalize_extract(&self, psbt: &mut Psbt) -> Tx {
         self.sign_finalize(psbt);
         psbt.extract().unwrap()
+    }
+
+    pub fn mine_tx(&self, txid: Txid, resume: bool) {
+        let mut attempts = 10;
+        loop {
+            mine_custom(resume, self.instance, 1);
+            if is_tx_mined(txid, &self.get_indexer()) {
+                break;
+            }
+            attempts -= 1;
+            if attempts == 0 {
+                panic!("TX is not getting mined");
+            }
+        }
     }
 
     pub fn broadcast_tx(&self, tx: &Tx) { broadcast_tx(tx, &self.indexer_url()); }

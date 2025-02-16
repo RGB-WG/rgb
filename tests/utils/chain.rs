@@ -5,7 +5,7 @@ use std::sync::{Once, OnceLock, RwLock};
 use std::time::Duration;
 
 use amplify::{s, Display};
-use bpstd::{Network, Sats, Tx};
+use bpstd::{Network, Sats, Tx, Txid};
 use bpwallet::indexers::esplora::Client as EsploraClient;
 use bpwallet::AnyIndexer;
 use electrum::{Client as ElectrumClient, ElectrumApi};
@@ -254,6 +254,32 @@ pub fn get_indexer(indexer_url: &str) -> AnyIndexer {
         Indexer::Esplora => {
             AnyIndexer::Esplora(Box::new(EsploraClient::new_esplora(indexer_url).unwrap()))
         }
+    }
+}
+
+pub fn is_tx_mined(txid: Txid, indexer: &AnyIndexer) -> bool {
+    match indexer {
+        AnyIndexer::Electrum(indexer) => {
+            use electrum::Param;
+            let Ok(status) = indexer.raw_call("blockchain.transaction.get", vec![
+                Param::String(txid.to_string()),
+                Param::Bool(true),
+            ]) else {
+                return false;
+            };
+            status
+                .get("confirmantions")
+                .and_then(|confs| confs.as_u64())
+                .map(|confs| confs > 0)
+                .unwrap_or_default()
+        }
+        AnyIndexer::Esplora(indexer) | AnyIndexer::Mempool(indexer) => {
+            let Ok(status) = indexer.tx_status(&txid) else {
+                return false;
+            };
+            status.confirmed
+        }
+        _ => unreachable!(),
     }
 }
 
