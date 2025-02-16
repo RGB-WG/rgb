@@ -1390,6 +1390,8 @@ name = "rgb-runtime"
 version = "0.12.0-beta.5"
 dependencies = [
  "amplify",
+ "bp-electrum",
+ "bp-esplora",
  "bp-std",
  "bp-wallet",
  "commit_verify",
@@ -1397,12 +1399,14 @@ dependencies = [
  "indexmap 2.7.1",
  "log",
  "nonasync",
+ "once_cell",
  "rand",
  "rgb-psbt",
  "rgb-std",
  "serde",
  "serde_yaml",
  "strict_types",
+ "time",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

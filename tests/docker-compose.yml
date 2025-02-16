@@ -1,0 +1,76 @@
+services:
+  bitcoind_1:
+    image: registry.gitlab.com/hashbeam/docker/bitcoind:25.0
+    profiles: [electrum]
+    command: "-fallbackfee=0.0002"
+  bitcoind_2:
+    image: registry.gitlab.com/hashbeam/docker/bitcoind:25.0
+    profiles: [electrum]
+    command: "-fallbackfee=0.0002"
+  bitcoind_3:
+    image: registry.gitlab.com/hashbeam/docker/bitcoind:25.0
+    profiles: [electrum]
+    command: "-fallbackfee=0.0002"
+  electrs_1:
+    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.14
+    profiles: [electrum]
+    environment:
+      BTCHOST: bitcoind_1
+    ports:
+      - 50001:50001
+    depends_on:
+      - bitcoind_1
+  electrs_2:
+    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.14
+    profiles: [electrum]
+    environment:
+      BTCHOST: bitcoind_2
+    ports:
+      - 50002:50001
+    depends_on:
+      - bitcoind_2
+  electrs_3:
+    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.14
+    profiles: [electrum]
+    environment:
+      BTCHOST: bitcoind_3
+    ports:
+      - 50003:50001
+    depends_on:
+      - bitcoind_3
+  esplora_1:
+    image: blockstream/esplora:956c74f42eb6ad803d8aedc272ba83d3aa6dcf5c
+    profiles: [esplora]
+    command: /srv/explorer/run.sh bitcoin-regtest explorer
+    environment:
+      DEBUG: verbose
+      NO_PRECACHE: 1
+      NO_ADDRESS_SEARCH: 1
+      NO_REGTEST_MINING: 1
+    ports:
+      - 50004:50001
+      - 8094:80
+  esplora_2:
+    image: blockstream/esplora:956c74f42eb6ad803d8aedc272ba83d3aa6dcf5c
+    profiles: [esplora]
+    command: /srv/explorer/run.sh bitcoin-regtest explorer
+    environment:
+      DEBUG: verbose
+      NO_PRECACHE: 1
+      NO_ADDRESS_SEARCH: 1
+      NO_REGTEST_MINING: 1
+    ports:
+      - 50005:50001
+      - 8095:80
+  esplora_3:
+    image: blockstream/esplora:956c74f42eb6ad803d8aedc272ba83d3aa6dcf5c
+    profiles: [esplora]
+    command: /srv/explorer/run.sh bitcoin-regtest explorer
+    environment:
+      DEBUG: verbose
+      NO_PRECACHE: 1
+      NO_ADDRESS_SEARCH: 1
+      NO_REGTEST_MINING: 1
+    ports:
+      - 50006:50001
+      - 8096:80
