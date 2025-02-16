@@ -86,8 +86,12 @@ default = ["std"]
 all = [
     "std",
     "serde", "log", "fs",
+    "electrum", "esplora", "mempool"
 ]
 std = []
+electrum = ["bp-wallet/electrum"]
+esplora = ["bp-wallet/esplora"]
+mempool = ["bp-wallet/mempool"]
 fs = [
     "std",
     "serde",
