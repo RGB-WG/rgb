@@ -3,7 +3,7 @@ members = [".", "psbt", "cli"]
 default-members = [".", "psbt"]
 
 [workspace.package]
-version = "0.12.0-beta.4"
+version = "0.12.0-beta.5"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -17,16 +17,16 @@ license = "Apache-2.0"
 amplify = "4.8.0"
 nonasync = "0.1.2"
 strict_encoding = "2.8.1"
-strict_types = "2.8.1"
-commit_verify = "=0.12.0-beta.4"
-bp-core = "=0.12.0-beta.4"
-bp-std = { version = "=0.12.0-beta.4", features = ["client-side-validation"] }
-bp-electrum = "=0.12.0-beta.4"
-bp-esplora = { version = "=0.12.0-beta.4", default-features = false }
-bp-wallet = { version = "=0.12.0-beta.4" }
-rgb-std = { version = "=0.12.0-beta.4" }
-rgb-runtime = { version = "=0.12.0-beta.4", path = "." }
-rgb-psbt = { version = "=0.12.0-beta.4", path = "psbt" }
+strict_types = "2.8.2"
+commit_verify = "=0.12.0-beta.5"
+bp-core = "=0.12.0-beta.5"
+bp-std = { version = "=0.12.0-beta.5", features = ["client-side-validation"] }
+bp-electrum = "=0.12.0-beta.5"
+bp-esplora = { version = "=0.12.0-beta.5.1", default-features = false }
+bp-wallet = { version = "=0.12.0-beta.5" }
+rgb-std = { version = "=0.12.0-beta.5" }
+rgb-runtime = { version = "=0.12.0-beta.5", path = "." }
+rgb-psbt = { version = "=0.12.0-beta.5", path = "psbt" }
 indexmap = "2.7.0"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
@@ -93,23 +93,3 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "master" }
-bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
-bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
-bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
-bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "v0.12" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "v0.12" }
-bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.12" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
