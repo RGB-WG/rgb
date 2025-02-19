@@ -20,9 +20,10 @@
 // limitations under the License.
 
 use bp::Tx;
-use bpstd::{Network, Txid};
+use bpstd::Txid;
 use esplora::{BlockingClient, Config, Error};
 use rgbstd::vm::WitnessOrd;
+use rgbstd::ChainNet;
 
 use super::RgbResolver;
 
@@ -56,8 +57,8 @@ impl MemPoolClient {
 }
 
 impl RgbResolver for MemPoolClient {
-    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String> {
-        self.inner.check(network, expected_block_hash)
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String> {
+        self.inner.check_chain_net(chain_net)
     }
 
     fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String> {

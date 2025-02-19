@@ -23,19 +23,17 @@
 
 use std::collections::HashMap;
 
-use bp::Tx;
-use bpstd::Network;
+use bp::{Tx, Txid};
 use rgbstd::containers::Consignment;
 use rgbstd::validation::{ResolveWitness, WitnessResolverError};
-use rgbstd::XWitnessId;
+use rgbstd::ChainNet;
 
-use crate::vm::{WitnessOrd, XWitnessTx};
-use crate::{Txid, XChain};
+use crate::vm::WitnessOrd;
 
 // We need to repeat methods of `WitnessResolve` trait here to avoid making
 // wrappers around resolver types. TODO: Use wrappers instead
 pub trait RgbResolver: Send {
-    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String>;
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String>;
     fn resolve_pub_witness(&self, txid: Txid) -> Result<Option<Tx>, String>;
     fn resolve_pub_witness_ord(&self, txid: Txid) -> Result<WitnessOrd, String>;
 }
@@ -45,7 +43,7 @@ pub trait RgbResolver: Send {
 #[non_exhaustive]
 pub struct AnyResolver {
     inner: Box<dyn RgbResolver>,
-    terminal_txes: HashMap<Txid, Tx>,
+    consignment_txes: HashMap<Txid, Tx>,
 }
 
 impl AnyResolver {
@@ -56,7 +54,7 @@ impl AnyResolver {
                 electrum::Client::from_config(url, config.unwrap_or_default())
                     .map_err(|e| e.to_string())?,
             ),
-            terminal_txes: Default::default(),
+            consignment_txes: Default::default(),
         })
     }
 
@@ -67,7 +65,7 @@ impl AnyResolver {
                 esplora::BlockingClient::from_config(url, config.unwrap_or_default())
                     .map_err(|e| e.to_string())?,
             ),
-            terminal_txes: Default::default(),
+            consignment_txes: Default::default(),
         })
     }
 
@@ -78,76 +76,57 @@ impl AnyResolver {
                 url,
                 config.unwrap_or_default(),
             )?),
-            terminal_txes: Default::default(),
+            consignment_txes: Default::default(),
         })
     }
-    pub fn check(&self, network: Network) -> Result<(), String> {
-        let expected_block_hash = match network {
-            Network::Mainnet => "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-            Network::Testnet3 => "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943",
-            Network::Testnet4 => "00000000da84f2bafbbc53dee25a72ae507ff4914b867c565be350b0da8bf043",
-            Network::Signet => "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6",
-            Network::Regtest => "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
-        }
-        .to_string();
-        self.inner.check(network, expected_block_hash)
+
+    pub fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String> {
+        self.inner.check_chain_net(chain_net)
     }
 
-    pub fn add_terminals<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
-        self.terminal_txes.extend(
+    /// Add to the resolver the TXs found in the consignment bundles. Those TXs
+    /// will not be resolved by an indexer and will be considered tentative.
+    /// Use with caution, this could allow accepting a consignment containing TXs that have not
+    /// been broadcasted.
+    pub fn add_consignment_txes<const TYPE: bool>(&mut self, consignment: &Consignment<TYPE>) {
+        self.consignment_txes.extend(
             consignment
                 .bundles
                 .iter()
-                .filter_map(|bw| bw.pub_witness.maybe_map_ref(|w| w.tx().cloned()))
-                .filter_map(|tx| match tx {
-                    XChain::Bitcoin(tx) => Some(tx),
-                    XChain::Liquid(_) | XChain::Other(_) => None,
-                })
+                .filter_map(|bw| bw.pub_witness.tx().cloned())
                 .map(|tx| (tx.txid(), tx)),
         );
     }
 }
 
 impl ResolveWitness for AnyResolver {
-    fn resolve_pub_witness(
-        &self,
-        witness_id: XWitnessId,
-    ) -> Result<XWitnessTx, WitnessResolverError> {
-        let XWitnessId::Bitcoin(txid) = witness_id else {
-            return Err(WitnessResolverError::Other(
-                witness_id,
-                format!("{} is not supported as layer 1 network", witness_id.layer1()),
-            ));
-        };
-
-        if let Some(tx) = self.terminal_txes.get(&txid) {
-            return Ok(XWitnessTx::Bitcoin(tx.clone()));
+    fn resolve_pub_witness(&self, witness_id: Txid) -> Result<Tx, WitnessResolverError> {
+        if let Some(tx) = self.consignment_txes.get(&witness_id) {
+            return Ok(tx.clone());
         }
 
         self.inner
-            .resolve_pub_witness(txid)
+            .resolve_pub_witness(witness_id)
             .map_err(|e| WitnessResolverError::Other(witness_id, e))
             .and_then(|r| r.ok_or(WitnessResolverError::Unknown(witness_id)))
-            .map(XChain::Bitcoin)
     }
 
     fn resolve_pub_witness_ord(
         &self,
-        witness_id: XWitnessId,
+        witness_id: Txid,
     ) -> Result<WitnessOrd, WitnessResolverError> {
-        let XWitnessId::Bitcoin(txid) = witness_id else {
-            return Err(WitnessResolverError::Other(
-                witness_id,
-                format!("{} is not supported as layer 1 network", witness_id.layer1()),
-            ));
-        };
-
-        if self.terminal_txes.contains_key(&txid) {
+        if self.consignment_txes.contains_key(&witness_id) {
             return Ok(WitnessOrd::Tentative);
         }
 
         self.inner
-            .resolve_pub_witness_ord(txid)
+            .resolve_pub_witness_ord(witness_id)
             .map_err(|e| WitnessResolverError::Other(witness_id, e))
+    }
+
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), WitnessResolverError> {
+        self.inner
+            .check_chain_net(chain_net)
+            .map_err(|_| WitnessResolverError::WrongChainNet)
     }
 }

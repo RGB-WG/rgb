@@ -26,5 +26,5 @@ globals:
 
 assignments:
   assetOwner:
-    seal: tapret1st:b449f7eaa3f98c145b27ad0eeb7b5679ceb567faef7a52479bc995792b65f804:1
+    seal: b449f7eaa3f98c145b27ad0eeb7b5679ceb567faef7a52479bc995792b65f804:1
     amount: 100000000 # this is 1 million (we have two digits for cents)

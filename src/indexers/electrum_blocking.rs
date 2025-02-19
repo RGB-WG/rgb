@@ -25,10 +25,11 @@ use std::iter;
 use std::num::NonZeroU32;
 
 use bp::ConsensusDecode;
-use bpstd::{Network, Tx, Txid};
+use bpstd::{Tx, Txid};
 use electrum::{Client, ElectrumApi, Param};
 pub use electrum::{Config, ConfigBuilder, Error, Socks5Config};
 use rgbstd::vm::WitnessPos;
+use rgbstd::ChainNet;
 
 use super::RgbResolver;
 use crate::vm::WitnessOrd;
@@ -40,20 +41,31 @@ macro_rules! check {
 }
 
 impl RgbResolver for Client {
-    fn check(&self, network: Network, expected_block_hash: String) -> Result<(), String> {
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String> {
         // check the electrum server is for the correct network
-        let block_hash = check!(self.block_header(0)).block_hash().to_string();
-        if expected_block_hash != block_hash {
+        let block_hash = check!(self.block_header(0)).block_hash();
+        if chain_net.genesis_block_hash() != block_hash {
             return Err(s!("resolver is for a network different from the wallet's one"));
         }
         // check the electrum server has the required functionality (verbose
         // transactions)
-        let txid = match network {
-            Network::Mainnet => "33e794d097969002ee05d336686fc03c9e15a597c1b9827669460fac98799036",
-            Network::Testnet3 => "5e6560fd518aadbed67ee4a55bdc09f19e619544f5511e9343ebba66d2f62653",
-            Network::Testnet4 => "7aa0a7ae1e223414cb807e40cd57e667b718e42aaf9306db9102fe28912b7b4e",
-            Network::Signet => "8153034f45e695453250a8fb7225a5e545144071d8ed7b0d3211efa1f3c92ad8",
-            Network::Regtest => "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+        let txid = match chain_net {
+            ChainNet::BitcoinMainnet => {
+                "33e794d097969002ee05d336686fc03c9e15a597c1b9827669460fac98799036"
+            }
+            ChainNet::BitcoinTestnet3 => {
+                "5e6560fd518aadbed67ee4a55bdc09f19e619544f5511e9343ebba66d2f62653"
+            }
+            ChainNet::BitcoinTestnet4 => {
+                "7aa0a7ae1e223414cb807e40cd57e667b718e42aaf9306db9102fe28912b7b4e"
+            }
+            ChainNet::BitcoinSignet => {
+                "8153034f45e695453250a8fb7225a5e545144071d8ed7b0d3211efa1f3c92ad8"
+            }
+            ChainNet::BitcoinRegtest => {
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+            }
+            _ => return Err(s!("only bitcoin is supported")),
         };
         if let Err(e) = self.raw_call("blockchain.transaction.get", vec![
             Param::String(txid.to_string()),

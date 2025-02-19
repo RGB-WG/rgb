@@ -26,10 +26,10 @@ mod rgb;
 
 use bp::dbc::opret::OpretProof;
 use bp::dbc::tapret::TapretProof;
+use bp::seals::txout::CloseMethod;
 pub use bpstd::psbt::*;
 pub use rgb::*;
-use rgbstd::containers::{AnchorSet, Batch, CloseMethodSet, Fascia, PubWitness, XPubWitness};
-use rgbstd::XChain;
+use rgbstd::containers::{AnchorSet, Batch, Fascia, PubWitness};
 
 pub use self::rgb::{
     ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -77,7 +77,7 @@ impl RgbPsbt for Psbt {
             let contract_id = info.transition.contract_id;
             let mut inputs = info.inputs.release();
             for input in self.inputs_mut() {
-                if inputs.remove(&XChain::Bitcoin(input.prevout().outpoint())) {
+                if inputs.remove(&input.prevout().outpoint()) {
                     input
                         .set_rgb_consumer(contract_id, info.id)
                         .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
@@ -86,7 +86,7 @@ impl RgbPsbt for Psbt {
             if !inputs.is_empty() {
                 return Err(EmbedError::AbsentInputs);
             }
-            self.push_rgb_transition(info.transition, info.method)
+            self.push_rgb_transition(info.transition)
                 .expect("transitions are unique since they are in BTreeMap indexed by opid");
         }
         Ok(())
@@ -96,30 +96,18 @@ impl RgbPsbt for Psbt {
         // Convert RGB data to MPCs? Or should we do it at the moment we add them... No,
         // since we may require more DBC methods with each additional state transition
         let bundles = self.rgb_bundles_to_mpc()?;
-        // DBC commitment for the required methods
-        let methods = bundles
-            .values()
-            .flat_map(|b| b.iter())
-            .map(|b| CloseMethodSet::from(b.close_method))
-            .reduce(|methods, method| methods | method)
-            .ok_or(RgbPsbtError::NoContracts)?;
-        let (mut tapret_anchor, mut opret_anchor) = (None, None);
-        if methods.has_tapret_first() {
-            tapret_anchor = Some(self.dbc_commit::<TapretProof>()?);
-        }
-        if methods.has_opret_first() {
-            opret_anchor = Some(self.dbc_commit::<OpretProof>()?);
-        }
-        let anchor = match (tapret_anchor, opret_anchor) {
-            (None, None) => return Err(RgbPsbtError::NoContracts.into()),
-            (Some(tapret), None) => AnchorSet::Tapret(tapret),
-            (None, Some(opret)) => AnchorSet::Opret(opret),
-            (Some(tapret), Some(opret)) => AnchorSet::Double { tapret, opret },
+        // DBC commitment for the correct close method
+        let close_method = self
+            .rgb_close_method()?
+            .ok_or(RgbPsbtError::NoCloseMethod)?;
+        let anchor = match close_method {
+            CloseMethod::TapretFirst => AnchorSet::Tapret(self.dbc_commit::<TapretProof>()?),
+            CloseMethod::OpretFirst => AnchorSet::Opret(self.dbc_commit::<OpretProof>()?),
         };
         // TODO: Use signed transaction here!
         let witness = PubWitness::with(self.to_unsigned_tx().into());
         Ok(Fascia {
-            witness: XPubWitness::Bitcoin(witness),
+            witness,
             anchor,
             bundles,
         })

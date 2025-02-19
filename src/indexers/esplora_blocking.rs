@@ -22,19 +22,20 @@
 use std::num::NonZeroU32;
 
 use bp::Tx;
-use bpstd::{Network, Txid};
+use bpstd::Txid;
 use esplora::BlockingClient;
 pub use esplora::{Builder, Config, Error};
 use rgbstd::vm::WitnessPos;
+use rgbstd::ChainNet;
 
 use super::RgbResolver;
 use crate::vm::WitnessOrd;
 
 impl RgbResolver for BlockingClient {
-    fn check(&self, _network: Network, expected_block_hash: String) -> Result<(), String> {
+    fn check_chain_net(&self, chain_net: ChainNet) -> Result<(), String> {
         // check the esplora server is for the correct network
-        let block_hash = self.block_hash(0)?.to_string();
-        if expected_block_hash != block_hash {
+        let block_hash = self.block_hash(0)?;
+        if chain_net.genesis_block_hash() != block_hash {
             return Err(s!("resolver is for a network different from the wallet's one"));
         }
         Ok(())

@@ -29,7 +29,7 @@ use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
-use bpstd::{Sats, XpubDerivable};
+use bpstd::{Sats, Txid, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
 use rgb::containers::{
@@ -44,9 +44,9 @@ use rgb::schema::SchemaId;
 use rgb::validation::Validity;
 use rgb::vm::{RgbIsa, WitnessOrd};
 use rgb::{
-    Allocation, BundleId, ContractId, DescriptorRgb, GenesisSeal, GraphSeal, Identity, OpId,
-    OutputSeal, OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex,
-    TransferParams, WalletError, WalletProvider, XChain, XOutpoint, XWitnessId,
+    Allocation, BundleId, ContractId, GenesisSeal, GraphSeal, Identity, OpId, Outpoint, OutputSeal,
+    OwnedFraction, RgbDescr, RgbKeychain, RgbWallet, StateType, TokenIndex, TransferParams,
+    WalletError, WalletProvider,
 };
 use rgbstd::interface::{AllocatedState, ContractIface, OwnedIface};
 use rgbstd::persistence::{MemContractState, StockError};
@@ -476,12 +476,12 @@ impl Exec for RgbArgs {
                         eprintln!("Importing consignment {id}:");
                         let resolver = self.resolver()?;
                         eprint!("- validating the contract {} ... ", contract.contract_id());
-                        let contract = contract
-                            .validate(&resolver, self.general.network.is_testnet())
-                            .map_err(|(status, _)| {
+                        let contract = contract.validate(&resolver, self.chain_net()).map_err(
+                            |(status, _)| {
                                 eprintln!("failure");
                                 status.to_string()
-                            })?;
+                            },
+                        )?;
                         eprintln!("success");
                         stock.import_contract(contract, &resolver)?;
                         eprintln!("Consignment is imported");
@@ -574,11 +574,11 @@ impl Exec for RgbArgs {
                     WalletAll(&'w RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
                     NoWallet,
                 }
-                impl<'w> AssignmentsFilter for Filter<'w> {
+                impl AssignmentsFilter for Filter<'_> {
                     fn should_include(
                         &self,
-                        outpoint: impl Into<XOutpoint>,
-                        id: Option<XWitnessId>,
+                        outpoint: impl Into<Outpoint>,
+                        id: Option<Txid>,
                     ) -> bool {
                         match self {
                             Filter::Wallet(wallet) => wallet
@@ -589,12 +589,8 @@ impl Exec for RgbArgs {
                         }
                     }
                 }
-                impl<'w> Filter<'w> {
-                    fn comment(&self, outpoint: XOutpoint) -> &'static str {
-                        let outpoint = outpoint
-                            .into_bp()
-                            .into_bitcoin()
-                            .expect("liquid is not yet supported");
+                impl Filter<'_> {
+                    fn comment(&self, outpoint: Outpoint) -> &'static str {
                         match self {
                             Filter::Wallet(rgb) if rgb.wallet().is_unspent(outpoint) => "",
                             Filter::WalletAll(rgb) if rgb.wallet().is_unspent(outpoint) => {
@@ -704,7 +700,12 @@ impl Exec for RgbArgs {
                     ))
                 })?;
 
-                let mut builder = stock.contract_builder(issuer.clone(), *schema_id, iface_id)?;
+                let mut builder = stock.contract_builder(
+                    issuer.clone(),
+                    *schema_id,
+                    iface_id,
+                    self.chain_net(),
+                )?;
                 let types = builder.type_system().clone();
 
                 if let Some(globals) = code.get("globals") {
@@ -732,6 +733,7 @@ impl Exec for RgbArgs {
                             .typify(val, sem_id)
                             .expect("global type doesn't match type definition");
 
+                        #[allow(deprecated)]
                         let serialized = types
                             .strict_serialize_type::<MAX16>(&typed_val)
                             .expect("internal error");
@@ -771,7 +773,7 @@ impl Exec for RgbArgs {
                             .as_str()
                             .expect("seal must be a string");
                         let seal = OutputSeal::from_str(seal).expect("invalid seal definition");
-                        let seal = GenesisSeal::new_random(seal.method, seal.txid, seal.vout);
+                        let seal = GenesisSeal::new_random(seal.txid, seal.vout);
 
                         // Workaround for borrow checker:
                         let field_name =
@@ -784,7 +786,7 @@ impl Exec for RgbArgs {
                                     .expect("owned state must be a fungible amount")
                                     .as_u64()
                                     .expect("fungible state must be an integer");
-                                let seal = BuilderSeal::Revealed(XChain::Bitcoin(seal));
+                                let seal = BuilderSeal::Revealed(seal);
                                 builder = builder
                                     .add_fungible_state(field_name, seal, amount)
                                     .expect("invalid global state data");
@@ -835,19 +837,12 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessVout(Pay2Vout {
-                            address: addr.payload,
-                            method: wallet.wallet().seal_close_method(),
-                        })
+                        Beneficiary::WitnessVout(Pay2Vout::new(addr.payload))
                     }
                     (_, Some(outpoint)) => {
-                        let seal = XChain::Bitcoin(GraphSeal::new_random(
-                            wallet.wallet().seal_close_method(),
-                            outpoint.txid,
-                            outpoint.vout,
-                        ));
+                        let seal = GraphSeal::new_random(outpoint.txid, outpoint.vout);
                         wallet.stock_mut().store_secret_seal(seal)?;
-                        Beneficiary::BlindedSeal(*seal.to_secret_seal().as_reduced_unsafe())
+                        Beneficiary::BlindedSeal(seal.to_secret_seal())
                     }
                 };
 
@@ -1049,7 +1044,7 @@ impl Exec for RgbArgs {
                 pub struct ConsignmentInspection {
                     version: ContainerVer,
                     transfer: bool,
-                    terminals: SmallOrdMap<BundleId, XChain<SecretSeal>>,
+                    terminals: SmallOrdMap<BundleId, SecretSeal>,
                     supplements: TinyOrdSet<Supplement>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
@@ -1250,12 +1245,11 @@ impl Exec for RgbArgs {
             Command::Validate { file } => {
                 let mut resolver = self.resolver()?;
                 let consignment = Transfer::load_file(file)?;
-                resolver.add_terminals(&consignment);
-                let status =
-                    match consignment.validate(&resolver, self.general.network.is_testnet()) {
-                        Ok(consignment) => consignment.into_validation_status(),
-                        Err((status, _)) => status,
-                    };
+                resolver.add_consignment_txes(&consignment);
+                let status = match consignment.validate(&resolver, self.chain_net()) {
+                    Ok(consignment) => consignment.into_validation_status(),
+                    Err((status, _)) => status,
+                };
                 if status.validity() == Validity::Valid {
                     eprintln!("The provided consignment is valid")
                 } else {
@@ -1267,9 +1261,9 @@ impl Exec for RgbArgs {
                 let mut stock = self.rgb_stock()?;
                 let mut resolver = self.resolver()?;
                 let transfer = Transfer::load_file(file)?;
-                resolver.add_terminals(&transfer);
+                resolver.add_consignment_txes(&transfer);
                 let valid = transfer
-                    .validate(&resolver, self.general.network.is_testnet())
+                    .validate(&resolver, self.chain_net())
                     .map_err(|(status, _)| status)?;
                 stock.accept_transfer(valid, &resolver)?;
                 eprintln!("Transfer accepted into the stash");

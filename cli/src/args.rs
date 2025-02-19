@@ -26,12 +26,12 @@ use std::io::ErrorKind;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
-use bpstd::{Wpkh, XpubDerivable};
+use bpstd::{Network, Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
 use rgb::persistence::Stock;
 use rgb::resolvers::AnyResolver;
-use rgb::{RgbDescr, RgbWallet, TapretKey, WalletError};
+use rgb::{ChainNet, RgbDescr, RgbWallet, TapretKey, WalletError};
 use rgbstd::persistence::fs::FsBinStore;
 use strict_types::encoding::{DecodeError, DeserializeError};
 
@@ -131,7 +131,7 @@ impl RgbArgs {
             let resolver = self.resolver()?;
             let from_height = self.from_height.unwrap_or(1);
             eprint!("Updating witness information starting from height {from_height} ... ");
-            let res = stock.update_witnesses(resolver, from_height)?;
+            let res = stock.update_witnesses(resolver, from_height, vec![])?;
             eprint!("{} transactions were checked and updated", res.succeeded);
             if res.failed.is_empty() {
                 eprintln!();
@@ -189,7 +189,17 @@ impl RgbArgs {
                              --esplora --mempool or --electrum argument")),
             }
             .map_err(WalletError::Resolver)?;
-        resolver.check(self.general.network)?;
+        resolver.check_chain_net(self.chain_net())?;
         Ok(resolver)
+    }
+
+    pub fn chain_net(&self) -> ChainNet {
+        match self.general.network {
+            Network::Mainnet => ChainNet::BitcoinMainnet,
+            Network::Regtest => ChainNet::BitcoinRegtest,
+            Network::Signet => ChainNet::BitcoinSignet,
+            Network::Testnet3 => ChainNet::BitcoinTestnet3,
+            Network::Testnet4 => ChainNet::BitcoinTestnet4,
+        }
     }
 }

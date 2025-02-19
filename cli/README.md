@@ -38,7 +38,7 @@ from source
 ```
 $ git clone <https://github.com/RGB-WG/rgb>
 $ cd rgb/cli
-$ cargo install --path --all-features .
+$ cargo install --all-features --path .
 ```
 
 ## Data Directory
@@ -274,14 +274,14 @@ globals:
 
 assignments:
   assetOwner:
-    seal: tapret1st:fb9ae7ae4b70a27e7fdfdefac91b37967b549d65007dbf25470b0817a2ae810a:1
+    seal: fb9ae7ae4b70a27e7fdfdefac91b37967b549d65007dbf25470b0817a2ae810a:1
     amount: 100000000 # this is 1 million (we have two digits for cents)
 
 ```
 
-Here, we observe a seal value in the form of `closing_method:txid:vout` and here closing method is `tapret1st` (can also
-be `opret1st`). This hash, in reality, represents the txid of the previously created PSBT. And `txid:vout` is the
-outpoint of a valid UTXO.
+Here, we observe a seal value in the form of `txid:vout`. This hash, in
+reality, represents the txid of the previously created PSBT. And `txid:vout` is
+the outpoint of a valid UTXO.
 
 Compile the contract:
 
