@@ -10,7 +10,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.0-beta.9"
+version = "0.11.1-alpha.1"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -33,7 +33,7 @@ bp-electrum = "0.11.1-alpha.1"
 bp-esplora = { version = "0.11.1-alpha.1", default-features = false }
 bp-wallet = { version = "0.11.1-alpha.1" }
 rgb-std = { version = "0.11.1-alpha.1" }
-rgb-psbt = { version = "0.11.0-beta.9", path = "psbt" }
+rgb-psbt = { version = "0.11.1-alpha.1", path = "psbt" }
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }

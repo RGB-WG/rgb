@@ -1411,7 +1411,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-psbt"
-version = "0.11.0-beta.9"
+version = "0.11.1-alpha.1"
 dependencies = [
  "amplify",
  "baid64",
@@ -1428,7 +1428,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-runtime"
-version = "0.11.0-beta.9"
+version = "0.11.1-alpha.1"
 dependencies = [
  "amplify",
  "baid64",
@@ -1481,7 +1481,7 @@ dependencies = [
 
 [[package]]
 name = "rgb-wallet"
-version = "0.11.0-beta.9"
+version = "0.11.1-alpha.1"
 dependencies = [
  "amplify",
  "baid64",
