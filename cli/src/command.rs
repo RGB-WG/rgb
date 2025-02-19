@@ -27,10 +27,9 @@ use std::str::FromStr;
 
 use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
 use baid64::DisplayBaid64;
-use bp::Txid;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
-use bpstd::{Sats, XpubDerivable};
+use bpstd::{Sats, Txid, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
 use rgb::containers::{

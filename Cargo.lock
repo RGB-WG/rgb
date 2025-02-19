@@ -1485,7 +1485,6 @@ version = "0.11.0-beta.9"
 dependencies = [
  "amplify",
  "baid64",
- "bp-core",
  "bp-std",
  "bp-wallet",
  "clap",
