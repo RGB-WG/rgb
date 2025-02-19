@@ -1084,7 +1084,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -1361,7 +1361,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-2#b79b3c3b9001ac2bc41630c46e047fad80c687bc"
+source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-2#814ecaa142f5f071be0b1b4a455a313c9290ccbb"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1382,7 +1382,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#a0074aaa7ecd552e24250f9a664191586d2215a8"
+source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#c1c2f9a3f84f54a09694fe805738134b918e0272"
 dependencies = [
  "amplify",
  "baid64",
@@ -1446,7 +1446,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#a0074aaa7ecd552e24250f9a664191586d2215a8"
+source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#c1c2f9a3f84f54a09694fe805738134b918e0272"
 dependencies = [
  "aluvm",
  "amplify",
