@@ -16,7 +16,7 @@ categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
 homepage = "https://rgb.tech"
 repository = "https://github.com/RGB-WG/rgb"
-rust-version = "1.77.0"
+rust-version = "1.80.0"
 edition = "2021"
 license = "Apache-2.0"
 
@@ -98,3 +98,7 @@ serde = ["serde_crate", "serde_yaml", "bp-std/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+bp-electrum = { git = "https://github.com/zoedberg/bp-electrum-client", branch = "0.11.1-2" }
+bp-wallet = { git = "https://github.com/zoedberg/bp-wallet", branch = "0.11.1-2" }
