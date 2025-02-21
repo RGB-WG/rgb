@@ -31,6 +31,7 @@ use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
 use rgb::persistence::Stock;
 use rgb::resolvers::AnyResolver;
+use rgb::validation::ResolveWitness;
 use rgb::{ChainNet, RgbDescr, RgbWallet, TapretKey, WalletError};
 use rgbstd::persistence::fs::FsBinStore;
 use strict_types::encoding::{DecodeError, DeserializeError};
@@ -189,7 +190,9 @@ impl RgbArgs {
                              --esplora --mempool or --electrum argument")),
             }
             .map_err(WalletError::Resolver)?;
-        resolver.check_chain_net(self.chain_net())?;
+        resolver
+            .check_chain_net(self.chain_net())
+            .map_err(|e| WalletError::Resolver(e.to_string()))?;
         Ok(resolver)
     }
 
