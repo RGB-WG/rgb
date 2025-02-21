@@ -119,7 +119,12 @@ impl TestRuntime {
         Outpoint { txid, vout: Vout::from_u32(vout.unwrap()) }
     }
 
-    pub fn issue_nia(&mut self, name: &str, issued_supply: u64, outpoint: Outpoint) -> ContractId {
+    pub fn issue_nia(
+        &mut self,
+        name: &'static str,
+        issued_supply: u64,
+        outpoint: Outpoint,
+    ) -> ContractId {
         let params = CreateParams {
             codex_id: CodexId::from_str(
                 "qaeakTdk-FccgZC9-4yYpoHa-quPSbQL-XmyBxtn-2CpD~38#jackson-couple-oberon",
@@ -128,7 +133,7 @@ impl TestRuntime {
             consensus: Consensus::Bitcoin,
             testnet: true,
             method: vname!("issue"),
-            name: tn!("NIA"),
+            name: tn!(name),
             timestamp: None,
             global: vec![
                 // TODO: simplify API for named state creation
@@ -157,7 +162,12 @@ impl TestRuntime {
         self.rt.issue_to_file(params).unwrap()
     }
 
-    pub fn issue_cfa(&mut self, name: &str, issued_supply: u64, outpoint: Outpoint) -> ContractId {
+    pub fn issue_cfa(
+        &mut self,
+        name: &'static str,
+        issued_supply: u64,
+        outpoint: Outpoint,
+    ) -> ContractId {
         let params = CreateParams {
             codex_id: CodexId::from_str(
                 "6bl9LdZ_-BU8Skh9-f~4UazR-TFwyotq-ac4yebi-zodXJnw#weather-motif-patriot",
@@ -166,7 +176,7 @@ impl TestRuntime {
             consensus: Consensus::Bitcoin,
             testnet: true,
             method: vname!("issue"),
-            name: tn!("CFA"),
+            name: tn!(name),
             timestamp: None,
             global: vec![
                 // TODO: simplify API for named state creation
@@ -208,6 +218,7 @@ impl TestRuntime {
             let wout = self.rt.wout(None);
             RgbBeneficiary::WitnessOut(wout)
         } else {
+            self.sync();
             let auth = self.rt.auth_token(None).unwrap();
             RgbBeneficiary::Token(auth)
         };

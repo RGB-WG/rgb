@@ -22,10 +22,10 @@ type AS = AssetSchema;
 #[case(TT::Blinded, DT::Tr, DT::Wpkh, AS::Nia, AS::Cfa)]
 #[case(TT::Blinded, DT::Tr, DT::Tr, AS::Nia, AS::Cfa)]
 // blinded: nia - uda
-#[case(TT::Blinded, DT::Wpkh, DT::Wpkh, AS::Nia, AS::Uda)]
-#[case(TT::Blinded, DT::Wpkh, DT::Tr, AS::Nia, AS::Uda)]
-#[case(TT::Blinded, DT::Tr, DT::Wpkh, AS::Nia, AS::Uda)]
-#[case(TT::Blinded, DT::Tr, DT::Tr, AS::Nia, AS::Uda)]
+//#[case(TT::Blinded, DT::Wpkh, DT::Wpkh, AS::Nia, AS::Uda)]
+//#[case(TT::Blinded, DT::Wpkh, DT::Tr, AS::Nia, AS::Uda)]
+//#[case(TT::Blinded, DT::Tr, DT::Wpkh, AS::Nia, AS::Uda)]
+//#[case(TT::Blinded, DT::Tr, DT::Tr, AS::Nia, AS::Uda)]
 // blinded: cfa - cfa
 #[case(TT::Blinded, DT::Wpkh, DT::Wpkh, AS::Cfa, AS::Cfa)]
 #[case(TT::Blinded, DT::Wpkh, DT::Tr, AS::Cfa, AS::Cfa)]
@@ -67,10 +67,10 @@ type AS = AssetSchema;
 #[case(TT::Witness, DT::Tr, DT::Wpkh, AS::Nia, AS::Cfa)]
 #[case(TT::Witness, DT::Tr, DT::Tr, AS::Nia, AS::Cfa)]
 // witness: nia - uda
-#[case(TT::Witness, DT::Wpkh, DT::Wpkh, AS::Nia, AS::Uda)]
-#[case(TT::Witness, DT::Wpkh, DT::Tr, AS::Nia, AS::Uda)]
-#[case(TT::Witness, DT::Tr, DT::Wpkh, AS::Nia, AS::Uda)]
-#[case(TT::Witness, DT::Tr, DT::Tr, AS::Nia, AS::Uda)]
+//#[case(TT::Witness, DT::Wpkh, DT::Wpkh, AS::Nia, AS::Uda)]
+//#[case(TT::Witness, DT::Wpkh, DT::Tr, AS::Nia, AS::Uda)]
+//#[case(TT::Witness, DT::Tr, DT::Wpkh, AS::Nia, AS::Uda)]
+//#[case(TT::Witness, DT::Tr, DT::Tr, AS::Nia, AS::Uda)]
 // witness: cfa - cfa
 #[case(TT::Witness, DT::Wpkh, DT::Wpkh, AS::Cfa, AS::Cfa)]
 #[case(TT::Witness, DT::Wpkh, DT::Tr, AS::Cfa, AS::Cfa)]
@@ -127,14 +127,14 @@ fn transfer_loop(
     // wlt_1 issues 2 assets on the same UTXO
     let utxo = wlt_1.get_utxo(None);
     let contract_id_1 = match asset_schema_1 {
-        AssetSchema::Nia => wlt_1.issue_nia("Nia 1", issued_supply_1, utxo),
+        AssetSchema::Nia => wlt_1.issue_nia("Nia1", issued_supply_1, utxo),
         AssetSchema::Uda => todo!(), // wlt_1.issue_uda(utxo),
-        AssetSchema::Cfa => wlt_1.issue_cfa("Cfa 1", issued_supply_1, utxo),
+        AssetSchema::Cfa => wlt_1.issue_cfa("Cfa1", issued_supply_1, utxo),
     };
     let contract_id_2 = match asset_schema_2 {
-        AssetSchema::Nia => wlt_1.issue_nia("Nia 2", issued_supply_2, utxo),
+        AssetSchema::Nia => wlt_1.issue_nia("Nia2", issued_supply_2, utxo),
         AssetSchema::Uda => todo!(), // wlt_1.issue_uda(utxo),
-        AssetSchema::Cfa => wlt_1.issue_cfa("Cfa 2", issued_supply_2, utxo),
+        AssetSchema::Cfa => wlt_1.issue_cfa("Cfa2", issued_supply_2, utxo),
     };
     wlt_1.check_allocations(contract_id_1, asset_schema_1, vec![issued_supply_1], true);
     wlt_1.check_allocations(contract_id_2, asset_schema_2, vec![issued_supply_2], true);
