@@ -279,7 +279,7 @@ where Self::Descr: DescriptorRgb<K>
             Beneficiary::BlindedSeal(_) => None,
         };
         let batch = stock
-            .compose(invoice, prev_outputs, beneficiary_vout, |_, _, _| meta.change_vout)
+            .compose(invoice, prev_outputs, beneficiary_vout, |_, _| meta.change_vout)
             .map_err(|e| e.to_string())?;
 
         psbt.set_rgb_close_method(close_method);

@@ -32,9 +32,8 @@ pub use rgb::*;
 use rgbstd::containers::{AnchorSet, Batch, Fascia, PubWitness};
 
 pub use self::rgb::{
-    Opids, ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError,
-    PSBT_GLOBAL_RGB_TRANSITION, PSBT_IN_RGB_CONSUMED_BY, PSBT_OUT_RGB_VELOCITY_HINT,
-    PSBT_RGB_PREFIX,
+    Opids, ProprietaryKeyRgb, RgbExt, RgbInExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
+    PSBT_IN_RGB_CONSUMED_BY, PSBT_RGB_PREFIX,
 };
 
 #[derive(Clone, Eq, PartialEq, Debug, Display, Error, From)]

@@ -28,7 +28,6 @@ use bp::seals::txout::CloseMethod;
 use bpstd::psbt;
 use bpstd::psbt::{KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
-use rgbstd::containers::VelocityHint;
 use rgbstd::{
     ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
     TransitionBundle, Vin,
@@ -53,9 +52,6 @@ pub const PSBT_GLOBAL_RGB_CLOSE_METHOD: u64 = 0x02;
 /// Proprietary key subtype for storing RGB state transition operation id which
 /// consumes this input.
 pub const PSBT_IN_RGB_CONSUMED_BY: u64 = 0x01;
-/// Proprietary key subtype for storing hint for the velocity of the state
-/// which can be assigned to the provided output.
-pub const PSBT_OUT_RGB_VELOCITY_HINT: u64 = 0x01;
 
 pub struct Opids(Vec<OpId>);
 
@@ -118,15 +114,6 @@ pub trait ProprietaryKeyRgb {
             identifier: PSBT_RGB_PREFIX.to_owned(),
             subtype: PSBT_IN_RGB_CONSUMED_BY,
             data: contract_id.to_vec().into(),
-        }
-    }
-
-    /// Constructs [`PSBT_OUT_RGB_VELOCITY_HINT`] proprietary key.
-    fn rgb_out_velocity_hint() -> PropKey {
-        PropKey {
-            identifier: PSBT_RGB_PREFIX.to_owned(),
-            subtype: PSBT_OUT_RGB_VELOCITY_HINT,
-            data: none!(),
         }
     }
 }
@@ -429,43 +416,5 @@ impl RgbInExt for psbt::Input {
                 true
             }
         })
-    }
-}
-
-pub trait RgbOutExt {
-    /// Returns hint for the velocity of the state which may be assigned to the
-    /// provided output.
-    ///
-    /// We do not error on invalid data in order to support future update of
-    /// this proprietary key to a standard one. In this case, the invalid
-    /// data will be filtered at the moment of PSBT deserialization and this
-    /// function will return `None` only in situations when the key is absent.
-    fn rgb_velocity_hint(&self) -> Option<VelocityHint>;
-
-    /// Adds hint for the velocity of the state which may be assigned to the
-    /// PSBT output.
-    ///
-    /// # Returns
-    ///
-    /// `false`, if a velocity hint was already present in the input and
-    /// `true` otherwise.
-    fn set_rgb_velocity_hint(&mut self, hint: VelocityHint) -> bool;
-}
-
-impl RgbOutExt for psbt::Output {
-    fn rgb_velocity_hint(&self) -> Option<VelocityHint> {
-        let data = self.proprietary.get(&PropKey::rgb_out_velocity_hint())?;
-        if data.len() != 1 {
-            None
-        } else {
-            data.first().map(VelocityHint::with_value)
-        }
-    }
-
-    fn set_rgb_velocity_hint(&mut self, hint: VelocityHint) -> bool {
-        let prev = self.rgb_velocity_hint();
-        self.push_proprietary(PropKey::rgb_out_velocity_hint(), vec![hint as u8])
-            .ok();
-        Some(hint) == prev
     }
 }

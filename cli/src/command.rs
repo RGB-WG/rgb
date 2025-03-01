@@ -25,7 +25,7 @@ use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::{SmallOrdMap, TinyOrdMap, TinyOrdSet, U16 as MAX16};
+use amplify::confinement::{SmallOrdMap, TinyOrdMap, U16 as MAX16};
 use baid64::DisplayBaid64;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
@@ -34,7 +34,7 @@ use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
 use rgb::containers::{
     BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
-    Supplement, Transfer, UniversalFile,
+    Transfer, UniversalFile,
 };
 use rgb::interface::{AssignmentsFilter, ContractOp, IfaceId};
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
@@ -1045,7 +1045,6 @@ impl Exec for RgbArgs {
                     version: ContainerVer,
                     transfer: bool,
                     terminals: SmallOrdMap<BundleId, SecretSeal>,
-                    supplements: TinyOrdSet<Supplement>,
                     signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
 
@@ -1091,7 +1090,6 @@ impl Exec for RgbArgs {
                         version: consignment.version,
                         transfer: consignment.transfer,
                         terminals: consignment.terminals,
-                        supplements: consignment.supplements,
                         signatures: consignment.signatures,
                     };
                     map.insert(s!("consignment-meta.yaml"), serde_yaml::to_string(&contract)?);
@@ -1140,7 +1138,6 @@ impl Exec for RgbArgs {
                 fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/witnesses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
-                fs::create_dir_all(format!("{root_dir}/stash/supplements"))?;
                 fs::create_dir_all(format!("{root_dir}/state"))?;
                 fs::create_dir_all(format!("{root_dir}/index"))?;
 
@@ -1166,17 +1163,6 @@ impl Exec for RgbArgs {
                         serde_yaml::to_string(genesis)?,
                     )?;
                 }
-                for (id, list) in stock.as_stash_provider().debug_suppl() {
-                    for suppl in list {
-                        fs::write(
-                            format!(
-                                "{root_dir}/stash/geneses/{id:-}.suppl.{}.yaml",
-                                suppl.suppl_id()
-                            ),
-                            serde_yaml::to_string(suppl)?,
-                        )?;
-                    }
-                }
                 for (id, bundle) in stock.as_stash_provider().debug_bundles() {
                     fs::write(
                         format!("{root_dir}/stash/bundles/{id}.yaml"),
@@ -1193,12 +1179,6 @@ impl Exec for RgbArgs {
                     fs::write(
                         format!("{root_dir}/stash/extensions/{id}.yaml"),
                         serde_yaml::to_string(extension)?,
-                    )?;
-                }
-                for (id, suppl) in stock.as_stash_provider().debug_suppl() {
-                    fs::write(
-                        format!("{root_dir}/stash/supplements/{id:#}.yaml"),
-                        serde_yaml::to_string(suppl)?,
                     )?;
                 }
                 fs::write(
