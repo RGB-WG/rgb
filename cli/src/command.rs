@@ -476,12 +476,12 @@ impl Exec for RgbArgs {
                         eprintln!("Importing consignment {id}:");
                         let resolver = self.resolver()?;
                         eprint!("- validating the contract {} ... ", contract.contract_id());
-                        let contract = contract.validate(&resolver, self.chain_net()).map_err(
-                            |(status, _)| {
+                        let contract = contract
+                            .validate(&resolver, self.chain_net(), None)
+                            .map_err(|(status, _)| {
                                 eprintln!("failure");
                                 status.to_string()
-                            },
-                        )?;
+                            })?;
                         eprintln!("success");
                         stock.import_contract(contract, &resolver)?;
                         eprintln!("Consignment is imported");
@@ -1246,7 +1246,7 @@ impl Exec for RgbArgs {
                 let mut resolver = self.resolver()?;
                 let consignment = Transfer::load_file(file)?;
                 resolver.add_consignment_txes(&consignment);
-                let status = match consignment.validate(&resolver, self.chain_net()) {
+                let status = match consignment.validate(&resolver, self.chain_net(), None) {
                     Ok(consignment) => consignment.into_validation_status(),
                     Err((status, _)) => status,
                 };
@@ -1263,7 +1263,7 @@ impl Exec for RgbArgs {
                 let transfer = Transfer::load_file(file)?;
                 resolver.add_consignment_txes(&transfer);
                 let valid = transfer
-                    .validate(&resolver, self.chain_net())
+                    .validate(&resolver, self.chain_net(), None)
                     .map_err(|(status, _)| status)?;
                 stock.accept_transfer(valid, &resolver)?;
                 eprintln!("Transfer accepted into the stash");

@@ -102,3 +102,5 @@ features = ["all"]
 [patch.crates-io]
 bp-electrum = { git = "https://github.com/zoedberg/bp-electrum-client", branch = "0.11.1-2" }
 bp-wallet = { git = "https://github.com/zoedberg/bp-wallet", branch = "0.11.1-2" }
+rgb-core = { git = "https://github.com/zoedberg/rgb-core", branch = "0.11.1-2" }
+rgb-std = { git = "https://github.com/zoedberg/rgb-std", branch = "0.11.1-2" }
