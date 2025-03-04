@@ -1066,7 +1066,6 @@ impl Exec for RgbArgs {
                         s!("genesis.yaml") => serde_yaml::to_string(&consignment.genesis)?,
                         s!("schema.yaml") => serde_yaml::to_string(&consignment.schema)?,
                         s!("bundles.yaml") => serde_yaml::to_string(&consignment.bundles)?,
-                        s!("extensions.yaml") => serde_yaml::to_string(&consignment.extensions)?,
                         s!("types.sty") => consignment.types.to_string(),
                     ];
                     for lib in consignment.scripts {
@@ -1137,7 +1136,6 @@ impl Exec for RgbArgs {
                 fs::create_dir_all(format!("{root_dir}/stash/geneses"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/bundles"))?;
                 fs::create_dir_all(format!("{root_dir}/stash/witnesses"))?;
-                fs::create_dir_all(format!("{root_dir}/stash/extensions"))?;
                 fs::create_dir_all(format!("{root_dir}/state"))?;
                 fs::create_dir_all(format!("{root_dir}/index"))?;
 
@@ -1173,12 +1171,6 @@ impl Exec for RgbArgs {
                     fs::write(
                         format!("{root_dir}/stash/witnesses/{id}.yaml"),
                         serde_yaml::to_string(witness)?,
-                    )?;
-                }
-                for (id, extension) in stock.as_stash_provider().debug_extensions() {
-                    fs::write(
-                        format!("{root_dir}/stash/extensions/{id}.yaml"),
-                        serde_yaml::to_string(extension)?,
                     )?;
                 }
                 fs::write(

@@ -15,10 +15,6 @@ contract), while the **ownable state** is associated with specific single-use se
 structures like braces, brackets, and question marks to denote sets or arrays of data types involved in state operations
 and their optionality.
 
-The **state extension** allows the public to participate in specific logical parts of the contract, such as declaring a
-Burn. State extension operations allow anyone to create state extensions without on-chain commitments, similar to
-Bitcoin transactions not yet packaged into a block.
-
 ### Interface
 
 In RGB, contract interfaces are similar to Ethereum’s ERC standards. Generic interfaces are called “RGBxx” and are

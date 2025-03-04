@@ -1361,7 +1361,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-2#814ecaa142f5f071be0b1b4a455a313c9290ccbb"
+source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-2#2da508177bb7139f02c87fbf85d18273840a93d9"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1382,7 +1382,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#52b7fd71b51d38fa61f942493380136112a0e31a"
+source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#91a913fc96567fe4b0cacc5ccd10303a327b6a75"
 dependencies = [
  "amplify",
  "baid64",
@@ -1446,7 +1446,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#52b7fd71b51d38fa61f942493380136112a0e31a"
+source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#91a913fc96567fe4b0cacc5ccd10303a327b6a75"
 dependencies = [
  "aluvm",
  "amplify",
