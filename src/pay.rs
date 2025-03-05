@@ -19,24 +19,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::marker::PhantomData;
 
+use amplify::confinement::{Confined, U24};
 use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
+use bp::secp256k1::rand;
 use bp::{Outpoint, Sats, ScriptPubkey, Tx, Vout};
 use bpstd::{psbt, Address};
 use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
+use chrono::Utc;
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbExt, RgbPsbt, TapretKeyError,
     TxParams,
 };
-use rgbstd::containers::{AnchorSet, Transfer};
-use rgbstd::interface::AssignmentsFilter;
+use rgbstd::containers::{AnchorSet, Batch, BuilderSeal, Transfer, TransitionInfo};
+use rgbstd::contract::{AssignmentsFilter, BuilderError};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
-use rgbstd::persistence::{IndexProvider, StashProvider, StateProvider, Stock};
+use rgbstd::persistence::{
+    IndexProvider, PersistedState, StashInconsistency, StashProvider, StateProvider, Stock,
+};
 use rgbstd::validation::ResolveWitness;
-use rgbstd::{ChainNet, ContractId, DataState};
+use rgbstd::{AssignmentType, ChainNet, ContractId, DataState, GraphSeal, Opout, OutputSeal};
 
 use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
@@ -138,29 +143,58 @@ where Self::Descr: DescriptorRgb<K>
         invoice: &RgbInvoice,
         mut params: TransferParams,
     ) -> Result<(Psbt, PsbtMeta), CompositionError> {
-        let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
-
         let close_method = self.descriptor().close_method();
 
-        let iface_name = invoice.iface.clone().ok_or(CompositionError::NoIface)?;
-        let iface = stock.iface(iface_name.clone()).map_err(|e| e.to_string())?;
-        let operation = invoice
-            .operation
-            .as_ref()
-            .or(iface.default_operation.as_ref())
-            .ok_or(CompositionError::NoOperation)?;
+        let contract_id = invoice.contract.ok_or(CompositionError::NoContract)?;
+        let contract = stock
+            .contract_data(contract_id)
+            .map_err(|e| e.to_string())?;
 
-        let assignment_name = invoice
-            .assignment
+        if let Some(invoice_schema) = invoice.schema {
+            if invoice_schema != contract.schema.schema_id() {
+                return Err(CompositionError::InvalidSchema);
+            }
+        }
+
+        let contract_genesis = stock
+            .as_stash_provider()
+            .genesis(contract_id)
+            .map_err(|_| CompositionError::UnknownContract)?;
+        let contract_chain_net = contract_genesis.chain_net;
+        let invoice_chain_net = invoice.chain_network();
+        if contract_chain_net != invoice_chain_net {
+            return Err(CompositionError::InvoiceBeneficiaryWrongChainNet(
+                invoice_chain_net,
+                contract_chain_net,
+            ));
+        }
+
+        if let Some(expiry) = invoice.expiry {
+            if expiry < Utc::now().timestamp() {
+                return Err(CompositionError::InvoiceExpired);
+            }
+        }
+
+        let invoice_assignment_type = invoice
+            .assignment_name
+            .as_ref()
+            .map(|n| contract.schema.assignment_type(n.clone()));
+        let assignment_type = invoice_assignment_type
             .as_ref()
             .or_else(|| {
-                iface
-                    .transitions
-                    .get(operation)
-                    .and_then(|t| t.default_assignment.as_ref())
+                let assignment_types = contract
+                    .schema
+                    .assignment_types_for_state(invoice.assignment_state.clone().into());
+                if assignment_types.len() == 1 {
+                    Some(assignment_types[0])
+                } else {
+                    None
+                }
             })
-            .cloned()
             .ok_or(CompositionError::NoAssignment)?;
+        let transition_type = contract
+            .schema
+            .default_transition_for_assignment(assignment_type);
 
         let filter = ContractOutpointsFilter {
             contract_id,
@@ -169,13 +203,10 @@ where Self::Descr: DescriptorRgb<K>
             _key_phantom: PhantomData,
             _layer2_phantom: PhantomData,
         };
-        let contract = stock
-            .contract_iface(contract_id, iface_name)
-            .map_err(|e| e.to_string())?;
-        let prev_outputs = match invoice.owned_state {
+        let prev_outputs = match invoice.assignment_state {
             InvoiceState::Amount(amount) => {
                 let state: BTreeMap<_, Vec<Amount>> = contract
-                    .fungible(assignment_name, &filter)?
+                    .fungible_raw(*assignment_type, &filter)?
                     .fold(bmap![], |mut set, a| {
                         set.entry(a.seal).or_default().push(a.state);
                         set
@@ -205,39 +236,36 @@ where Self::Descr: DescriptorRgb<K>
                     selection
                 }
             }
-            InvoiceState::Data(NonFungible::RGB21(allocation)) => {
+            InvoiceState::Data(NonFungible::FractionedToken(allocation)) => {
                 let data_state = DataState::from(allocation);
                 contract
-                    .data(assignment_name, &filter)?
+                    .data_raw(*assignment_type, &filter)?
                     .filter(|x| x.state == data_state)
                     .map(|x| x.seal)
                     .collect::<BTreeSet<_>>()
             }
             _ => return Err(CompositionError::Unsupported),
         };
-        let beneficiaries = match invoice.beneficiary.into_inner() {
-            Beneficiary::BlindedSeal(_) => vec![],
-            Beneficiary::WitnessVout(pay2vout) => {
-                vec![BpBeneficiary::new(
-                    Address::new(*pay2vout, invoice.address_network()),
-                    params.min_amount,
-                )]
-            }
-        };
         if prev_outputs.is_empty() {
             return Err(CompositionError::InsufficientState);
         }
         let prev_outpoints = prev_outputs.iter().map(|o| Outpoint::new(o.txid, o.vout));
         params.tx.change_keychain = RgbKeychain::for_method(close_method).into();
+
+        let (beneficiaries, beneficiary_script) = match invoice.beneficiary.into_inner() {
+            Beneficiary::BlindedSeal(_) => (vec![], None),
+            Beneficiary::WitnessVout(pay2vout) => (
+                vec![BpBeneficiary::new(
+                    Address::new(*pay2vout, invoice.address_network()),
+                    params.min_amount,
+                )],
+                Some(pay2vout.script_pubkey()),
+            ),
+        };
+
         let (mut psbt, mut meta) =
             self.construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
-        let beneficiary_script =
-            if let Beneficiary::WitnessVout(pay2vout) = invoice.beneficiary.into_inner() {
-                Some(pay2vout.script_pubkey())
-            } else {
-                None
-            };
         psbt.outputs_mut()
             .find(|o| o.script.is_p2tr() && Some(&o.script) != beneficiary_script.as_ref())
             .map(|o| o.set_tapret_host().expect("just created"));
@@ -278,9 +306,167 @@ where Self::Descr: DescriptorRgb<K>
             }
             Beneficiary::BlindedSeal(_) => None,
         };
-        let batch = stock
-            .compose(invoice, prev_outputs, beneficiary_vout, |_, _| meta.change_vout)
+
+        #[allow(clippy::type_complexity)]
+        let output_for_assignment =
+            |assignment_type: AssignmentType| -> Result<BuilderSeal<GraphSeal>, CompositionError> {
+                let vout = meta
+                    .change_vout
+                    .ok_or(CompositionError::NoExtraOrChange(assignment_type))?;
+                let seal = GraphSeal::with_blinded_vout(vout, rand::random());
+                Ok(BuilderSeal::Revealed(seal))
+            };
+
+        let builder_seal = match (invoice.beneficiary.into_inner(), beneficiary_vout) {
+            (Beneficiary::BlindedSeal(seal), None) => BuilderSeal::Concealed(seal),
+            (Beneficiary::BlindedSeal(_), Some(_)) => {
+                return Err(CompositionError::BeneficiaryVout);
+            }
+            (Beneficiary::WitnessVout(_), Some(vout)) => {
+                let seal = GraphSeal::with_blinded_vout(vout, rand::random());
+                BuilderSeal::Revealed(seal)
+            }
+            (Beneficiary::WitnessVout(_), None) => {
+                return Err(CompositionError::NoBeneficiaryOutput);
+            }
+        };
+
+        let mut main_builder = stock
+            .transition_builder_raw(contract_id, transition_type)
             .map_err(|e| e.to_string())?;
+
+        let prev_outputs = prev_outputs.into_iter().collect::<HashSet<OutputSeal>>();
+        let mut main_inputs = Vec::<OutputSeal>::new();
+        let mut sum_inputs = Amount::ZERO;
+        let mut data_inputs = vec![];
+        for (output, list) in stock
+            .contract_assignments_for(contract_id, prev_outputs.iter().copied())
+            .map_err(|e| e.to_string())?
+        {
+            main_inputs.push(output);
+            for (opout, state) in list {
+                main_builder = main_builder.add_input(opout, state.clone())?;
+                if opout.ty != *assignment_type {
+                    let seal = output_for_assignment(opout.ty)?;
+                    main_builder = main_builder.add_owned_state_raw(opout.ty, seal, state)?;
+                } else if let PersistedState::Amount(value) = state {
+                    sum_inputs += value;
+                } else if let PersistedState::Data(value, _) = state {
+                    data_inputs.push(value);
+                }
+            }
+        }
+
+        // Add payments to beneficiary and change
+        match invoice.assignment_state.clone() {
+            InvoiceState::Amount(amt) => {
+                // Pay beneficiary
+                if sum_inputs < amt {
+                    return Err(CompositionError::InsufficientState);
+                }
+
+                if amt > Amount::ZERO {
+                    main_builder =
+                        main_builder.add_fungible_state_raw(*assignment_type, builder_seal, amt)?;
+                }
+
+                // Pay change
+                if sum_inputs > amt {
+                    let change_seal = output_for_assignment(*assignment_type)?;
+                    main_builder = main_builder.add_fungible_state_raw(
+                        *assignment_type,
+                        change_seal,
+                        sum_inputs - amt,
+                    )?;
+                }
+            }
+            InvoiceState::Data(data) => match data {
+                NonFungible::FractionedToken(allocation) => {
+                    let lookup_state = DataState::from(allocation);
+                    if !data_inputs.into_iter().any(|x| x == lookup_state) {
+                        return Err(CompositionError::InsufficientState);
+                    }
+
+                    let seal = rand::random();
+                    main_builder = main_builder.add_data_raw(
+                        *assignment_type,
+                        builder_seal,
+                        allocation,
+                        seal,
+                    )?;
+                }
+            },
+            _ => {
+                todo!(
+                    "only PersistedState::Amount and PersistedState::Allocation are currently \
+                     supported"
+                )
+            }
+        }
+
+        // 3. Prepare other transitions
+        // Enumerate state
+        let mut extra_state =
+            HashMap::<ContractId, HashMap<OutputSeal, HashMap<Opout, PersistedState>>>::new();
+        for id in stock
+            .contracts_assigning(prev_outputs.iter().copied())
+            .map_err(|e| e.to_string())?
+        {
+            // Skip current contract
+            if id == contract_id {
+                continue;
+            }
+            let state = stock
+                .contract_assignments_for(id, prev_outputs.iter().copied())
+                .map_err(|e| e.to_string())?;
+            let entry = extra_state.entry(id).or_default();
+            for (seal, assigns) in state {
+                entry.entry(seal).or_default().extend(assigns);
+            }
+        }
+
+        // Construct transitions for extra state
+        let mut extras = Confined::<Vec<_>, 0, { U24 - 1 }>::with_capacity(extra_state.len());
+        for (id, seal_map) in extra_state {
+            let schema = stock
+                .as_stash_provider()
+                .contract_schema(id)
+                .map_err(|_| BuilderError::Inconsistency(StashInconsistency::ContractAbsent(id)))?;
+
+            for (output, assigns) in seal_map {
+                for (opout, state) in assigns {
+                    let transition_type = schema.default_transition_for_assignment(&opout.ty);
+
+                    let mut extra_builder = stock
+                        .transition_builder_raw(id, transition_type)
+                        .map_err(|e| e.to_string())?;
+
+                    let seal = output_for_assignment(opout.ty)?;
+                    extra_builder = extra_builder
+                        .add_input(opout, state.clone())?
+                        .add_owned_state_raw(opout.ty, seal, state)?;
+
+                    if !extra_builder.has_inputs() {
+                        continue;
+                    }
+                    let transition = extra_builder.complete_transition()?;
+                    let info = TransitionInfo::new(transition, [output])
+                        .map_err(|_| CompositionError::TooManyInputs)?;
+                    extras
+                        .push(info)
+                        .map_err(|_| CompositionError::TooManyExtras)?;
+                }
+            }
+        }
+
+        if !main_builder.has_inputs() {
+            return Err(CompositionError::InsufficientState);
+        }
+
+        let main = TransitionInfo::new(main_builder.complete_transition()?, main_inputs)
+            .map_err(|_| CompositionError::TooManyInputs)?;
+        let mut batch = Batch { main, extras };
+        batch.set_priority(u64::MAX);
 
         psbt.set_rgb_close_method(close_method);
         psbt.complete_construction();

@@ -33,12 +33,11 @@ use bpwallet::{Layer2, NoLayer2};
 use nonasync::persistence::PersistenceProvider;
 use psrgbt::{Psbt, PsbtMeta};
 use rgbstd::containers::Transfer;
-use rgbstd::interface::{ContractOp, IfaceRef};
+use rgbstd::contract::ContractOp;
 #[cfg(feature = "fs")]
 use rgbstd::persistence::fs::FsBinStore;
 use rgbstd::persistence::{
-    ContractIfaceError, IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider,
-    Stock, StockError,
+    IndexProvider, MemIndex, MemStash, MemState, StashProvider, StateProvider, Stock, StockError,
 };
 
 use super::{
@@ -124,12 +123,8 @@ where W::Descr: DescriptorRgb<K>
 
     pub fn wallet_mut(&mut self) -> &mut W { &mut self.wallet }
 
-    pub fn history(
-        &self,
-        contract_id: ContractId,
-        iface: impl Into<IfaceRef>,
-    ) -> Result<Vec<ContractOp>, StockError<S, H, P, ContractIfaceError>> {
-        let contract = self.stock.contract_iface(contract_id, iface.into())?;
+    pub fn history(&self, contract_id: ContractId) -> Result<Vec<ContractOp>, StockError<S, H, P>> {
+        let contract = self.stock.contract_data(contract_id)?;
         let wallet = &self.wallet;
         Ok(contract.history(wallet.filter_outpoints(), wallet.filter_witnesses()))
     }

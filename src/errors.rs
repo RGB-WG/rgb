@@ -25,16 +25,15 @@ use std::convert::Infallible;
 use std::io;
 
 use amplify::IoError;
-use bp::seals::txout::CloseMethod;
 use bpstd::Psbt;
 use nonasync::persistence::PersistenceError;
 use psrgbt::{CommitError, ConstructionError, EmbedError, TapretKeyError};
-use rgbstd::containers::LoadError;
-use rgbstd::interface::{BuilderError, ContractError};
+use rgbstd::containers::{LoadError, TransitionInfoError};
+use rgbstd::contract::{BuilderError, ContractError};
 use rgbstd::persistence::{
-    ComposeError, ConsignError, ContractIfaceError, FasciaError, Stock, StockError, StockErrorAll,
-    StockErrorMem,
+    ComposeError, ConsignError, FasciaError, Stock, StockError, StockErrorAll, StockErrorMem,
 };
+use rgbstd::{AssignmentType, ChainNet};
 use strict_types::encoding::Ident;
 
 use crate::{validation, TapTweakAlreadyAssigned};
@@ -92,7 +91,6 @@ pub enum WalletError {
 
     #[from(StockError)]
     #[from(StockErrorAll)]
-    #[from(StockErrorMem<ContractIfaceError>)]
     #[display(inner)]
     Stock(String),
 
@@ -126,19 +124,15 @@ pub enum PayError {
 #[derive(Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum CompositionError {
-    /// unspecified contract.
+    /// invoice doesn't specify a contract.
     NoContract,
 
-    /// unspecified interface.
-    NoIface,
-
-    /// invoice doesn't provide information about the operation, and the used
-    /// interface do not define default operation.
-    NoOperation,
-
-    /// invoice doesn't provide information about the assignment type, and the
-    /// used interface do not define default assignment type.
+    /// invoice doesn't provide information about the assignment type and it's impossible to derive
+    /// which assignment type should be used from the schema.
     NoAssignment,
+
+    /// invoice specifies an unknown contract.
+    UnknownContract,
 
     /// state provided via PSBT inputs is not sufficient to cover invoice state
     /// requirements.
@@ -147,11 +141,11 @@ pub enum CompositionError {
     /// the invoice has expired.
     InvoiceExpired,
 
-    /// the invoice doesn't support the contract close method {0}
-    InvoiceUnsupportsCloseMethod(CloseMethod),
+    /// invoice specifies a schema which is not valid for the specified contract.
+    InvalidSchema,
 
-    /// the wallet descriptor doesn't support the contract close method {0}
-    WalletUnsupportsCloseMethod(CloseMethod),
+    /// invoice requesting chain-network pair {0} but contract commits to a different one ({1})
+    InvoiceBeneficiaryWrongChainNet(ChainNet, ChainNet),
 
     /// one of the RGB assignments spent require presence of tapret output -
     /// even this is not a taproot wallet. Unable to create a valid PSBT, manual
@@ -167,16 +161,40 @@ pub enum CompositionError {
 
     #[from]
     #[display(inner)]
-    Interface(ContractError),
+    Contract(ContractError),
 
     #[from]
     #[display(inner)]
     Embed(EmbedError),
 
+    /// no outputs available to store state of type {0}
+    NoExtraOrChange(AssignmentType),
+
+    /// the provided PSBT doesn't pay any sats to the RGB beneficiary address.
+    NoBeneficiaryOutput,
+
+    /// beneficiary output number is given when secret seal is used.
+    BeneficiaryVout,
+
+    /// the spent UTXOs contain too many seals which can't fit the state
+    /// transition input limit.
+    TooManyInputs,
+
+    #[from]
+    #[display(inner)]
+    Transition(TransitionInfoError),
+
+    /// the operation produces too many extra state transitions which can't fit
+    /// the container requirements.
+    TooManyExtras,
+
+    #[from]
+    #[display(inner)]
+    Builder(BuilderError),
+
     #[from(String)]
     #[from(StockError)]
     #[from(StockErrorMem<ComposeError>)]
-    #[from(StockErrorMem<ContractIfaceError>)]
     #[display(inner)]
     Stock(String),
 }
@@ -192,12 +210,6 @@ pub enum CompletionError {
 
     /// the provided PSBT has conflicting descriptor in the taptweak output.
     InconclusiveDerivation,
-
-    /// the invoice doesn't support the contract close method {0}
-    InvoiceUnsupportsCloseMethod(CloseMethod),
-
-    /// the wallet descriptor doesn't support the contract close method {0}
-    WalletUnsupportsCloseMethod(CloseMethod),
 
     #[from]
     #[display(inner)]

@@ -15,18 +15,6 @@ contract), while the **ownable state** is associated with specific single-use se
 structures like braces, brackets, and question marks to denote sets or arrays of data types involved in state operations
 and their optionality.
 
-### Interface
-
-In RGB, contract interfaces are similar to Ethereum’s ERC standards. Generic interfaces are called “RGBxx” and are
-defined as independent LNP/BP standards.
-
-**Interface Definition**: Defines global states (like Ticker and Name) and ownable states (like Inflation and Asset),
-along with operations (like Issue and Transfer).
-
-**Interface Implementation**: When implementing an interface, states and operations of a specific schema are bound to
-the interface. For example, the FungibleToken interface implements global and ownable state bindings for the
-DecentralizedIdentity schema.
-
 ## Install
 
 from source
@@ -71,55 +59,93 @@ Command-line wallet for RGB smart contracts on Bitcoin
 Usage: rgb [OPTIONS] <COMMAND>
 
 Commands:
-  list              List known wallets
-  default           Get or set default wallet
-  create            Create a wallet
-  address           Generate a new wallet address(es)
-  taprets
-  schemata          Prints out list of known RGB schemata
-  interfaces        Prints out list of known RGB interfaces
-  contracts         Prints out list of known RGB contracts
-  import            Imports RGB data into the stash: contracts, schema, interfaces, etc
-  export            Exports existing RGB contract
-  armor             Convert binary RGB file into a text armored version
-  state             Reports information about state of a contract
-  history-fungible  Print operation history for a default fungible token under a given interface
-  utxos             Display all known UTXOs belonging to this wallet
-  issue             Issues new contract
-  invoice           Create new invoice
-  prepare           Prepare PSBT file for transferring RGB assets. In the most of cases you need to use `transfer` command instead of `prepare` and `consign`
-  consign           Prepare consignment for transferring RGB assets. In the most of cases you need to use `transfer` command instead of `prepare` and `consign`
-  transfer          Transfer RGB assets
-  inspect           Inspects any RGB data file
-  dump              Debug-dump all stash and inventory data
-  validate          Validate transfer consignment
-  accept            Validate transfer consignment & accept to the stash
-  help              Print this message or the help of the given subcommand(s)
+  list       List known named wallets
+  default    Get or set default wallet
+  create     Create a named wallet
+  address    Generate a new wallet address(es)
+  finalize   Finalize a PSBT, optionally extracting and publishing the signed transaction
+  extract    Extract a signed transaction from PSBT. The PSBT file itself is not modified
+  taprets    List known tapret tweaks for a wallet
+  schemata   Prints out list of known RGB schemata
+  contracts  Prints out list of known RGB contracts
+  import     Imports RGB data into the stash: contracts, schema, etc
+  export     Exports existing RGB contract
+  armor      Convert binary RGB file into a text armored version
+  state      Reports information about state of a contract
+  history    Print operation history for a contract
+  utxos      Display all known UTXOs belonging to this wallet
+  issue      Issues new contract
+  invoice    Create new invoice
+  prepare    Prepare PSBT file for transferring RGB assets
+  consign    Prepare consignment for transferring RGB assets
+  transfer   Transfer RGB assets
+  inspect    Inspects any RGB data file
+  dump       Debug-dump all stash and inventory data
+  validate   Validate transfer consignment
+  accept     Validate transfer consignment & accept to the stash
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -v, --verbose...
-          Set verbosity level
+          Set verbosity level.
+
+          Can be used multiple times to increase verbosity.
+
   -w, --wallet <NAME>
+          Use specific named wallet
 
   -W, --wallet-path <WALLET_PATH>
-          Path to wallet directory
+          Use wallet from a given path
+
       --tapret-key-only <TAPRET_KEY_ONLY>
           Use tapret(KEY) descriptor as wallet
+
       --wpkh <WPKH>
           Use wpkh(KEY) descriptor as wallet
-  -e, --esplora <URL>
-          Esplora server to use [env: ESPLORA_SERVER=] [default: <https://blockstream.info/testnet/api>]
+
+      --electrum[=<URL>]
+          Electrum server to use
+
+          [env: ELECRTUM_SERVER=]
+
+      --esplora[=<URL>]
+          Esplora server to use
+
+          [env: ESPLORA_SERVER=]
+
+      --mempool[=<URL>]
+          Mempool server to use
+
+          [env: MEMPOOL_SERVER=]
+
       --sync
+          Force-sync wallet data with the indexer before performing the operation
 
   -d, --data-dir <DATA_DIR>
-          Data directory path [env: LNPBP_DATA_DIR=] [default: ~/.lnp-bp]
+          Data directory path
+
+          Path to the directory that contains RGB stored data.
+
+          [env: LNPBP_DATA_DIR=]
+          [default: ~/.lnp-bp]
+
   -n, --network <NETWORK>
-          Network to use [env: LNPBP_NETWORK=] [default: testnet]
+          Network to use
+
+          [env: LNPBP_NETWORK=]
+          [default: testnet3]
+
+      --no-network-prefix
+          Do not add network prefix to the `--data-dir`
+
+  -H, --from-height <FROM_HEIGHT>
+          Specify blockchain height starting from which witness transactions should be checked for re-orgs
+
   -h, --help
-          Print help (see more with '--help')
+          Print help (see a summary with '-h')
+
   -V, --version
           Print version
-
 ```
 
 ## Preparation
@@ -136,13 +162,13 @@ Here is an example descriptor:
 ```
 
 ```
-$ rgb create my_wallet --wpkh "[1f09c6b9/86h/1h/0h]tpubDCrfSMscBA93FWm8qounj6kcBjnw6LxmVeKSi6VoYS327VCpoLHARWjdqeVtDt2ujDRznB9m1uXpHkDpDXyXM5gsvg2bMMmFcSHrtWUA4Py/<0;1;9;10>/*"
+$ rgb --esplora=https://blockstream.info/testnet/api/ create my_wallet --wpkh "[1f09c6b9/86h/1h/0h]tpubDCrfSMscBA93FWm8qounj6kcBjnw6LxmVeKSi6VoYS327VCpoLHARWjdqeVtDt2ujDRznB9m1uXpHkDpDXyXM5gsvg2bMMmFcSHrtWUA4Py/<0;1;9;10>/*"
 ```
 
 Now we can find the related files created in the wallet runtime directory:
 
 ```shell
-$ ls ~/.lnp-bp/testnet3/my_wallet     
+$ ls ~/.lnp-bp/testnet3/my_wallet
 
 cache.yaml  data.toml  descriptor.toml
 ```
@@ -159,7 +185,7 @@ Example output:
 
 ```shell
 Known wallets:
-my_wallet
+my_wallet                       wpkh([1f09c6b9/86h/1h/0h]tpubDCrfSMscBA93FWm8qounj6kcBjnw6LxmVeKSi6VoYS327VCpoLHARWjdqeVtDt2ujDRznB9m1uXpHkDpDXyXM5gsvg2bMMmFcSHrtWUA4Py/<0;1;9;10>/*)
 ```
 
 ### Set default wallet
@@ -196,34 +222,7 @@ $ rgb schemata
 Example Output:
 
 ```shell
-urn:lnp-bp:sc:9ZKGvK-tGs6nJvr-HQVRDDyV-zPnJYE5U-J2mb6yDi-PgBrby#frog-order-costume
-```
-
-### Import interface
-
-Now we need to import the interface definition and interface implementation, otherwise you may encounter an error:
-
-```shell
-Error: no known interface implementation for XXX
-```
-
-Execute:
-
-```shell
-$ rgb import ../rgb-schemata/interfaces/RGB20.rgb
-$ rgb import ../rgb-schemata/schemata/NonInflatableAssets-RGB20.rgb
-```
-
-### List interface
-
-```shell
-$ rgb interfaces
-```
-
-```shell
-RGB21 urn:lnp-bp:if:KtMq1E-bFRhMzn5-sc9NezhQ-kn2JzeJn-VxjDCqru-sieYa#portal-ecology-hostel
-RGB25 urn:lnp-bp:if:75swax-yN5mDaKB-B3peGeLu-tLctU3Ef-rAjFySp7-RMLTVF#cable-kayak-david
-RGB20 urn:lnp-bp:if:9UMsvx-HkLVK5VT-GkSy7yNU-ihAUBo7a-hxQvLCFq-U4aouK#object-spring-silk
+NonInflatableAsset              rgb:sch:tq4jbmu9hL6kJ5galPSMBH37K1g6MqPlxTa8$!0jhZs#marble-simon-avalon                2024-04-17      ssi:LZS1ux-gjD9nXPF-OcetUUkW-6r3uSCS6-aQhs9W5f-8JE7w
 ```
 
 ### Issue a contract
@@ -231,8 +230,7 @@ RGB20 urn:lnp-bp:if:9UMsvx-HkLVK5VT-GkSy7yNU-ihAUBo7a-hxQvLCFq-U4aouK#object-spr
 Usage:
 
 ```
-$ rgb issue [OPTIONS] <SCHEMA_ID> <CONTRACT_PATH>
-
+$ rgb issue <ISSUER> <CONTRACT_PATH>
 ```
 
 Tutorial:
@@ -240,7 +238,7 @@ Tutorial:
 Write a contract declaration. (YAML in this example)
 
 ```yaml
-interface: RGB20
+schema: tq4jbmu9hL6kJ5galPSMBH37K1g6MqPlxTa8$!0jhZs#marble-simon-avalon
 
 globals:
   spec:
@@ -248,7 +246,7 @@ globals:
       ticker: DBG
       name: Debug asset
       details: "Pay attention: the asset has no value"
-    precision: 2
+      precision: 2
   data:
     terms: >
       SUBJECT TO, AND WITHOUT IN ANY WAY LIMITING, THE REPRESENTATIONS AND WARRANTIES OF ANY SELLER 
@@ -266,7 +264,6 @@ globals:
       PROPERTY IS BEING SOLD “AS IS”.
     media: ~
   issuedSupply: 100000000
-  created: 1687969158
 
 assignments:
   assetOwner:
@@ -276,14 +273,13 @@ assignments:
 ```
 
 Here, we observe a seal value in the form of `txid:vout`. This hash, in
-reality, represents the txid of the previously created PSBT. And `txid:vout` is
+reality, represents the TXID of the previously created PSBT. And `txid:vout` is
 the outpoint of a valid UTXO.
 
 Compile the contract:
 
 ```
-$ rgb issue urn:lnp-bp:sc:9ZKGvK-tGs6nJvr-HQVRDDyV-zPnJYE5U-J2mb6yDi-PgBrby#frog-order-costume ./examples/rgb20-demo.yaml
-
+$ rgb issue issuerName ./examples/nia-demo.yaml
 ```
 
 A contract (which also serves as a consignment) will be generated and imported into the current runtime's stock.
@@ -291,7 +287,7 @@ A contract (which also serves as a consignment) will be generated and imported i
 Output:
 
 ```shell
-A new contract rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB is issued and added to the stash.
+A new contract rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM is issued and added to the stash.
 ```
 
 ### Export contract
@@ -299,17 +295,12 @@ A new contract rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB is iss
 Next, we export the contract that was just created.
 
 ```shell
-$ rgb export rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB
-RGB: command-line wallet for RGB smart contracts
-     by LNP/BP Standards Association
-
-Loading descriptor from wallet my_wallet ... success
-Loading stock ... success
+$ rgb export 'rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM'
 -----BEGIN RGB CONSIGNMENT-----
 Id: urn:lnp-bp:consignment:Ctc1wq-Xrqm78uM-nNaDsoHj-TJESKydn-4GLgtYmr-G9AdQE#smoke-oxford-burger
 Version: v2
 Type: contract
-Contract-Id: rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB
+Contract-Id: rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM
 Checksum-SHA256: 50468d33da7aab15c8c2b467126b721c4c3c6cf31d00c8964fb12e23fbc64777
 
 0ssM^4-D2iQYiE=(kr<ho`PqD7ID7TPL?t(cy6J>o^uy=TL1t60DmODi%$$wo#Ma
@@ -323,9 +314,9 @@ The consignment encoded in base64 format will be output to the `stdout`.
 Alternatively, you can specify a file name to obtain the binary consignment:
 
 ```shell
-$ rgb export rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB demo.rgb  
+$ rgb export 'rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM' demo.rgb
 
-Contract rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB exported to 'demo.rgb'
+Contract rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM exported to 'demo.rgb'
 ```
 
 ### Import contract (or other kind of consignment)
@@ -334,23 +325,23 @@ Consignments can be imported using the import subcommand, but the RGB CLI alread
 there is no need to execute it.
 
 ```shell
-$ rgb import demo.rgb
+$ rgb --esplora=https://blockstream.info/testnet/api/ import demo.rgb
 ```
 
 ### Read the contract state
 
 ```shell
-$ rgb state rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB RGB20
+$ rgb state 'rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM'
 
 Global:
-  spec := (naming=(ticker=("DBG"), name=("Debug asset"), details=1(("Pay attention: the asset has no value"))), precision=2)
-  data := (terms=("..."), media=~)
-  issuedSupply := (100000000)
-  created := (1687969158)
+  spec := ticker "DEMO", name "Demo asset", details "Pay attention: the asset has no value".some, precision centi
+  terms := text "SUBJECT TO, AND WITHOUT IN ANY WAY LIMITING, THE REPRESENTATIONS AND WARRANTIES OF ANY SELLER  EXPRESSLY SET FORTH IN THIS AGREEMENT OR ANY OTHER EXPRESS OBLIGATION OF SELLERS PURSUANT TO THE TERMS HEREOF, AND ACKNOWLEDGING THE PRIOR USE OF THE PROPERTY AND PURCHASER’S OPPORTUNITY  TO INSPECT THE PROPERTY, PURCHASER AGREES TO PURCHASE THE PROPERTY “AS IS”, “WHERE IS”,  WITH ALL FAULTS AND CONDITIONS THEREON. ANY WRITTEN OR ORAL INFORMATION, REPORTS, STATEMENTS,  DOCUMENTS OR RECORDS CONCERNING THE PROPERTY PROVIDED OR MADE AVAILABLE TO PURCHASER, ITS AGENTS OR CONSTITUENTS BY ANY SELLER, ANY SELLER’S AGENTS, EMPLOYEES OR THIRD PARTIES REPRESENTING OR PURPORTING TO REPRESENT ANY SELLER, SHALL NOT BE REPRESENTATIONS OR WARRANTIES, UNLESS SPECIFICALLY SET FORTH HEREIN. IN PURCHASING THE PROPERTY OR TAKING OTHER ACTION HEREUNDER, PURCHASER HAS NOT AND SHALL NOT RELY ON ANY SUCH DISCLOSURES, BUT RATHER, PURCHASER SHALL RELY ONLY ON PURCHASER’S OWN INSPECTION OF THE PROPERTY AND THE REPRESENTATIONS AND WARRANTIES  HEREIN. PURCHASER ACKNOWLEDGES THAT THE PURCHASE PRICE REFLECTS AND TAKES INTO ACCOUNT THAT THE PROPERTY IS BEING SOLD “AS IS”.
+", media ~
+  issuedSupply := 100000000
 
 Owned:
+  State         Seal                                                                            Witness
   assetOwner:
-
 ```
 
 ### List contract
@@ -364,7 +355,8 @@ $ rgb contracts
 Example output:
 
 ```shell
-rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB
+rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM    BitcoinTestnet3 2025-03-08      rgb:sch:tq4jbmu9hL6kJ5galPSMBH37K1g6MqPlxTa8$!0jhZs#marble-simon-avalon
+  Developer: issuerName
 ```
 
 ### Take an address
@@ -372,7 +364,7 @@ rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB
 ```shell
 $ rgb address
 Term.   Address
-&0/0    tb1qeyu926l47099vtp7wewvhwt03vc5sn5c6t604p
+&0/1    tb1qeyu926l47099vtp7wewvhwt03vc5sn5c6t604p
 ```
 
 Run multiple times to generate more addresses at different indexes. To view an address at given index, for example `0`,
@@ -380,28 +372,21 @@ execute:
 
 ```shell
 $ rgb address --index 0
+Term.   Address
+&0/0    tb1qeyu926l47099vtp7wewvhwt03vc5sn5c6t604p
 ```
 
 ### Create an address based invoice
 
 ```shell
-$ rgb invoice --address-based rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB RGB20 100
-
+$ rgb invoice --address-based 'rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM' --amount 100
 ```
 
 Created invoice:
 
 ```shell
-rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB/RGB20/100+tb:q0q6u0urtzn59cg9qacm7c5aq7ud3wmgms7stew
+rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM/~/BF+tb3:wvout:A3g1x$Br-FOhcIKD-uN!xToP-cbF20bA-AAAAAAA-AAAAAAA-AIi0trA
 ```
-
-Here's a breakdown of the different parts of the invoice string:
-
-1. `rgb:DF4vyV9-i85ZzUqbq-QLxvKtgtp-AJk9NvpL3-k4AHmcRrf-vyHksB`: This is the contract ID, which is a unique identifier
-   for the contract associated with this invoice.
-2. `RGB20`: This is the interface (or protocol) used for the transaction.
-3. `100`: This is the amount of the transaction, which is 100 units.
-4. `tb:q0q6u0urtzn59cg9qacm7c5aq7ud3wmgms7stew`: This is the beneficiary of the transaction
 
 The invoice string could also includes some additional parameters that are encoded as query parameters, which are
 separated by the `?` character. These parameters are used to provide additional information about the transaction, such
@@ -410,7 +395,7 @@ as the operation being performed or the assignment associated with the transacti
 ### Validate the consignment
 
 ```shell
-$ rgb validate demo.rgb
+$ rgb --esplora=https://blockstream.info/testnet/api/ validate demo.rgb
 ```
 
 Example output:
@@ -428,10 +413,10 @@ Validation warnings:
 Create transfer:
 
 ```shell
-$ rgb transfer <INVOICE> <CONSIGNMENT_FILE> [PSBT]
-$ rgb transfer \ 
-    rgb:2bLwMXo-deVgzKq97-GUVy6wXea-G1nE84nxw-v5CX3WSJN-mbhsMn7/RGB20/1000+bcrt:p9yjaffzhuh9p7d9gnwfunxssngesk25tz7rudu4v69dl6e7w7qhq5x43k5 \
-    transfer.consignment \ 
+$ rgb transfer <INVOICE> <CONSIGNMENT> [PSBT]
+$ rgb transfer \
+    rgb:hcRzR8wK-zh$jdpc-Rhsg!uH-WQ!zuV9-h7x877N-BQNcwNM/~/BF+tb3:wvout:A3g1x$Br-FOhcIKD-uN!xToP-cbF20bA-AAAAAAA-AAAAAAA-AIi0trA \
+    transfer.consignment \
     alice.psbt
 ```
 
@@ -442,5 +427,5 @@ Now you can use bdk-cli or any other wallet to sign and broadcast the transactio
 As receiver:
 
 ```shell
-$ rgb accept -f CONSIGNMENT_FILE
+$ rgb accept -f <FILE>
 ```
