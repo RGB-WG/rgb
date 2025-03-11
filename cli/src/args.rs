@@ -30,9 +30,9 @@ use bpstd::{Network, Wpkh, XpubDerivable};
 use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
 use bpwallet::Wallet;
 use rgb::persistence::Stock;
-use rgb::resolvers::AnyResolver;
 use rgb::validation::ResolveWitness;
 use rgb::{ChainNet, RgbDescr, RgbWallet, TapretKey, WalletError};
+use rgbstd::indexers::AnyResolver;
 use rgbstd::persistence::fs::FsBinStore;
 use strict_types::encoding::{DecodeError, DeserializeError};
 

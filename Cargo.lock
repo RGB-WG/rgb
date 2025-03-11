@@ -404,10 +404,10 @@ dependencies = [
 [[package]]
 name = "bp-electrum"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/bp-electrum-client?branch=0.11.1-2#43a8e0c77978e0e945ff4820a6fb5d4a3baf9ebc"
+source = "git+https://github.com/zoedberg/bp-electrum-client?branch=remove_bpstd#55aa4e6d94181e166706db2537dc5cc44211192f"
 dependencies = [
  "amplify",
- "bp-std",
+ "bp-core",
  "byteorder",
  "libc",
  "log",
@@ -422,11 +422,11 @@ dependencies = [
 [[package]]
 name = "bp-esplora"
 version = "0.11.1-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fea6ad8f3ae73ea99517a9eab934a8abf7a1463e562da47dc124b4cd1b16692f"
+source = "git+https://github.com/zoedberg/bp-esplora-client?branch=remove_bpstd#c90fe69452138caeeb915a931a00c73457831700"
 dependencies = [
  "amplify",
- "bp-std",
+ "bp-core",
+ "bp-invoice",
  "log",
  "minreq",
  "serde",
@@ -635,7 +635,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1084,7 +1084,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -1361,7 +1361,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-2#bc04976b1b3b9fa453bcb404a2620766b11a2bdb"
+source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-2#be0c9a8b7f9b8b78302a20dbf5f730616c21b78c"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1382,7 +1382,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#8ab08f3a4877c1eeb242f81403ae3376554eea3b"
+source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#f16f611c14bb7fa19a01542048fcbbbb9b8e1c7c"
 dependencies = [
  "amplify",
  "baid64",
@@ -1423,8 +1423,6 @@ dependencies = [
  "amplify",
  "baid64",
  "bp-core",
- "bp-electrum",
- "bp-esplora",
  "bp-std",
  "bp-wallet",
  "chrono",
@@ -1446,7 +1444,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#8ab08f3a4877c1eeb242f81403ae3376554eea3b"
+source = "git+https://github.com/zoedberg/rgb-std?branch=0.11.1-2#f16f611c14bb7fa19a01542048fcbbbb9b8e1c7c"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1454,6 +1452,8 @@ dependencies = [
  "baid64",
  "base85",
  "bp-core",
+ "bp-electrum",
+ "bp-esplora",
  "chrono",
  "commit_verify",
  "getrandom",
@@ -2159,7 +2159,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

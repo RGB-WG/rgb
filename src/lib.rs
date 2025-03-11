@@ -26,7 +26,6 @@ extern crate amplify;
 extern crate serde_crate as serde;
 
 mod descriptor;
-mod indexers;
 mod filters;
 pub mod pay;
 mod errors;
@@ -38,11 +37,15 @@ pub use pay::{TransferParams, WalletProvider};
 pub use rgbstd::*;
 pub mod resolvers {
     use bp::Tx;
+    #[cfg(any(
+        feature = "electrum_blocking",
+        feature = "esplora_blocking",
+        feature = "mempool_blocking"
+    ))]
+    pub use rgbstd::indexers::*;
+    pub use rgbstd::indexers::{AnyResolver, RgbResolver};
     use rgbstd::ChainNet;
 
-    #[cfg(any(feature = "electrum_blocking", feature = "esplora_blocking"))]
-    pub use super::indexers::*;
-    pub use super::indexers::{AnyResolver, RgbResolver};
     use super::validation::{ResolveWitness, WitnessResolverError};
     use super::vm::WitnessOrd;
     use super::Txid;
