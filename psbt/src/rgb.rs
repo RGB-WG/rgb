@@ -49,6 +49,8 @@ pub const PSBT_GLOBAL_RGB_TRANSITION: u64 = 0x01;
 /// Proprietary key subtype for storing information on which close method
 /// should be used.
 pub const PSBT_GLOBAL_RGB_CLOSE_METHOD: u64 = 0x02;
+/// Proprietary key subtype to signal that tapret host has been put on change.
+pub const PSBT_GLOBAL_RGB_TAP_HOST_CHANGE: u64 = 0x03;
 /// Proprietary key subtype for storing RGB state transition operation id which
 /// consumes this input.
 pub const PSBT_IN_RGB_CONSUMED_BY: u64 = 0x01;
@@ -99,6 +101,7 @@ pub trait ProprietaryKeyRgb {
             data: opid.to_vec().into(),
         }
     }
+
     /// Constructs [`PSBT_GLOBAL_RGB_CLOSE_METHOD`] proprietary key.
     fn rgb_close_method() -> PropKey {
         PropKey {
@@ -114,6 +117,15 @@ pub trait ProprietaryKeyRgb {
             identifier: PSBT_RGB_PREFIX.to_owned(),
             subtype: PSBT_IN_RGB_CONSUMED_BY,
             data: contract_id.to_vec().into(),
+        }
+    }
+
+    /// Constructs [`PSBT_GLOBAL_RGB_TAP_HOST_CHANGE`] proprietary key.
+    fn rgb_tapret_host_on_change() -> PropKey {
+        PropKey {
+            identifier: PSBT_RGB_PREFIX.to_owned(),
+            subtype: PSBT_GLOBAL_RGB_TAP_HOST_CHANGE,
+            data: none!(),
         }
     }
 }
@@ -193,7 +205,11 @@ pub trait RgbExt {
 
     fn rgb_close_method(&self) -> Result<Option<CloseMethod>, RgbPsbtError>;
 
+    fn rgb_tapret_host_on_change(&self) -> bool;
+
     fn set_rgb_close_method(&mut self, close_method: CloseMethod);
+
+    fn set_rgb_tapret_host_on_change(&mut self);
 
     fn push_rgb_transition(&mut self, transition: Transition) -> Result<bool, RgbPsbtError>;
 
@@ -299,8 +315,16 @@ impl RgbExt for Psbt {
         Err(RgbPsbtError::InvalidCloseMethod)
     }
 
+    fn rgb_tapret_host_on_change(&self) -> bool {
+        self.has_proprietary(&PropKey::rgb_tapret_host_on_change())
+    }
+
     fn set_rgb_close_method(&mut self, close_method: CloseMethod) {
         let _ = self.push_proprietary(PropKey::rgb_close_method(), vec![close_method as u8]);
+    }
+
+    fn set_rgb_tapret_host_on_change(&mut self) {
+        let _ = self.push_proprietary(PropKey::rgb_tapret_host_on_change(), vec![]);
     }
 
     fn push_rgb_transition(&mut self, mut transition: Transition) -> Result<bool, RgbPsbtError> {

@@ -85,6 +85,9 @@ pub enum WalletError {
     #[display(doc_comments)]
     IncompleteContract(validation::Status),
 
+    /// cannot find the terminal to add the tapret tweak to.
+    NoTweakTerminal,
+
     /// resolver error: {0}
     #[display(doc_comments)]
     Resolver(String),
@@ -147,11 +150,6 @@ pub enum CompositionError {
     /// invoice requesting chain-network pair {0} but contract commits to a different one ({1})
     InvoiceBeneficiaryWrongChainNet(ChainNet, ChainNet),
 
-    /// one of the RGB assignments spent require presence of tapret output -
-    /// even this is not a taproot wallet. Unable to create a valid PSBT, manual
-    /// work is needed.
-    TapretRequired,
-
     /// non-fungible state is not yet supported by the invoices.
     Unsupported,
 
@@ -169,6 +167,9 @@ pub enum CompositionError {
 
     /// no outputs available to store state of type {0}
     NoExtraOrChange(AssignmentType),
+
+    /// cannot find an output where to put the tapret commitment.
+    NoOutputForTapretCommitment,
 
     /// the provided PSBT doesn't pay any sats to the RGB beneficiary address.
     NoBeneficiaryOutput,

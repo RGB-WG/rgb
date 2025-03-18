@@ -728,7 +728,7 @@ impl Exec for RgbArgs {
                             .next()
                             .expect("no addresses left")
                             .addr;
-                        Beneficiary::WitnessVout(Pay2Vout::new(addr.payload))
+                        Beneficiary::WitnessVout(Pay2Vout::new(addr.payload), None)
                     }
                     (_, Some(outpoint)) => {
                         let seal = GraphSeal::new_random(outpoint.txid, outpoint.vout);

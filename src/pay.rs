@@ -24,31 +24,36 @@ use std::convert::Infallible;
 use std::marker::PhantomData;
 
 use amplify::confinement::{Confined, U24};
-use bp::dbc::tapret::TapretProof;
+use bp::dbc::tapret::{TapretCommitment, TapretProof};
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::secp256k1::rand;
 use bp::{Outpoint, Sats, ScriptPubkey, Tx, Vout};
-use bpstd::{psbt, Address};
+use bpstd::{psbt, Address, IdxBase, NormalIndex, Terminal};
 use bpwallet::{Layer2, Layer2Tx, NoLayer2, TxRow, Wallet, WalletDescr};
 use chrono::Utc;
+use commit_verify::mpc::{Message, ProtocolId};
 use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbExt, RgbPsbt, TapretKeyError,
     TxParams,
 };
-use rgbstd::containers::{AnchorSet, Batch, BuilderSeal, Transfer, TransitionInfo};
+use rgbstd::containers::{
+    AnchorSet, Batch, BuilderSeal, IndexedConsignment, Transfer, TransitionInfo,
+};
 use rgbstd::contract::{AssignmentsFilter, BuilderError};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
     IndexProvider, PersistedState, StashInconsistency, StashProvider, StateProvider, Stock,
 };
-use rgbstd::validation::ResolveWitness;
-use rgbstd::{AssignmentType, ChainNet, ContractId, DataState, GraphSeal, Opout, OutputSeal};
+use rgbstd::validation::{ConsignmentApi, DbcProof, ResolveWitness};
+use rgbstd::{
+    AssignmentType, ChainNet, ContractId, DataState, GraphSeal, Operation, Opout, OutputSeal,
+};
 
 use crate::invoice::NonFungible;
 use crate::validation::WitnessResolverError;
 use crate::vm::WitnessOrd;
 use crate::{
-    CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid,
+    CompletionError, CompositionError, DescriptorRgb, PayError, RgbKeychain, Txid, WalletError,
     WalletOutpointsFilter, WalletUnspentFilter, WalletWitnessFilter,
 };
 
@@ -118,6 +123,12 @@ where Self::Descr: DescriptorRgb<K>
     fn txos(&self) -> impl Iterator<Item = Outpoint>;
     fn txids(&self) -> impl Iterator<Item = Txid>;
     fn history(&self) -> impl Iterator<Item = TxRow<impl Layer2Tx>> + '_;
+    fn add_tapret_tweak(
+        &mut self,
+        terminal: Terminal,
+        tapret_commitment: TapretCommitment,
+    ) -> Result<(), Infallible>;
+    fn try_add_tapret_tweak(&mut self, transfer: Transfer, txid: &Txid) -> Result<(), WalletError>;
 
     // TODO: Add method `color` to add RGB information to an already existing PSBT
 
@@ -255,7 +266,7 @@ where Self::Descr: DescriptorRgb<K>
 
         let (beneficiaries, beneficiary_script) = match invoice.beneficiary.into_inner() {
             Beneficiary::BlindedSeal(_) => (vec![], None),
-            Beneficiary::WitnessVout(pay2vout) => (
+            Beneficiary::WitnessVout(pay2vout, _) => (
                 vec![BpBeneficiary::new(
                     Address::new(*pay2vout, invoice.address_network()),
                     params.min_amount,
@@ -267,24 +278,44 @@ where Self::Descr: DescriptorRgb<K>
         let (mut psbt, mut meta) =
             self.construct_psbt(prev_outpoints, &beneficiaries, params.tx)?;
 
-        psbt.outputs_mut()
-            .find(|o| o.script.is_p2tr() && Some(&o.script) != beneficiary_script.as_ref())
-            .map(|o| o.set_tapret_host().expect("just created"));
-        // TODO: Add descriptor id to the tapret host data
-
         let change_script = meta
             .change_vout
             .and_then(|vout| psbt.output(vout.to_usize()))
             .map(|output| output.script.clone());
-        if close_method == CloseMethod::OpretFirst {
-            let output = psbt.construct_output_expect(ScriptPubkey::op_return(&[]), Sats::ZERO);
-            output.set_opret_host().expect("just created");
-            psbt.sort_outputs_by(|output| !output.is_opret_host())
-                .expect("PSBT must be modifiable at this stage");
-        } else {
-            psbt.sort_outputs_by(|output| !output.is_tapret_host())
-                .expect("PSBT must be modifiable at this stage");
-        };
+
+        match close_method {
+            CloseMethod::TapretFirst => {
+                let tap_out_script = if let Some(change_script) = change_script.clone() {
+                    psbt.set_rgb_tapret_host_on_change();
+                    change_script
+                } else {
+                    match invoice.beneficiary.into_inner() {
+                        Beneficiary::WitnessVout(_, Some(ikey)) => {
+                            let beneficiary_script = beneficiary_script.unwrap();
+                            psbt.outputs_mut()
+                                .find(|o| o.script == beneficiary_script)
+                                .unwrap()
+                                .tap_internal_key = Some(ikey);
+                            beneficiary_script
+                        }
+                        _ => return Err(CompositionError::NoOutputForTapretCommitment),
+                    }
+                };
+                psbt.outputs_mut()
+                    .find(|o| o.script.is_p2tr() && o.script == tap_out_script)
+                    .map(|o| o.set_tapret_host().expect("just created"));
+                // TODO: Add descriptor id to the tapret host data
+                psbt.sort_outputs_by(|output| !output.is_tapret_host())
+                    .expect("PSBT must be modifiable at this stage");
+            }
+            CloseMethod::OpretFirst => {
+                let output = psbt.construct_output_expect(ScriptPubkey::op_return(&[]), Sats::ZERO);
+                output.set_opret_host().expect("just created");
+                psbt.sort_outputs_by(|output| !output.is_opret_host())
+                    .expect("PSBT must be modifiable at this stage");
+            }
+        }
+
         if let Some(ref change_script) = change_script {
             for output in psbt.outputs() {
                 if output.script == *change_script {
@@ -295,7 +326,7 @@ where Self::Descr: DescriptorRgb<K>
         }
 
         let beneficiary_vout = match invoice.beneficiary.into_inner() {
-            Beneficiary::WitnessVout(pay2vout) => {
+            Beneficiary::WitnessVout(pay2vout, _) => {
                 let s = (*pay2vout).script_pubkey();
                 let vout = psbt
                     .outputs()
@@ -323,11 +354,11 @@ where Self::Descr: DescriptorRgb<K>
             (Beneficiary::BlindedSeal(_), Some(_)) => {
                 return Err(CompositionError::BeneficiaryVout);
             }
-            (Beneficiary::WitnessVout(_), Some(vout)) => {
+            (Beneficiary::WitnessVout(_, _), Some(vout)) => {
                 let seal = GraphSeal::with_blinded_vout(vout, rand::random());
                 BuilderSeal::Revealed(seal)
             }
-            (Beneficiary::WitnessVout(_), None) => {
+            (Beneficiary::WitnessVout(_, _), None) => {
                 return Err(CompositionError::NoBeneficiaryOutput);
             }
         };
@@ -484,33 +515,37 @@ where Self::Descr: DescriptorRgb<K>
     ) -> Result<Transfer, CompletionError> {
         let contract_id = invoice.contract.ok_or(CompletionError::NoContract)?;
 
-        let fascia = psbt.rgb_commit()?;
-        if matches!(fascia.anchor, AnchorSet::Tapret(_)) {
-            let output = psbt
-                .dbc_output::<TapretProof>()
-                .ok_or(TapretKeyError::NotTaprootOutput)?;
-            let terminal = output
-                .terminal_derivation()
-                .ok_or(CompletionError::InconclusiveDerivation)?;
-            let tapret_commitment = output.tapret_commitment()?;
-            self.with_descriptor_mut(|descr| {
-                descr.with_descriptor_mut(|d| {
-                    d.add_tapret_tweak(terminal, tapret_commitment);
-                    Ok::<_, Infallible>(())
-                })
-            })?;
-        }
-
-        let witness_id = psbt.txid();
-        let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
-            Beneficiary::WitnessVout(pay2vout) => {
+        let beneficiary_vout = match invoice.beneficiary.into_inner() {
+            Beneficiary::WitnessVout(pay2vout, _) => {
                 let s = (*pay2vout).script_pubkey();
                 let vout = psbt
                     .outputs()
                     .position(|output| output.script == s)
                     .ok_or(CompletionError::NoBeneficiaryOutput)?;
-                let vout = Vout::from_u32(vout as u32);
-                let seal = ExplicitSeal::new(Outpoint::new(witness_id, vout));
+                Some(Vout::from_u32(vout as u32))
+            }
+            Beneficiary::BlindedSeal(_) => None,
+        };
+
+        let fascia = psbt.rgb_commit()?;
+        if matches!(fascia.anchor, AnchorSet::Tapret(_)) {
+            // save tweak only if tapret commitment is on the bitcoin change
+            if psbt.rgb_tapret_host_on_change() {
+                let output = psbt
+                    .dbc_output::<TapretProof>()
+                    .ok_or(TapretKeyError::NotTaprootOutput)?;
+                let terminal = output
+                    .terminal_derivation()
+                    .ok_or(CompletionError::InconclusiveDerivation)?;
+                let tapret_commitment = output.tapret_commitment()?;
+                self.add_tapret_tweak(terminal, tapret_commitment)?;
+            }
+        }
+
+        let witness_id = psbt.txid();
+        let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
+            Beneficiary::WitnessVout(_, _) => {
+                let seal = ExplicitSeal::new(Outpoint::new(witness_id, beneficiary_vout.unwrap()));
                 (None, vec![seal])
             }
             Beneficiary::BlindedSeal(seal) => (Some(seal), vec![]),
@@ -561,4 +596,59 @@ impl<K, D: DescriptorRgb<K>, L2: Layer2> WalletProvider<K, L2> for Wallet<K, D, 
     fn txids(&self) -> impl Iterator<Item = Txid> { self.transactions().keys().copied() }
 
     fn history(&self) -> impl Iterator<Item = TxRow<impl Layer2Tx>> + '_ { self.history() }
+
+    fn add_tapret_tweak(
+        &mut self,
+        terminal: Terminal,
+        tapret_commitment: TapretCommitment,
+    ) -> Result<(), Infallible> {
+        self.with_descriptor_mut(|descr| {
+            descr.with_descriptor_mut(|d| {
+                d.add_tapret_tweak(terminal, tapret_commitment);
+                Ok::<_, Infallible>(())
+            })
+        })
+    }
+
+    fn try_add_tapret_tweak(&mut self, transfer: Transfer, txid: &Txid) -> Result<(), WalletError> {
+        let indexed_consignment = IndexedConsignment::new(&transfer);
+        let contract_id = transfer.genesis.contract_id();
+        let close_method = self.descriptor().close_method();
+        let keychain = RgbKeychain::for_method(close_method);
+        let last_index = self.next_derivation_index(keychain, false).index() as u16;
+        let descr = self.descriptor();
+        if let Some((idx, tweak)) = transfer
+            .bundles
+            .iter()
+            .find(|bw| bw.witness_id() == *txid)
+            .and_then(|bw| {
+                let bundle_id = bw.anchored_bundle.bundle().bundle_id();
+                let (_, anchor) = indexed_consignment.anchor(bundle_id).unwrap();
+                if let DbcProof::Tapret(tapret) = anchor.dbc_proof.clone() {
+                    let commitment = anchor
+                        .mpc_proof
+                        .clone()
+                        .convolve(ProtocolId::from(contract_id), Message::from(bundle_id))
+                        .unwrap();
+                    let tweak = TapretCommitment::with(commitment, tapret.path_proof.nonce());
+                    (0..last_index)
+                        .rev()
+                        .map(NormalIndex::normal)
+                        .find(|i| {
+                            descr
+                                .derive(keychain, i)
+                                .any(|ds| ds.to_internal_pk() == Some(tapret.internal_pk))
+                        })
+                        .map(|idx| (idx, tweak))
+                } else {
+                    None
+                }
+            })
+        {
+            self.add_tapret_tweak(Terminal::new(keychain, idx), tweak)
+                .unwrap();
+            return Ok(());
+        }
+        Err(WalletError::NoTweakTerminal)
+    }
 }
