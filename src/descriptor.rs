@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{self, Display, Formatter};
 use std::iter;
 use std::str::FromStr;
@@ -38,17 +38,9 @@ use bpstd::{
 use commit_verify::CommitVerify;
 use indexmap::IndexMap;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Display, Error)]
-#[display("terminal derivation {0} already has a taptweak assigned")]
-pub struct TapTweakAlreadyAssigned(pub Terminal);
-
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
     fn close_method(&self) -> CloseMethod;
-    fn add_tapret_tweak(
-        &mut self,
-        terminal: Terminal,
-        tweak: TapretCommitment,
-    ) -> Result<(), TapTweakAlreadyAssigned>;
+    fn add_tapret_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment);
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
@@ -119,19 +111,24 @@ impl From<RgbKeychain> for Keychain {
 )]
 pub struct TapretKey<K: DeriveXOnly = XpubDerivable> {
     pub tr: TrKey<K>,
-    // TODO: Allow multiple tweaks per index by introducing derivation using new Terminal trait
-    pub tweaks: HashMap<Terminal, TapretCommitment>,
+    pub tweaks: BTreeMap<Terminal, BTreeSet<TapretCommitment>>,
 }
 
 impl<K: DeriveXOnly + Display> Display for TapretKey<K> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "tapret({},tweaks(", self.tr.as_internal_key())?;
         let mut iter = self.tweaks.iter().peekable();
-        while let Some((term, tweak)) = iter.next() {
+        while let Some((term, tweaks)) = iter.next() {
             if term.keychain != RgbKeychain::Tapret.into() {
-                write!(f, "{}/", term.keychain)?;
+                write!(f, "{}/{}=", term.keychain, term.index)?;
             }
-            write!(f, "{}={tweak}", term.index)?;
+            let mut commitment_iter = tweaks.iter().peekable();
+            while let Some(tweak) = commitment_iter.next() {
+                write!(f, "{tweak}")?;
+                if commitment_iter.peek().is_some() {
+                    f.write_str(",")?;
+                }
+            }
             if iter.peek().is_some() {
                 f.write_str(";")?;
             }
@@ -159,19 +156,21 @@ impl<K: DeriveXOnly> Derive<DerivedScript> for TapretKey<K> {
         &self,
         keychain: impl Into<Keychain>,
         index: impl Into<NormalIndex>,
-    ) -> DerivedScript {
+    ) -> impl Iterator<Item = DerivedScript> {
         let keychain = keychain.into();
         let index = index.into();
         let terminal = Terminal::new(keychain, index);
-        let internal_key = self.tr.as_internal_key().derive(keychain, index);
-        if keychain.into_inner() == RgbKeychain::Tapret as u8 {
-            if let Some(tweak) = self.tweaks.get(&terminal) {
+        let mut derived_scripts = Vec::with_capacity(self.tweaks.len() + 1);
+        for internal_key in self.tr.as_internal_key().derive(keychain, index) {
+            derived_scripts.push(DerivedScript::TaprootKeyOnly(internal_key.into()));
+            for tweak in self.tweaks.get(&terminal).into_iter().flatten() {
                 let script_commitment = TapScript::commit(tweak);
                 let tap_tree = TapTree::with_single_leaf(script_commitment);
-                return DerivedScript::TaprootScript(internal_key.into(), tap_tree);
+                let script = DerivedScript::TaprootScript(internal_key.into(), tap_tree);
+                derived_scripts.push(script);
             }
         }
-        DerivedScript::TaprootKeyOnly(internal_key.into())
+        derived_scripts.into_iter()
     }
 }
 
@@ -229,16 +228,8 @@ impl<K: DeriveXOnly> Descriptor<K> for TapretKey<K> {
 impl<K: DeriveXOnly> DescriptorRgb<K> for TapretKey<K> {
     fn close_method(&self) -> CloseMethod { CloseMethod::TapretFirst }
 
-    fn add_tapret_tweak(
-        &mut self,
-        terminal: Terminal,
-        tweak: TapretCommitment,
-    ) -> Result<(), TapTweakAlreadyAssigned> {
-        if self.tweaks.contains_key(&terminal) {
-            return Err(TapTweakAlreadyAssigned(terminal));
-        }
-        self.tweaks.insert(terminal, tweak);
-        Ok(())
+    fn add_tapret_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment) {
+        self.tweaks.entry(terminal).or_default().insert(tweak);
     }
 }
 
@@ -292,10 +283,15 @@ impl<S: DeriveSet> Derive<DerivedScript> for RgbDescr<S> {
         }
     }
 
-    fn derive(&self, change: impl Into<Keychain>, index: impl Into<NormalIndex>) -> DerivedScript {
+    fn derive(
+        &self,
+        change: impl Into<Keychain>,
+        index: impl Into<NormalIndex>,
+    ) -> impl Iterator<Item = DerivedScript> {
+        // collecting as a workaround for different opaque types
         match self {
-            RgbDescr::Wpkh(d) => d.derive(change, index),
-            RgbDescr::TapretKey(d) => d.derive(change, index),
+            RgbDescr::Wpkh(d) => d.derive(change, index).collect::<Vec<_>>().into_iter(),
+            RgbDescr::TapretKey(d) => d.derive(change, index).collect::<Vec<_>>().into_iter(),
         }
     }
 }
@@ -375,11 +371,7 @@ where Self: Derive<DerivedScript>
         }
     }
 
-    fn add_tapret_tweak(
-        &mut self,
-        terminal: Terminal,
-        tweak: TapretCommitment,
-    ) -> Result<(), TapTweakAlreadyAssigned> {
+    fn add_tapret_tweak(&mut self, terminal: Terminal, tweak: TapretCommitment) {
         match self {
             RgbDescr::Wpkh(_) => panic!("adding tapret tweak to non-taproot descriptor"),
             RgbDescr::TapretKey(d) => d.add_tapret_tweak(terminal, tweak),
@@ -394,5 +386,62 @@ impl From<StdDescr> for RgbDescr {
             StdDescr::TrKey(tr) => RgbDescr::TapretKey(tr.into()),
             _ => todo!(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
+
+    use bp::dbc::tapret::TapretCommitment;
+    use bpstd::{DeriveSet, Idx, Keychain, NormalIndex, Terminal, TrKey, XpubDerivable};
+    use commit_verify::mpc::Commitment;
+    use strict_types::StrictDumb;
+
+    use super::TapretKey;
+    use crate::DescriptorRgb;
+
+    #[test]
+    fn tapret_key_display() {
+        let xpub_str = "[643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*";
+        let xpub = XpubDerivable::from_str(xpub_str).unwrap();
+        let internal_key: TrKey<<XpubDerivable as DeriveSet>::XOnly> = TrKey::from(xpub.clone());
+
+        // no tweaks
+        let mut tapret_key = TapretKey::from(internal_key);
+        assert_eq!(format!("{tapret_key}"), format!("tapret({xpub_str},tweaks())"));
+
+        // add a tweak to a new terminal
+        let terminal = Terminal::new(Keychain::INNER, NormalIndex::ZERO);
+        let tweak = TapretCommitment::with(Commitment::strict_dumb(), 2);
+        tapret_key.add_tapret_tweak(terminal, tweak);
+        assert_eq!(
+            format!("{tapret_key}"),
+            format!("tapret({xpub_str},tweaks(1/0=00000000000000000000000000000000000000000s))")
+        );
+
+        // add another tweak to a new terminal
+        let terminal = Terminal::new(Keychain::from(7), NormalIndex::from(12u8));
+        let tweak = TapretCommitment::with(Commitment::strict_dumb(), 5);
+        tapret_key.add_tapret_tweak(terminal, tweak.clone());
+        assert_eq!(
+            format!("{tapret_key}"),
+            format!(
+                "tapret({xpub_str},tweaks(1/0=00000000000000000000000000000000000000000s;7/\
+                 12=00000000000000000000000000000000000000001p))"
+            )
+        );
+
+        // add another tweak to an existing terminal
+        let tweak = TapretCommitment::with(Commitment::strict_dumb(), 2);
+        tapret_key.add_tapret_tweak(terminal, tweak);
+        assert_eq!(
+            format!("{tapret_key}"),
+            format!(
+                "tapret({xpub_str},tweaks(1/0=00000000000000000000000000000000000000000s;7/\
+                 12=00000000000000000000000000000000000000000s,\
+                 00000000000000000000000000000000000000001p))"
+            )
+        );
     }
 }

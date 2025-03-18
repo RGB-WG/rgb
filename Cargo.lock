@@ -388,8 +388,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.11.1-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23ebed0079fc2e75dc238103f0f81fefd2cbbc3120ae55c58fe0aa61dad26ddc"
+source = "git+https://github.com/zoedberg/bp-std?branch=0.11.1-2#77e215dc3e8e2993ea02c8a6f4e089589f4611ca"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -437,8 +436,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.11.1-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd6955d67eec75b22532edb859f1f4d7d4ba4af1db304abc511530f4e1a827b7"
+source = "git+https://github.com/zoedberg/bp-std?branch=0.11.1-2#77e215dc3e8e2993ea02c8a6f4e089589f4611ca"
 dependencies = [
  "amplify",
  "bech32",
@@ -467,8 +465,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.11.1-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f78d36be2d9ef2f70821c8d73f9f58739d0057f7cba9aa30b05d64247bd8554d"
+source = "git+https://github.com/zoedberg/bp-std?branch=0.11.1-2#77e215dc3e8e2993ea02c8a6f4e089589f4611ca"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -486,7 +483,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.11.1-alpha.1"
-source = "git+https://github.com/zoedberg/bp-wallet?branch=0.11.1-2#da0d1a210b33b3e2fb1ffc4eac00b144034b840b"
+source = "git+https://github.com/zoedberg/bp-wallet?branch=0.11.1-2#49b8da2763849a433e34e83e3839e9f390298cd8"
 dependencies = [
  "amplify",
  "base64 0.22.1",
@@ -635,7 +632,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -753,8 +750,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.11.1-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bb1e86bc1bbf96aa464ae3f8bbec92afc83da40f1470109ce4207d708773d06"
+source = "git+https://github.com/zoedberg/bp-std?branch=0.11.1-2#77e215dc3e8e2993ea02c8a6f4e089589f4611ca"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1264,8 +1260,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.11.1-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a60fcac15e3bd83cbca0388d70ac696f066790e992a5ceb230a04317ae8b991e"
+source = "git+https://github.com/zoedberg/bp-std?branch=0.11.1-2#77e215dc3e8e2993ea02c8a6f4e089589f4611ca"
 dependencies = [
  "amplify",
  "base64 0.22.1",
@@ -2159,7 +2154,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

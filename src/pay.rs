@@ -20,6 +20,7 @@
 // limitations under the License.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::convert::Infallible;
 use std::marker::PhantomData;
 
 use amplify::confinement::{Confined, U24};
@@ -493,7 +494,10 @@ where Self::Descr: DescriptorRgb<K>
                 .ok_or(CompletionError::InconclusiveDerivation)?;
             let tapret_commitment = output.tapret_commitment()?;
             self.with_descriptor_mut(|descr| {
-                descr.with_descriptor_mut(|d| d.add_tapret_tweak(terminal, tapret_commitment))
+                descr.with_descriptor_mut(|d| {
+                    d.add_tapret_tweak(terminal, tapret_commitment);
+                    Ok::<_, Infallible>(())
+                })
             })?;
         }
 

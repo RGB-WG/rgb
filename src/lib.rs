@@ -31,7 +31,7 @@ pub mod pay;
 mod errors;
 mod wallet;
 
-pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapTweakAlreadyAssigned, TapretKey};
+pub use descriptor::{DescriptorRgb, RgbDescr, RgbKeychain, TapretKey};
 pub use errors::{CompletionError, CompositionError, PayError, WalletError};
 pub use pay::{TransferParams, WalletProvider};
 pub use rgbstd::*;

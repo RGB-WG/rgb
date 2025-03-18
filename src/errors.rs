@@ -36,7 +36,7 @@ use rgbstd::persistence::{
 use rgbstd::{AssignmentType, ChainNet};
 use strict_types::encoding::Ident;
 
-use crate::{validation, TapTweakAlreadyAssigned};
+use crate::validation;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -213,10 +213,6 @@ pub enum CompletionError {
 
     #[from]
     #[display(inner)]
-    MultipleTweaks(TapTweakAlreadyAssigned),
-
-    #[from]
-    #[display(inner)]
     TapretKey(TapretKeyError),
 
     #[from]
@@ -228,4 +224,8 @@ pub enum CompletionError {
     #[from(StockErrorMem<FasciaError>)]
     #[display(inner)]
     Stock(String),
+}
+
+impl From<Infallible> for CompletionError {
+    fn from(_: Infallible) -> Self { unreachable!() }
 }
