@@ -185,7 +185,7 @@ where Self::Descr: DescriptorRgb<K>
                     .collect();
                 state.sort_by_key(|(sum, _, _)| *sum);
                 let mut sum = Amount::ZERO;
-                state
+                let selection = state
                     .iter()
                     .rev()
                     .take_while(|(val, _, _)| {
@@ -197,7 +197,12 @@ where Self::Descr: DescriptorRgb<K>
                         }
                     })
                     .map(|(_, seal, _)| *seal)
-                    .collect::<BTreeSet<_>>()
+                    .collect::<BTreeSet<_>>();
+                if sum < amount {
+                    bset![]
+                } else {
+                    selection
+                }
             }
             InvoiceState::Data(NonFungible::RGB21(allocation)) => {
                 let data_state = DataState::from(allocation);
@@ -218,6 +223,9 @@ where Self::Descr: DescriptorRgb<K>
                 )]
             }
         };
+        if prev_outputs.is_empty() {
+            return Err(CompositionError::InsufficientState);
+        }
         let prev_outpoints = prev_outputs
             .iter()
             // TODO: Support liquid
