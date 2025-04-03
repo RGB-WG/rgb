@@ -29,7 +29,7 @@ use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::CloseMethod;
 pub use bpstd::psbt::*;
 pub use rgb::*;
-use rgbstd::containers::{AnchorSet, Batch, Fascia, PubWitness};
+use rgbstd::containers::{Batch, Fascia, PubWitness, SealWitness};
 
 pub use self::rgb::{
     Opids, ProprietaryKeyRgb, RgbExt, RgbInExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
@@ -98,15 +98,19 @@ impl RgbPsbt for Psbt {
         let close_method = self
             .rgb_close_method()?
             .ok_or(RgbPsbtError::NoCloseMethod)?;
-        let anchor = match close_method {
-            CloseMethod::TapretFirst => AnchorSet::Tapret(self.dbc_commit::<TapretProof>()?),
-            CloseMethod::OpretFirst => AnchorSet::Opret(self.dbc_commit::<OpretProof>()?),
+        let (merkle_block, dbc_proof) = match close_method {
+            CloseMethod::TapretFirst => self
+                .dbc_commit::<TapretProof>()
+                .map(|(mb, proof)| (mb, proof.into()))?,
+            CloseMethod::OpretFirst => self
+                .dbc_commit::<OpretProof>()
+                .map(|(mb, proof)| (mb, proof.into()))?,
         };
         // TODO: Use signed transaction here!
         let witness = PubWitness::with(self.to_unsigned_tx().into());
+        let seal_witness = SealWitness::new(witness, merkle_block, dbc_proof);
         Ok(Fascia {
-            witness,
-            anchor,
+            seal_witness,
             bundles,
         })
     }

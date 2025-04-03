@@ -25,6 +25,7 @@ use std::marker::PhantomData;
 
 use amplify::confinement::{Confined, U24};
 use bp::dbc::tapret::{TapretCommitment, TapretProof};
+use bp::dbc::Proof;
 use bp::seals::txout::{CloseMethod, ExplicitSeal};
 use bp::secp256k1::rand;
 use bp::{Outpoint, Sats, ScriptPubkey, Tx, Vout};
@@ -36,9 +37,7 @@ use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbExt, RgbPsbt, TapretKeyError,
     TxParams,
 };
-use rgbstd::containers::{
-    AnchorSet, Batch, BuilderSeal, IndexedConsignment, Transfer, TransitionInfo,
-};
+use rgbstd::containers::{Batch, BuilderSeal, IndexedConsignment, Transfer, TransitionInfo};
 use rgbstd::contract::{AssignmentsFilter, BuilderError};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{
@@ -528,7 +527,7 @@ where Self::Descr: DescriptorRgb<K>
         };
 
         let fascia = psbt.rgb_commit()?;
-        if matches!(fascia.anchor, AnchorSet::Tapret(_)) {
+        if matches!(fascia.seal_witness.dbc_proof.method(), CloseMethod::TapretFirst) {
             // save tweak only if tapret commitment is on the bitcoin change
             if psbt.rgb_tapret_host_on_change() {
                 let output = psbt
@@ -622,7 +621,7 @@ impl<K, D: DescriptorRgb<K>, L2: Layer2> WalletProvider<K, L2> for Wallet<K, D, 
             .iter()
             .find(|bw| bw.witness_id() == *txid)
             .and_then(|bw| {
-                let bundle_id = bw.anchored_bundle.bundle().bundle_id();
+                let bundle_id = bw.bundle().bundle_id();
                 let (_, anchor) = indexed_consignment.anchor(bundle_id).unwrap();
                 if let DbcProof::Tapret(tapret) = anchor.dbc_proof.clone() {
                     let commitment = anchor
