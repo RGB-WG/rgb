@@ -97,7 +97,7 @@ pub enum WalletError {
     #[display(inner)]
     Stock(String),
 
-    #[cfg(feature = "serde_yaml")]
+    #[cfg(feature = "cli")]
     #[from]
     Yaml(serde_yaml::Error),
 
