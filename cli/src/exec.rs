@@ -196,15 +196,20 @@ impl Args {
                             println!("global: # no known global state is defined by the contract");
                         } else {
                             println!(
-                                "global: {:<16}\t{:<32}\t{:<32}\taddress",
-                                "state name", "verified state", "unverified state"
+                                "global: {:<16}\t{:<12}\t{:<32}\t{:<32}\taddress",
+                                "state name", "conf. height", "verified state", "unverified state"
                             );
                         }
                         for (name, map) in &state.immutable {
-                            for (addr, atom) in map {
+                            for (addr, state) in map {
                                 print!("\t{:<16}", name.as_str());
-                                print!("\t{:<32}", atom.verified.to_string());
-                                if let Some(unverified) = &atom.unverified {
+                                let status = state
+                                    .since
+                                    .map(|s| s.to_string())
+                                    .unwrap_or(s!("unconfirmed"));
+                                print!("\t{:<12}", status);
+                                print!("\t{:<32}", state.data.verified);
+                                if let Some(unverified) = &state.data.unverified {
                                     print!("\t{unverified:<32}");
                                 } else {
                                     print!("\t{:<32}", "~")
@@ -232,16 +237,21 @@ impl Args {
                             println!("owned:  # no known owned state is defined by the contract");
                         } else {
                             println!(
-                                "owned:  {:<16}\t{:<32}\t{:<46}\toutpoint",
-                                "state name", "value", "address"
+                                "owned:  {:<16}\t{:<12}\t{:<32}\t{:<46}\toutpoint",
+                                "state name", "conf. height", "value", "address"
                             );
                         }
                         for (name, map) in &state.owned {
-                            for (addr, assignment) in map {
+                            for (addr, state) in map {
                                 print!("\t{:<16}", name.as_str());
-                                print!("\t{:<32}", assignment.data.to_string());
+                                let status = state
+                                    .since
+                                    .map(|s| s.to_string())
+                                    .unwrap_or(s!("unconfirmed"));
+                                print!("\t{:<12}", status);
+                                print!("\t{:<32}", state.assignment.data);
                                 print!("\t{addr:<46}");
-                                println!("\t{}", assignment.seal);
+                                println!("\t{}", state.assignment.seal);
                             }
                         }
                     }

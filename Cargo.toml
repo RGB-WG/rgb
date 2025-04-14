@@ -27,7 +27,7 @@ bp-wallet = { version = "=0.12.0-beta.5" }
 rgb-std = { version = "=0.12.0-beta.5" }
 rgb-runtime = { version = "=0.12.0-beta.5", path = "." }
 rgb-psbt = { version = "=0.12.0-beta.5", path = "psbt" }
-indexmap = "2.7.0"
+indexmap = "2.9.0"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
@@ -93,3 +93,15 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+aora = { git = "https://github.com/rust-amplify/aora", branch = "refactor" }
+aluvm = { git = "https://github.com/AluVM/aluvm", branch = "master" }
+zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "master" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "rollback" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "rollback" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "rollback" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "feat/rollback" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "feat/rollback" }

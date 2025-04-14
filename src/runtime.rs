@@ -25,7 +25,7 @@
 use std::ops::{Deref, DerefMut};
 
 use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
-use bpstd::seals::{TxoSeal, WTxoSeal};
+use bpstd::seals::TxoSeal;
 use bpstd::{Psbt, Sats};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
@@ -37,31 +37,25 @@ use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
 
-pub struct RgbRuntime<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>>(
+pub struct RgbRuntime<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>>(
     Barrow<RgbWallet, S, P, X>,
 );
 
-impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>>
-    From<Barrow<RgbWallet, S, P, X>> for RgbRuntime<S, P, X>
+impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> From<Barrow<RgbWallet, S, P, X>>
+    for RgbRuntime<S, P, X>
 {
     fn from(barrow: Barrow<RgbWallet, S, P, X>) -> Self { Self(barrow) }
 }
 
-impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>> Deref
-    for RgbRuntime<S, P, X>
-{
+impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> Deref for RgbRuntime<S, P, X> {
     type Target = Barrow<RgbWallet, S, P, X>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>> DerefMut
-    for RgbRuntime<S, P, X>
-{
+impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRuntime<S, P, X> {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<S: Supply, P: Pile<SealDef = WTxoSeal, SealSrc = TxoSeal>, X: Excavate<S, P>>
-    RgbRuntime<S, P, X>
-{
+impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
     /// Pay an invoice producing PSBT ready to be signed.
     ///
     /// Should not be used in multi-party protocols like coinjoins, when a PSBT may needs to be
@@ -193,7 +187,7 @@ pub mod file {
 
     use super::*;
 
-    pub type RgbDirRuntime = RgbRuntime<FileSupply, FilePile<WTxoSeal>, DirExcavator<WTxoSeal>>;
+    pub type RgbDirRuntime = RgbRuntime<FileSupply, FilePile<TxoSeal>, DirExcavator<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;
