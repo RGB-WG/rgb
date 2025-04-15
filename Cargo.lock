@@ -357,11 +357,10 @@ dependencies = [
 [[package]]
 name = "bp-electrum"
 version = "0.12.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67f35e140915b2510f80d047a1da65a95cb628a5cabaf61dbb6604a12943b2c2"
+source = "git+https://github.com/BP-WG/bp-electrum-client?branch=v0.12#4d433e1acb52832098bcf70cfe1483e041b1cca5"
 dependencies = [
  "amplify",
- "bp-std",
+ "bp-core",
  "byteorder",
  "libc",
  "log",
@@ -441,8 +440,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.12.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15c370fa0777c3a9243ad517e003290d4151a03f1981be565fdcfa13c897f2c5"
+source = "git+https://github.com/BP-WG/bp-wallet?branch=v0.12#063228ac8675152526b725b0c60345adf98fd0f7"
 dependencies = [
  "amplify",
  "base64",
@@ -1088,9 +1086,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.171"
+version = "0.2.172"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c19937216e9d3aa9956d9bb8dfc0b0c8beb6058fc4f7a4dc4d850edf86a237d6"
+checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
 name = "libloading"
@@ -1412,7 +1410,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/rollback#1dd1dfcc9cd5c6aa1beaec93087092a61b3caf34"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/rollback#c69aab632cd3a3f34386f27b3478929ee4d2ac90"
 dependencies = [
  "amplify",
  "baid64",
@@ -1441,6 +1439,7 @@ name = "rgb-runtime"
 version = "0.12.0-beta.5"
 dependencies = [
  "amplify",
+ "aora",
  "bp-std",
  "bp-wallet",
  "commit_verify",
@@ -1461,7 +1460,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/rollback#1dd1dfcc9cd5c6aa1beaec93087092a61b3caf34"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/rollback#c69aab632cd3a3f34386f27b3478929ee4d2ac90"
 dependencies = [
  "amplify",
  "aora",

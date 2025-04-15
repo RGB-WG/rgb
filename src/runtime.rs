@@ -22,20 +22,34 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::collections::{HashMap, HashSet};
+use std::error::Error;
 use std::ops::{Deref, DerefMut};
 
+use aora::{AoraIndex, AuraMap};
 use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
 use bpstd::seals::TxoSeal;
 use bpstd::{Psbt, Sats};
+use bpwallet::{Indexer, TxStatus};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
 };
-use rgb::{AuthToken, ContractId, Excavate, Pile, RgbSealDef, Supply};
+use rgb::{AcceptError, AuthToken, ContractId, Excavate, Pile, RgbSealDef, Supply, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
+
+#[derive(Clone, Debug, Display, Error, From)]
+#[display(inner)]
+pub enum SyncError<E: Error> {
+    #[display("unable to retrieve wallet updates: {_0:?}")]
+    Update(Vec<E>),
+    Status(E),
+    #[from]
+    Forward(AcceptError),
+}
 
 pub struct RgbRuntime<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>>(
     Barrow<RgbWallet, S, P, X>,
@@ -56,6 +70,50 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRunt
 }
 
 impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
+    pub fn sync<I>(&mut self, indexer: &I) -> Result<(), SyncError<I::Error>>
+    where
+        I: Indexer,
+        I::Error: Error,
+    {
+        if let Some(err) = self.wallet.update(indexer).err {
+            return Err(SyncError::Update(err));
+        }
+
+        for (_, contract) in self.mound.contracts_mut() {
+            let mut archived_opids = HashSet::new();
+            let mut restored_opids = HashSet::new();
+            let mut updates = HashMap::new();
+            for txid in contract.pile().mine().keys() {
+                let status = indexer.status(txid).map_err(SyncError::Status)?;
+                let status = match status {
+                    TxStatus::Unknown => WitnessStatus::Archived,
+                    TxStatus::Mempool => WitnessStatus::Tentative,
+                    TxStatus::Channel => WitnessStatus::Offchain,
+                    TxStatus::Mined(status) => WitnessStatus::Mined(status.height.into()),
+                };
+                let prev_status = contract.pile().mine().get_expect(txid);
+                if status != prev_status {
+                    let affected_opids = contract.pile().stand().get(txid);
+                    if status.is_valid() != prev_status.is_valid() {
+                        if status.is_valid() {
+                            restored_opids.extend(affected_opids);
+                        } else {
+                            archived_opids.extend(affected_opids);
+                        }
+                    }
+                    updates.insert(txid, status);
+                }
+            }
+            for (txid, status) in updates {
+                contract.pile_mut().mine_mut().update_only(txid, status);
+            }
+            contract.stock_mut().rollback(archived_opids);
+            contract.stock_mut().forward(restored_opids)?;
+        }
+
+        Ok(())
+    }
+
     /// Pay an invoice producing PSBT ready to be signed.
     ///
     /// Should not be used in multi-party protocols like coinjoins, when a PSBT may needs to be

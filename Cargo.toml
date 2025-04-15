@@ -16,6 +16,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 amplify = "4.8.0"
 nonasync = "0.1.2"
+aora = "0.2.0"
 strict_encoding = "2.8.1"
 strict_types = "2.8.2"
 commit_verify = "=0.12.0-beta.5"
@@ -52,6 +53,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amplify = { workspace = true }
+aora = { workspace = true }
 commit_verify = { workspace = true }
 strict_types = { workspace = true }
 nonasync = { workspace = true }
@@ -102,6 +104,8 @@ ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
 sonic-api = { git = "https://github.com/AluVM/sonic", branch = "rollback" }
 sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "rollback" }
 hypersonic = { git = "https://github.com/AluVM/sonic", branch = "rollback" }
+bp-electrum = { git = "https://github.com/BP-WG/bp-electrum-client", branch = "v0.12" }
+bp-wallet = { git = "https://github.com/BP-WG/bp-wallet", branch = "v0.12" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
 rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "feat/rollback" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "feat/rollback" }

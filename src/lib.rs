@@ -40,5 +40,5 @@ mod runtime;
 pub use coinselect::CoinselectStrategy;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbDirRuntime, Transfer};
-pub use runtime::{PayError, RgbRuntime, TransferError};
+pub use runtime::{PayError, RgbRuntime, SyncError, TransferError};
 pub use wallet::RgbWallet;
