@@ -46,10 +46,10 @@ fn main() -> anyhow::Result<()> {
             Some(s.to_string())
         } else if let Some(s) = info.payload().downcast_ref::<String>() {
             Some(s.clone())
-        } else if let Some(s) = info.payload().downcast_ref::<&dyn Display>() {
-            Some(s.to_string())
         } else {
-            None
+            info.payload()
+                .downcast_ref::<&dyn Display>()
+                .map(ToString::to_string)
         };
         if let Some(error) = payload {
             eprintln!("Abnormal program termination through panic.");

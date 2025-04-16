@@ -147,8 +147,9 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "aora"
-version = "0.2.0"
-source = "git+https://github.com/rust-amplify/aora?branch=refactor#db531516b223be6dae4cf4ca0d16f75e5ae63309"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99685e2af1fbf0119d59a1085f2e8c05ef658929c80f442065c20309f2455f84"
 dependencies = [
  "indexmap 2.9.0",
  "strict_encoding",
@@ -939,7 +940,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=rollback#7035bc4c78f21eb8088a81bdf35658a7a65ff2f9"
+source = "git+https://github.com/AluVM/sonic?branch=master#e590ec14f7971fa898c53ab366b4e25f5ed2ed7a"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1410,7 +1411,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/rollback#c69aab632cd3a3f34386f27b3478929ee4d2ac90"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#887a16b87805001bef4c6e99a949135dc893c92a"
 dependencies = [
  "amplify",
  "baid64",
@@ -1460,7 +1461,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=feat/rollback#c69aab632cd3a3f34386f27b3478929ee4d2ac90"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#887a16b87805001bef4c6e99a949135dc893c92a"
 dependencies = [
  "amplify",
  "aora",
@@ -1771,7 +1772,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=rollback#7035bc4c78f21eb8088a81bdf35658a7a65ff2f9"
+source = "git+https://github.com/AluVM/sonic?branch=master#e590ec14f7971fa898c53ab366b4e25f5ed2ed7a"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1790,7 +1791,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=rollback#7035bc4c78f21eb8088a81bdf35658a7a65ff2f9"
+source = "git+https://github.com/AluVM/sonic?branch=master#e590ec14f7971fa898c53ab366b4e25f5ed2ed7a"
 dependencies = [
  "amplify",
  "baid64",
