@@ -128,7 +128,10 @@ impl Args {
         let mut runtime = RgbDirRuntime::from(DirBarrow::with(wallet, self.mound()));
         if opts.sync {
             eprint!("Synchronizing wallet:");
-            runtime.wallet.update(&self.indexer(&opts.resolver));
+            let indexer = self.indexer(&opts.resolver);
+            runtime
+                .sync(&indexer)
+                .expect("Unable to synchronize wallet");
             eprintln!(" done");
         }
         runtime

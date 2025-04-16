@@ -41,9 +41,9 @@ impl RgbPsbt for Psbt {
                     .insert_output(0, ScriptPubkey::op_return(&[]), Sats::ZERO)
                     .map_err(|_| RgbPsbtPrepareError::Unfinalizable)?;
                 host.set_opret_host().ok();
-                change_vout
-                    .as_mut()
-                    .map(|vout| *vout = Vout::from_u32(vout.to_u32() + 1));
+                if let Some(vout) = change_vout.as_mut() {
+                    *vout = Vout::from_u32(vout.to_u32() + 1)
+                }
             }
             1 => {}
             _ => return Err(RgbPsbtPrepareError::MultipleHosts),
