@@ -21,11 +21,11 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.7.0"
+amplify = "4.8.0"
 nonasync = { version = "0.1.2", features = ["log"] }
-baid64 = "0.2.2"
-strict_encoding = "2.7.0"
-strict_types = "2.7.2"
+baid64 = "0.4.1"
+strict_encoding = "2.8.2"
+strict_types = "2.8.3"
 commit_verify = "0.11.0-beta.9"
 bp-core = "0.11.1-alpha.1"
 bp-std = { version = "0.11.1-alpha.1", features = ["client-side-validation"] }
@@ -75,8 +75,8 @@ log = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
-rand = { version = "0.8.4", optional = true }
-getrandom = { version = "0.2", features = ["js"] }
+rand = { version = "0.9.1", optional = true }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"
