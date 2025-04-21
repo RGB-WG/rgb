@@ -147,8 +147,9 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "aora"
-version = "0.4.0"
-source = "git+https://github.com/rust-amplify/aora?branch=master#1217885510d7f882d949d8832152684a0d70a744"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f417b4ec737fc4fccd74537f2b55c4acd0f6e7209d14e96615a35170c32dfe4"
 dependencies = [
  "amplify",
  "binfile",
@@ -945,7 +946,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=master#530d3cd06997210ac55619d424fc4640546e8adf"
+source = "git+https://github.com/AluVM/sonic?branch=master#14beaec3c39ebd00dac11c2f81415f6f2623dbd2"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1415,7 +1416,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#c79628de30330b20ff793eb9272a227a09b71cd5"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#3fd3167464f4fce200213ac3882fa218e3bd7a03"
 dependencies = [
  "amplify",
  "baid64",
@@ -1464,7 +1465,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#c79628de30330b20ff793eb9272a227a09b71cd5"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#3fd3167464f4fce200213ac3882fa218e3bd7a03"
 dependencies = [
  "amplify",
  "aora",
@@ -1775,7 +1776,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=master#530d3cd06997210ac55619d424fc4640546e8adf"
+source = "git+https://github.com/AluVM/sonic?branch=master#14beaec3c39ebd00dac11c2f81415f6f2623dbd2"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1794,7 +1795,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=master#530d3cd06997210ac55619d424fc4640546e8adf"
+source = "git+https://github.com/AluVM/sonic?branch=master#14beaec3c39ebd00dac11c2f81415f6f2623dbd2"
 dependencies = [
  "amplify",
  "baid64",
