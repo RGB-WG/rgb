@@ -190,7 +190,7 @@ impl Args {
                 };
                 for (contract_id, state) in state {
                     let contract = runtime.mound.contract(contract_id);
-                    println!("{contract_id}\t{}", contract.stock().articles().contract.meta.name);
+                    println!("{contract_id}\t{}", contract.articles().issue.meta.name);
                     if *global {
                         if state.immutable.is_empty() {
                             println!("global: # no known global state is defined by the contract");

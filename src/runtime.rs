@@ -26,7 +26,6 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::ops::{Deref, DerefMut};
 
-use aora::{AoraIndex, AuraMap};
 use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
 use bpstd::seals::TxoSeal;
 use bpstd::{Psbt, Sats};
@@ -35,41 +34,44 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     Barrow, BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
 };
-use rgb::{AcceptError, AuthToken, ContractId, Excavate, Pile, RgbSealDef, Supply, WitnessStatus};
+use rgb::{AcceptError, AuthToken, ContractId, Excavate, Pile, RgbSealDef, Stock, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
+use strict_types::SerializeError;
 
 use crate::wallet::RgbWallet;
 use crate::CoinselectStrategy;
 
-#[derive(Clone, Debug, Display, Error, From)]
+#[derive(Debug, Display, Error, From)]
 #[display(inner)]
 pub enum SyncError<E: Error> {
     #[display("unable to retrieve wallet updates: {_0:?}")]
     Update(Vec<E>),
     Status(E),
     #[from]
+    Rollback(SerializeError),
+    #[from]
     Forward(AcceptError),
 }
 
-pub struct RgbRuntime<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>>(
+pub struct RgbRuntime<S: Stock, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>>(
     Barrow<RgbWallet, S, P, X>,
 );
 
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> From<Barrow<RgbWallet, S, P, X>>
+impl<S: Stock, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> From<Barrow<RgbWallet, S, P, X>>
     for RgbRuntime<S, P, X>
 {
     fn from(barrow: Barrow<RgbWallet, S, P, X>) -> Self { Self(barrow) }
 }
 
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> Deref for RgbRuntime<S, P, X> {
+impl<S: Stock, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> Deref for RgbRuntime<S, P, X> {
     type Target = Barrow<RgbWallet, S, P, X>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRuntime<S, P, X> {
+impl<S: Stock, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> DerefMut for RgbRuntime<S, P, X> {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
+impl<S: Stock, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> {
     pub fn sync<I>(&mut self, indexer: &I) -> Result<(), SyncError<I::Error>>
     where
         I: Indexer,
@@ -83,7 +85,8 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
             let mut archived_opids = HashSet::new();
             let mut restored_opids = HashSet::new();
             let mut updates = HashMap::new();
-            for txid in contract.pile().mine().keys() {
+            for witness in contract.pile().witnesses() {
+                let txid = witness.id;
                 let status = indexer.status(txid).map_err(SyncError::Status)?;
                 let status = match status {
                     TxStatus::Unknown => WitnessStatus::Archived,
@@ -91,24 +94,23 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
                     TxStatus::Channel => WitnessStatus::Offchain,
                     TxStatus::Mined(status) => WitnessStatus::Mined(status.height.into()),
                 };
-                let prev_status = contract.pile().mine().get_expect(txid);
+                let prev_status = witness.status;
                 if status != prev_status {
-                    let affected_opids = contract.pile().stand().get(txid);
                     if status.is_valid() != prev_status.is_valid() {
                         if status.is_valid() {
-                            restored_opids.extend(affected_opids);
+                            restored_opids.extend(witness.opids);
                         } else {
-                            archived_opids.extend(affected_opids);
+                            archived_opids.extend(witness.opids);
                         }
                     }
                     updates.insert(txid, status);
                 }
             }
             for (txid, status) in updates {
-                contract.pile_mut().mine_mut().update_only(txid, status);
+                contract.pile_mut().update_witness_status(txid, status);
             }
-            contract.stock_mut().rollback(archived_opids);
-            contract.stock_mut().forward(restored_opids)?;
+            contract.ledger_mut().rollback(archived_opids)?;
+            contract.ledger_mut().forward(restored_opids)?;
         }
 
         Ok(())
@@ -206,7 +208,7 @@ impl<S: Supply, P: Pile<Seal = TxoSeal>, X: Excavate<S, P>> RgbRuntime<S, P, X> 
     }
 }
 
-#[derive(Clone, Debug, Display, Error, From)]
+#[derive(Debug, Display, Error, From)]
 #[display(inner)]
 pub enum PayError {
     #[from]
@@ -215,7 +217,7 @@ pub enum PayError {
     Transfer(TransferError),
 }
 
-#[derive(Clone, Debug, Display, Error, From)]
+#[derive(Debug, Display, Error, From)]
 #[display(inner)]
 pub enum TransferError {
     #[from]
@@ -241,11 +243,13 @@ pub enum TransferError {
 pub mod file {
     use std::io;
 
-    use rgb::{DirExcavator, FilePile, FileSupply};
+    use rgb::persistance::StockFs;
+    use rgb::providers::PileFs;
+    use rgb::DirExcavator;
 
     use super::*;
 
-    pub type RgbDirRuntime = RgbRuntime<FileSupply, FilePile<TxoSeal>, DirExcavator<TxoSeal>>;
+    pub type RgbDirRuntime = RgbRuntime<StockFs, PileFs<TxoSeal>, DirExcavator<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;
