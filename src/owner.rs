@@ -39,9 +39,9 @@ use crate::descriptor::RgbDescr;
 #[derive(Wrapper, WrapperMut, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
-pub struct RgbWallet(pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, NoLayer2>);
+pub struct Owner(pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, NoLayer2>);
 
-impl WalletProvider for RgbWallet {
+impl WalletProvider for Owner {
     fn noise_seed(&self) -> Bytes32 { self.noise() }
 
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
@@ -77,7 +77,7 @@ impl WalletProvider for RgbWallet {
     }
 }
 
-impl RgbWallet {
+impl Owner {
     pub fn create<P>(
         provider: P,
         descr: RgbDescr<XpubDerivable>,
@@ -104,7 +104,7 @@ impl RgbWallet {
             + PersistenceProvider<WalletCache<Layer2Empty>>
             + PersistenceProvider<NoLayer2>
             + 'static {
-        Wallet::load(provider, autosave).map(RgbWallet)
+        Wallet::load(provider, autosave).map(Owner)
     }
 
     pub fn compose_psbt(

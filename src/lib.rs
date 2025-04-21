@@ -33,12 +33,12 @@ extern crate amplify;
 extern crate serde;
 
 pub mod descriptor;
-mod wallet;
+mod owner;
 mod coinselect;
 mod runtime;
 
 pub use coinselect::CoinselectStrategy;
+pub use owner::Owner;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbDirRuntime, Transfer};
 pub use runtime::{PayError, RgbRuntime, SyncError, TransferError};
-pub use wallet::RgbWallet;

@@ -28,11 +28,13 @@ use std::process::exit;
 
 use bpwallet::cli::ResolverOpt;
 use bpwallet::fs::FsTextStore;
+use bpwallet::seals::TxoSeal;
 use bpwallet::{AnyIndexer, Network};
 use clap::ValueHint;
-use rgb::popls::bp::file::{BpDirMound, DirBarrow};
-use rgb::Consensus;
-use rgbp::{RgbDirRuntime, RgbWallet};
+use rgb::persistance::StockFs;
+use rgb::popls::bp::RgbWallet;
+use rgb::{Consensus, ContractsInmem, PileFs};
+use rgbp::{Owner, RgbDirRuntime};
 
 use crate::cmd::Cmd;
 use crate::opts::WalletOpts;
@@ -97,14 +99,18 @@ impl Args {
         }
     }
 
-    pub fn mound(&self) -> BpDirMound {
+    pub fn contracts(&self) -> ContractsInmem<StockFs, PileFs<TxoSeal>> {
         if self.init {
             let _ = fs::create_dir_all(self.data_dir());
         }
         if !self.network.is_testnet() {
             panic!("Non-testnet networks are not yet supported");
         }
-        BpDirMound::load_testnet(Consensus::Bitcoin, &self.data_dir, self.no_network_prefix)
+        ContractsInmem::with_testnet_dir(
+            Consensus::Bitcoin,
+            self.data_dir.clone(),
+            self.no_network_prefix,
+        )
     }
 
     fn wallet_dir(&self, name: Option<&str>) -> PathBuf {
@@ -119,13 +125,13 @@ impl Args {
 
     pub fn runtime(&self, opts: &WalletOpts) -> RgbDirRuntime {
         let provider = self.wallet_provider(opts.wallet.as_deref());
-        let wallet = RgbWallet::load(provider, true).unwrap_or_else(|_| {
+        let wallet = Owner::load(provider, true).unwrap_or_else(|_| {
             panic!(
                 "Error: unable to load wallet from path `{}`",
                 self.wallet_dir(opts.wallet.as_deref()).display()
             )
         });
-        let mut runtime = RgbDirRuntime::from(DirBarrow::with(wallet, self.mound()));
+        let mut runtime = RgbDirRuntime::from(RgbWallet::with(wallet, self.contracts()));
         if opts.sync {
             eprint!("Synchronizing wallet:");
             let indexer = self.indexer(&opts.resolver);

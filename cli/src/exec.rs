@@ -30,9 +30,9 @@ use bpwallet::psbt::{PsbtConstructor, TxParams};
 use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
-use rgb::{CallScope, CreateParams};
+use rgb::{CallScope, ContractsApi, CreateParams};
 use rgbp::descriptor::RgbDescr;
-use rgbp::RgbWallet;
+use rgbp::Owner;
 use strict_encoding::{StrictDeserialize, StrictSerialize};
 use strict_types::StrictVal;
 
@@ -90,7 +90,7 @@ impl Args {
                          `--tapret-key-only` or `--wpkh`"
                     ),
                 };
-                RgbWallet::create(provider, descr, self.network, true)
+                Owner::create(provider, descr, self.network, true)
                     .expect("Unable to create wallet");
             }
 
@@ -117,8 +117,8 @@ impl Args {
             // =====================================================================================
             // II. Contract management
             Cmd::Contracts => {
-                let mound = self.mound();
-                for info in mound.contracts_info() {
+                let contracts = self.contracts();
+                for info in contracts.contracts_info() {
                     println!("---");
                     println!(
                         "{}",
@@ -134,7 +134,7 @@ impl Args {
                 );
                 println!();
                 println!("{:<32}\t{:<64}\tDeveloper", "Name", "ID");
-                for (codex_id, schema) in self.mound().schemata() {
+                for (codex_id, schema) in self.contracts().schemata() {
                     println!("{:<32}\t{codex_id}\t{}", schema.codex.name, schema.codex.developer);
                 }
             }
@@ -142,23 +142,23 @@ impl Args {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let file = File::open(params).context("Unable to open parameters file")?;
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
-                let contract_id = runtime.issue_to_file(params)?;
+                let contract_id = runtime.issue_to_dir(params, self.data_dir())?;
                 println!("A new contract issued with ID {contract_id}");
             }
 
             Cmd::Purge { force, contract } => {
                 todo!();
-                //self.mound().purge(contract)
+                //self.contracts().purge(contract)
             }
 
             Cmd::Import { articles } => {
                 todo!();
-                //self.mound().import_file(articles)
+                //self.contracts().import_file(articles)
             }
 
             Cmd::Export { contract, file } => {
                 todo!();
-                //self.mound().export_file(contract, file)
+                //self.contracts().export_file(contract, file)
             }
 
             Cmd::Backup { file } => {
@@ -178,19 +178,24 @@ impl Args {
                     .as_ref()
                     .map(|r| {
                         runtime
-                            .mound
+                            .contracts
                             .find_contract_id(r.clone())
                             .ok_or(anyhow::anyhow!("unknown contract '{r}'"))
                     })
                     .transpose()?;
-                let state = if *all {
-                    runtime.state_all(contract_id).collect::<Vec<_>>()
+                let contract_ids = if let Some(contract_id) = contract_id {
+                    set![contract_id]
                 } else {
-                    runtime.state_own(contract_id).collect()
+                    runtime.contracts.contract_ids().collect()
                 };
-                for (contract_id, state) in state {
-                    let contract = runtime.mound.contract(contract_id);
-                    println!("{contract_id}\t{}", contract.articles().issue.meta.name);
+                for contract_id in contract_ids {
+                    let state = if *all {
+                        runtime.state_all(contract_id).map(|seal| seal.primary)
+                    } else {
+                        runtime.state_own(contract_id)
+                    };
+                    let articles = runtime.contracts.contract_articles(contract_id);
+                    println!("{contract_id}\t{}", articles.issue.meta.name);
                     if *global {
                         if state.immutable.is_empty() {
                             println!("global: # no known global state is defined by the contract");
@@ -287,7 +292,7 @@ impl Args {
 
                 let contract_id = if let Some(contract) = contract {
                     let id = runtime
-                        .mound
+                        .contracts
                         .find_contract_id(contract.clone())
                         .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
                     CallScope::ContractId(id)
@@ -340,7 +345,7 @@ impl Args {
                     println!("{psbt}");
                 }
                 runtime
-                    .mound
+                    .contracts
                     .consign_to_file(invoice.scope, [terminal], consignment)
                     .context("Unable to consign contract")?;
             }
@@ -402,11 +407,11 @@ impl Args {
             }
 
             Cmd::Consign { contract, terminals, output } => {
-                let mut mound = self.mound();
-                let contract_id = mound
+                let mut contracts = self.contracts();
+                let contract_id = contracts
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
-                mound
+                contracts
                     .consign_to_file(contract_id, terminals, output)
                     .context("Unable to consign contract")?;
             }
@@ -457,7 +462,9 @@ impl Args {
 
             Cmd::Accept { wallet, input } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                runtime.consume_from_file(input)?;
+                runtime
+                    .consume_from_file(input)
+                    .map_err(|e| anyhow::anyhow!(e.to_string()))?;
             }
         }
         Ok(())

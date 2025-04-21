@@ -147,15 +147,14 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "aora"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f417b4ec737fc4fccd74537f2b55c4acd0f6e7209d14e96615a35170c32dfe4"
+checksum = "ae8bb4d06f16e0ac1265d8c342535221ffad05363511c46252c1c825080c50a6"
 dependencies = [
  "amplify",
  "binfile",
  "getrandom 0.2.15",
  "indexmap 2.9.0",
- "log",
  "strict_encoding",
  "wasm-bindgen",
 ]
@@ -193,9 +192,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ddeb19ee86cb16ecfc871e5b0660aff6285760957aaedda6284cf0e790d3769"
+checksum = "bfa9b6986f250236c27e5a204062434a773a13243d2ffc2955f37bdba4c5c6a1"
 dependencies = [
  "bindgen",
  "cc",
@@ -309,7 +308,7 @@ checksum = "3eeab4423108c5d7c744f4d234de88d18d636100093ae04caf4825134b9c3a32"
 [[package]]
 name = "bp-consensus"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#361209f7e9273064b2ae7b6270f28856d0be569d"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#f1fbfbc6e80360e636287d815839c040449c942c"
 dependencies = [
  "amplify",
  "chrono",
@@ -322,7 +321,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#361209f7e9273064b2ae7b6270f28856d0be569d"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#f1fbfbc6e80360e636287d815839c040449c942c"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -339,7 +338,7 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#361209f7e9273064b2ae7b6270f28856d0be569d"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#f1fbfbc6e80360e636287d815839c040449c942c"
 dependencies = [
  "amplify",
  "base85",
@@ -414,7 +413,7 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#361209f7e9273064b2ae7b6270f28856d0be569d"
+source = "git+https://github.com/BP-WG/bp-core?branch=v0.12#f1fbfbc6e80360e636287d815839c040449c942c"
 dependencies = [
  "amplify",
  "baid64",
@@ -1416,7 +1415,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#3fd3167464f4fce200213ac3882fa218e3bd7a03"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#21c1a8063dfe9e51927a9e32d859daa46fc697c4"
 dependencies = [
  "amplify",
  "baid64",
@@ -1465,7 +1464,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#3fd3167464f4fce200213ac3882fa218e3bd7a03"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#21c1a8063dfe9e51927a9e32d859daa46fc697c4"
 dependencies = [
  "amplify",
  "aora",
