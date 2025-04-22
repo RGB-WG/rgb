@@ -33,7 +33,7 @@ use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, ContractsApi, CreateParams};
 use rgbp::descriptor::RgbDescr;
 use rgbp::Owner;
-use strict_encoding::{StrictDeserialize, StrictSerialize};
+use strict_encoding::{StrictDeserialize, StrictSerialize, TypeName};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -126,19 +126,41 @@ impl Args {
 
             // =====================================================================================
             // II. Contract management
-            Cmd::Contracts => {
+            Cmd::Contracts { schemata } => {
                 let contracts = self.contracts();
-                let mut count = 0usize;
+
+                if *schemata {
+                    if contracts.schemata_count() > 0 {
+                        println!("Contract issuing schemata:");
+                        println!(
+                            "{:<64}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            "Codex Id", "API Name", "Standard", "Used VM", "Developer"
+                        );
+                    } else {
+                        eprintln!("No contract issuing schemata found");
+                    }
+                    for (codex_id, schema) in contracts.schemata() {
+                        let api = &schema.default_api;
+                        println!(
+                            "{codex_id}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            api.name().expect("default API always have a name"),
+                            api.conforms().map(TypeName::to_string).unwrap_or(s!("~")),
+                            api.vm_type(),
+                            api.developer(),
+                        );
+                    }
+                    println!();
+                }
+
+                if contracts.contracts_count() == 0 {
+                    eprintln!("No contracts found");
+                }
                 for info in contracts.contracts_info() {
                     println!("---");
                     println!(
                         "{}",
                         serde_yaml::to_string(&info).context("Unable to generate YAML")?
                     );
-                    count += 1;
-                }
-                if count == 0 {
-                    eprintln!("No contracts found");
                 }
             }
 

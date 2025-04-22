@@ -63,7 +63,7 @@ pub enum Cmd {
         descriptor: String,
     },
 
-    /// Synchronize wallet with blockchain data
+    /// Synchronize with blockchain data
     Sync {
         #[clap(flatten)]
         resolver: ResolverOpt,
@@ -89,7 +89,11 @@ pub enum Cmd {
     // =====================================================================================
     // II. Contract management
     /// List contracts
-    Contracts,
+    Contracts {
+        /// Include into the list contract issuing schemata
+        #[clap(short, long)]
+        schemata: bool,
+    },
 
     /// Issue a new RGB contract
     Issue {
