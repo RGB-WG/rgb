@@ -53,7 +53,7 @@ fn main() -> anyhow::Result<()> {
         };
         if let Some(error) = payload {
             eprintln!("Abnormal program termination through panic.");
-            eprintln!("{error}");
+            eprintln!("Error: {error}");
             if let Some(location) = info.location() {
                 eprintln!("Happened in {location}");
             }

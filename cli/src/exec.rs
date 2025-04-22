@@ -42,11 +42,17 @@ use crate::opts::WalletOpts;
 
 impl Args {
     pub fn exec(&self) -> anyhow::Result<()> {
+        self.check_data_dir()?;
         match &self.command {
+            Cmd::Init => {
+                // Do nothing; directory is already initialzied in `check_data_dir`
+            }
+
             // =====================================================================================
             // I. Wallet management
             Cmd::Wallets => {
                 let data_dir = self.data_dir();
+                let mut count = 0usize;
                 for dir in data_dir
                     .read_dir()
                     .context("Unable to read data directory")?
@@ -73,7 +79,11 @@ impl Args {
                             continue;
                         };
                         println!("{wallet_name}");
+                        count += 1;
                     }
+                }
+                if count == 0 {
+                    eprintln!("No wallets found");
                 }
             }
 
@@ -118,12 +128,17 @@ impl Args {
             // II. Contract management
             Cmd::Contracts => {
                 let contracts = self.contracts();
+                let mut count = 0usize;
                 for info in contracts.contracts_info() {
                     println!("---");
                     println!(
                         "{}",
                         serde_yaml::to_string(&info).context("Unable to generate YAML")?
                     );
+                    count += 1;
+                }
+                if count == 0 {
+                    eprintln!("No contracts found");
                 }
             }
 

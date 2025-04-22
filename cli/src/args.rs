@@ -22,9 +22,9 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::fs;
 use std::path::PathBuf;
 use std::process::exit;
+use std::{fs, io};
 
 use bpwallet::cli::ResolverOpt;
 use bpwallet::fs::FsTextStore;
@@ -69,10 +69,6 @@ pub struct Args {
     )]
     pub data_dir: PathBuf,
 
-    /// Initialize data directory if it doesn't exit
-    #[clap(long, global = true)]
-    pub init: bool,
-
     /// Bitcoin network
     #[arg(short, long, global = true, default_value = "testnet4", env = RGB_NETWORK_ENV)]
     pub network: Network,
@@ -87,6 +83,29 @@ pub struct Args {
 }
 
 impl Args {
+    pub fn check_data_dir(&self) -> anyhow::Result<()> {
+        let data_dir = self.data_dir();
+        if !data_dir.is_dir() {
+            if self.command == Cmd::Init {
+                fs::create_dir_all(self.data_dir()).map_err(|e| {
+                    io::Error::new(
+                        e.kind(),
+                        format!("unable to initialize data directory at '{}'", data_dir.display()),
+                    )
+                })?;
+            } else {
+                anyhow::bail!(
+                    "data directory at '{}' is not initialized; please initialize it with `init` \
+                     command, or change the path using `--data-dir` argument",
+                    data_dir.display()
+                );
+            }
+        } else if self.command == Cmd::Init {
+            anyhow::bail!("data directory at '{}' is already initialized", data_dir.display());
+        }
+        Ok(())
+    }
+
     pub fn data_dir(&self) -> PathBuf {
         if self.no_network_prefix {
             self.data_dir.clone()
@@ -100,9 +119,6 @@ impl Args {
     }
 
     pub fn contracts(&self) -> ContractsInmem<StockFs, PileFs<TxoSeal>> {
-        if self.init {
-            let _ = fs::create_dir_all(self.data_dir());
-        }
         if !self.network.is_testnet() {
             panic!("Non-testnet networks are not yet supported");
         }

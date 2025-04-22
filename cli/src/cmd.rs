@@ -38,8 +38,11 @@ pub const RGB_COINSELECT_STRATEGY_ENV: &str = "RGB_COINSELECT_STRATEGY";
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";
 pub const RGB_PSBT_VER: &str = "RGB_PSBT_VER2";
 
-#[derive(Parser)]
+#[derive(PartialEq, Eq, Parser)]
 pub enum Cmd {
+    /// Initialize data directory if it doesn't exit
+    Init,
+
     // =====================================================================================
     // I. Wallet management
     /// List known wallets
@@ -126,6 +129,7 @@ pub enum Cmd {
         file: Option<PathBuf>,
     },
 
+    /// Back up all client-side data for all contracts
     Backup {
         /// Path for saving backup tar file
         #[clap(default_value = "rgb-backup.tar", value_hint = ValueHint::FilePath)]
