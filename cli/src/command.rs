@@ -24,7 +24,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use amplify::confinement::{SmallOrdMap, TinyOrdMap, U16 as MAX16};
+use amplify::confinement::{SmallOrdMap, U16 as MAX16};
 use baid64::DisplayBaid64;
 use bpstd::psbt::{Psbt, PsbtVer};
 use bpstd::seals::SecretSeal;
@@ -32,8 +32,7 @@ use bpstd::{Sats, Txid, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
 use rgb::containers::{
-    BuilderSeal, ConsignmentExt, ContainerVer, ContentId, ContentSigs, Contract, FileContent,
-    Transfer, UniversalFile,
+    BuilderSeal, ConsignmentExt, ContainerVer, Contract, FileContent, Transfer, UniversalFile,
 };
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::{MemContract, StashReadProvider, Stock};
@@ -864,7 +863,6 @@ impl Exec for RgbArgs {
                     version: ContainerVer,
                     transfer: bool,
                     terminals: SmallOrdMap<BundleId, SecretSeal>,
-                    signatures: TinyOrdMap<ContentId, ContentSigs>,
                 }
 
                 let content = UniversalFile::load_file(file)?;
@@ -898,7 +896,6 @@ impl Exec for RgbArgs {
                         version: consignment.version,
                         transfer: consignment.transfer,
                         terminals: consignment.terminals,
-                        signatures: consignment.signatures,
                     };
                     map.insert(s!("consignment-meta.yaml"), serde_yaml::to_string(&contract)?);
                     let path = path.as_ref().expect("required by clap");
@@ -976,7 +973,6 @@ impl Exec for RgbArgs {
                     format!("{root_dir}/stash/seal-secret.yaml"),
                     serde_yaml::to_string(stock.as_stash_provider().debug_secret_seals())?,
                 )?;
-                // TODO: Add sigs debugging
 
                 // State
                 fs::write(
