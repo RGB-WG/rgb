@@ -332,11 +332,9 @@ impl RgbExt for Psbt {
 
         let prev_transition = self.rgb_transition(opid)?;
         if let Some(ref prev_transition) = prev_transition {
-            transition = transition
-                .merge_reveal(prev_transition.clone())
-                .map_err(|err| {
-                    RgbPsbtError::UnrelatedTransitions(prev_transition.id(), opid, err)
-                })?;
+            transition.merge_reveal(prev_transition).map_err(|err| {
+                RgbPsbtError::UnrelatedTransitions(prev_transition.id(), opid, err)
+            })?;
         }
         let serialized_transition = transition
             .to_strict_serialized::<U24>()

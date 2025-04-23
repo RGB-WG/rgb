@@ -129,8 +129,6 @@ where Self::Descr: DescriptorRgb<K>
     ) -> Result<(), Infallible>;
     fn try_add_tapret_tweak(&mut self, transfer: Transfer, txid: &Txid) -> Result<(), WalletError>;
 
-    // TODO: Add method `color` to add RGB information to an already existing PSBT
-
     #[allow(clippy::result_large_err)]
     fn pay<S: StashProvider, H: StateProvider, P: IndexProvider>(
         &mut self,

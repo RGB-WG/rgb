@@ -61,8 +61,6 @@ pub enum CommitError {
 #[display(doc_comments)]
 pub enum ExtractError {}
 
-// TODO: Batch must be homomorphic by the outpoint type (chain)
-
 pub trait RgbPsbt {
     #[allow(clippy::result_large_err)]
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError>;
@@ -106,7 +104,6 @@ impl RgbPsbt for Psbt {
                 .dbc_commit::<OpretProof>()
                 .map(|(mb, proof)| (mb, proof.into()))?,
         };
-        // TODO: Use signed transaction here!
         let witness = PubWitness::with(self.to_unsigned_tx().into());
         let seal_witness = SealWitness::new(witness, merkle_block, dbc_proof);
         Ok(Fascia {
