@@ -1,7 +1,7 @@
 dump/
 *.contract/
 *.dump/
-*.issuer
+/*/**/*.issuer
 *.rgb
 *.psbt
 *.pfab

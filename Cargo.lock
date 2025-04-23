@@ -147,9 +147,9 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "aora"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "132934b6370c3d1ba78b369ad9c57753aedd8031666273072242a85d5712a135"
+checksum = "224dad22f0c757318ac61fbfbab2a77efabbe73696e6d95a13084db6c7367263"
 dependencies = [
  "amplify",
  "binfile",
@@ -1413,7 +1413,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#9f203cea9fcd46d23d3b129a7ada9227da021687"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#62055e92b4a4f3362ab64afa188e7d5a76dd7570"
 dependencies = [
  "amplify",
  "baid64",
@@ -1462,7 +1462,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#9f203cea9fcd46d23d3b129a7ada9227da021687"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#62055e92b4a4f3362ab64afa188e7d5a76dd7570"
 dependencies = [
  "amplify",
  "aora",

@@ -156,6 +156,8 @@ impl Args {
 
                 if contracts.contracts_count() == 0 {
                     eprintln!("No contracts found");
+                } else {
+                    println!("Contracts:");
                 }
                 for info in contracts.contracts_info() {
                     println!("---");

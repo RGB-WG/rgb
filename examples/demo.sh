@@ -15,7 +15,7 @@ $RGB import examples/RGB20-NFA.issuer
 rm -rf examples/data/bitcoin.testnet/DemoToken.contract
 rm -rf examples/data2/bitcoin.testnet/DemoToken.contract
 $RGB issue -w alice examples/DemoToken.yaml
-cp -r examples/data/bitcoin.testnet/DemoToken.contract examples/data2/bitcoin.testnet/
+cp -r examples/data/bitcoin.testnet/DemoToken.*.contract examples/data2/bitcoin.testnet/
 
 $RGB contracts
 $RGB state -go -w alice

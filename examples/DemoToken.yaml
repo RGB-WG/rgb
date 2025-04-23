@@ -6,10 +6,10 @@ method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
 
 global:
-  - name: name
-    verified: Demo Token
   - name: ticker
     verified: DEMO
+  - name: name
+    verified: Demo Token
   - name: precision
     verified: centiMilli
   - name: circulating
