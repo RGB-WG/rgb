@@ -116,11 +116,11 @@ pub enum Cmd {
         contract: ContractRef,
     },
 
-    /// Import contract articles
+    /// Import contract issuer schema(ta)
     Import {
-        /// Contract articles to process
+        /// File(s) to process
         #[clap(value_hint = ValueHint::FilePath)]
-        articles: PathBuf,
+        file: Vec<PathBuf>,
     },
 
     /// Export contract articles

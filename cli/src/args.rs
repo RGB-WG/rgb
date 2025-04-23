@@ -31,10 +31,9 @@ use bpwallet::fs::FsTextStore;
 use bpwallet::seals::TxoSeal;
 use bpwallet::{AnyIndexer, Network};
 use clap::ValueHint;
-use rgb::persistance::StockFs;
 use rgb::popls::bp::RgbWallet;
-use rgb::{Consensus, ContractsInmem, PileFs};
-use rgbp::{Owner, RgbDirRuntime};
+use rgb::{Consensus, Contracts, StockpileDir};
+use rgbp::{Owner, RgbpRuntimeDir};
 
 use crate::cmd::Cmd;
 use crate::opts::WalletOpts;
@@ -118,15 +117,13 @@ impl Args {
         }
     }
 
-    pub fn contracts(&self) -> ContractsInmem<StockFs, PileFs<TxoSeal>> {
+    pub fn contracts(&self) -> Contracts<StockpileDir<TxoSeal>> {
         if !self.network.is_testnet() {
             panic!("Non-testnet networks are not yet supported");
         }
-        ContractsInmem::with_testnet_dir(
-            Consensus::Bitcoin,
-            self.data_dir.clone(),
-            self.no_network_prefix,
-        )
+        let stockpile = StockpileDir::load(self.data_dir(), Consensus::Bitcoin, true)
+            .expect("Invalid contracts directory");
+        Contracts::load(stockpile)
     }
 
     fn wallet_dir(&self, name: Option<&str>) -> PathBuf {
@@ -139,7 +136,7 @@ impl Args {
         FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
     }
 
-    pub fn runtime(&self, opts: &WalletOpts) -> RgbDirRuntime {
+    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir {
         let provider = self.wallet_provider(opts.wallet.as_deref());
         let wallet = Owner::load(provider, true).unwrap_or_else(|_| {
             panic!(
@@ -147,7 +144,7 @@ impl Args {
                 self.wallet_dir(opts.wallet.as_deref()).display()
             )
         });
-        let mut runtime = RgbDirRuntime::from(RgbWallet::with(wallet, self.contracts()));
+        let mut runtime = RgbpRuntimeDir::from(RgbWallet::with(wallet, self.contracts()));
         if opts.sync {
             eprint!("Synchronizing wallet:");
             let indexer = self.indexer(&opts.resolver);

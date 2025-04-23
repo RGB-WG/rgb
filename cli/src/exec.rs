@@ -30,7 +30,7 @@ use bpwallet::psbt::{PsbtConstructor, TxParams};
 use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
-use rgb::{CallScope, ContractsApi, CreateParams};
+use rgb::{CallScope, CreateParams, Schema};
 use rgbp::descriptor::RgbDescr;
 use rgbp::Owner;
 use strict_encoding::{StrictDeserialize, StrictSerialize, TypeName};
@@ -130,23 +130,30 @@ impl Args {
                 let contracts = self.contracts();
 
                 if *schemata {
-                    if contracts.schemata_count() > 0 {
+                    if contracts.issuers_count() > 0 {
                         println!("Contract issuing schemata:");
                         println!(
-                            "{:<64}\t{:<32}\t{:<16}\t{:<8}\t{}",
-                            "Codex Id", "API Name", "Standard", "Used VM", "Developer"
+                            "{:<64}\t{:<32}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            "Codex Id",
+                            "Codex Name",
+                            "API Name",
+                            "Standard",
+                            "Used VM",
+                            "Developer"
                         );
                     } else {
                         eprintln!("No contract issuing schemata found");
                     }
-                    for (codex_id, schema) in contracts.schemata() {
-                        let api = &schema.default_api;
+                    // TODO: Print codex and API information in separate blocks
+                    for (codex_id, issuer) in contracts.issuers() {
+                        let api = &issuer.default_api;
                         println!(
-                            "{codex_id}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            "{codex_id}\t{:<32}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            issuer.codex.name,
                             api.name().expect("default API always have a name"),
                             api.conforms().map(TypeName::to_string).unwrap_or(s!("~")),
                             api.vm_type(),
-                            api.developer(),
+                            issuer.codex.developer,
                         );
                     }
                     println!();
@@ -171,15 +178,17 @@ impl Args {
                 );
                 println!();
                 println!("{:<32}\t{:<64}\tDeveloper", "Name", "ID");
-                for (codex_id, schema) in self.contracts().schemata() {
-                    println!("{:<32}\t{codex_id}\t{}", schema.codex.name, schema.codex.developer);
+                for (codex_id, issuer) in self.contracts().issuers() {
+                    println!("{:<32}\t{codex_id}\t{}", issuer.codex.name, issuer.codex.developer);
                 }
             }
             Cmd::Issue { params: Some(params), wallet } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 let file = File::open(params).context("Unable to open parameters file")?;
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
-                let contract_id = runtime.issue_to_dir(params, self.data_dir())?;
+                let contract_id = runtime
+                    .issue(params)
+                    .map_err(|e| anyhow::anyhow!(e.to_string()))?;
                 println!("A new contract issued with ID {contract_id}");
             }
 
@@ -188,9 +197,23 @@ impl Args {
                 //self.contracts().purge(contract)
             }
 
-            Cmd::Import { articles } => {
-                todo!();
-                //self.contracts().import_file(articles)
+            Cmd::Import { file: files } => {
+                for src in files {
+                    let mut contracts = self.contracts();
+                    let Some(filename) = src.file_name() else {
+                        eprintln!("Warning: '{}' is not a file, ignoring", src.display());
+                        continue;
+                    };
+                    print!("Processing '{}' ... ", filename.to_string_lossy());
+
+                    let schema = Schema::load(&src)?;
+                    let codex_id = schema.codex.codex_id();
+                    if contracts.has_issuer(codex_id) {
+                        println!("already known, skipping");
+                        continue;
+                    }
+                    contracts.import(schema)?;
+                }
             }
 
             Cmd::Export { contract, file } => {
@@ -360,7 +383,7 @@ impl Args {
                 psbt2,
                 print,
                 psbt: psbt_filename,
-                consignment,
+                consignment: consignment_path,
             } => {
                 let mut runtime = self.runtime(wallet);
                 // TODO: sync wallet if needed
@@ -372,7 +395,7 @@ impl Args {
 
                 let psbt_filename = psbt_filename
                     .as_ref()
-                    .unwrap_or(consignment)
+                    .unwrap_or(consignment_path)
                     .with_extension("psbt");
                 let mut psbt_file =
                     File::create_new(psbt_filename).context("Unable to create PSBT")?;
@@ -383,7 +406,7 @@ impl Args {
                 }
                 runtime
                     .contracts
-                    .consign_to_file(invoice.scope, [terminal], consignment)
+                    .consign_to_file(consignment_path, invoice.scope, [terminal])
                     .context("Unable to consign contract")?;
             }
 
@@ -443,14 +466,14 @@ impl Args {
                 psbt.encode(psbt.version, &mut psbt_file)?;
             }
 
-            Cmd::Consign { contract, terminals, output } => {
+            Cmd::Consign { contract, terminals, output: consignment_path } => {
                 let mut contracts = self.contracts();
                 let contract_id = contracts
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
                 contracts
-                    .consign_to_file(contract_id, terminals, output)
-                    .context("Unable to consign contract")?;
+                    .consign_to_file(consignment_path, contract_id, terminals)
+                    .context("Unable to consign the contract")?;
             }
 
             Cmd::Finalize { broadcast, wallet, psbt: psbt_filename, tx: tx_filename } => {
@@ -462,7 +485,7 @@ impl Args {
                 if psbt.is_finalized() {
                     eprintln!(", transaction is ready for the extraction");
                 } else {
-                    eprintln!(" and some non-finalized inputs remains");
+                    eprintln!(" and some non-finalized inputs remain");
                 }
 
                 eprint!("Extracting signed transaction ... ");

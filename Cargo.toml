@@ -14,7 +14,7 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.8.0"
+amplify = "4.8.1"
 nonasync = "0.1.2"
 strict_encoding = "2.8.1"
 strict_types = "2.8.2"
@@ -95,6 +95,7 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.12" }
 aluvm = { git = "https://github.com/AluVM/aluvm", branch = "master" }
 zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "master" }
 ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }

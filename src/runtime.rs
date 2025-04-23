@@ -34,9 +34,7 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle, RgbWallet,
 };
-use rgb::{
-    AcceptError, AuthToken, ContractId, ContractsApi, Pile, RgbSealDef, Stock, WitnessStatus,
-};
+use rgb::{AcceptError, AuthToken, ContractId, Pile, RgbSealDef, Stockpile, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 use strict_types::SerializeError;
 
@@ -55,25 +53,40 @@ pub enum SyncError<E: Error> {
     Forward(AcceptError),
 }
 
-pub struct RgbRuntime<C: ContractsApi<S, P>, S: Stock, P: Pile<Seal = TxoSeal>>(
-    RgbWallet<Owner, C, S, P>,
-);
+pub struct RgbRuntime<Sp>(RgbWallet<Owner, Sp>)
+where
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>;
 
-impl<C: ContractsApi<S, P>, S: Stock, P: Pile<Seal = TxoSeal>> From<RgbWallet<Owner, C, S, P>>
-    for RgbRuntime<C, S, P>
+impl<Sp> From<RgbWallet<Owner, Sp>> for RgbRuntime<Sp>
+where
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    fn from(barrow: RgbWallet<Owner, C, S, P>) -> Self { Self(barrow) }
+    fn from(barrow: RgbWallet<Owner, Sp>) -> Self { Self(barrow) }
 }
 
-impl<C: ContractsApi<S, P>, S: Stock, P: Pile<Seal = TxoSeal>> Deref for RgbRuntime<C, S, P> {
-    type Target = RgbWallet<Owner, C, S, P>;
+impl<Sp> Deref for RgbRuntime<Sp>
+where
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+{
+    type Target = RgbWallet<Owner, Sp>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<C: ContractsApi<S, P>, S: Stock, P: Pile<Seal = TxoSeal>> DerefMut for RgbRuntime<C, S, P> {
+impl<Sp> DerefMut for RgbRuntime<Sp>
+where
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+{
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<C: ContractsApi<S, P>, S: Stock, P: Pile<Seal = TxoSeal>> RgbRuntime<C, S, P> {
+impl<Sp> RgbRuntime<Sp>
+where
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+{
     pub fn sync<I>(&mut self, indexer: &I) -> Result<(), SyncError<I::Error>>
     where
         I: Indexer,
@@ -227,13 +240,11 @@ pub enum TransferError {
 pub mod file {
     use std::io;
 
-    use rgb::persistance::StockFs;
-    use rgb::{ContractsInmem, PileFs};
+    use rgb::StockpileDir;
 
     use super::*;
 
-    pub type RgbDirRuntime =
-        RgbRuntime<ContractsInmem<StockFs, PileFs<TxoSeal>>, StockFs, PileFs<TxoSeal>>;
+    pub type RgbpRuntimeDir = RgbRuntime<StockpileDir<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;
