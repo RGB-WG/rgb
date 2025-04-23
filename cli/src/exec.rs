@@ -45,7 +45,7 @@ impl Args {
         self.check_data_dir()?;
         match &self.command {
             Cmd::Init => {
-                // Do nothing; directory is already initialzied in `check_data_dir`
+                // Do nothing; the directory is already initialized in `check_data_dir`
             }
 
             // =====================================================================================
@@ -126,20 +126,15 @@ impl Args {
 
             // =====================================================================================
             // II. Contract management
-            Cmd::Contracts { schemata } => {
+            Cmd::Contracts { issuers } => {
                 let contracts = self.contracts();
 
-                if *schemata {
+                if *issuers {
                     if contracts.issuers_count() > 0 {
-                        println!("Contract issuing schemata:");
+                        println!("Contract-issuing schemata:");
                         println!(
-                            "{:<64}\t{:<32}\t{:<32}\t{:<16}\t{:<8}\t{}",
-                            "Codex Id",
-                            "Codex Name",
-                            "API Name",
-                            "Standard",
-                            "Used VM",
-                            "Developer"
+                            "{:<72}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            "Codex Id", "Codex Name", "Standard", "Used VM", "Developer"
                         );
                     } else {
                         eprintln!("No contract issuing schemata found");
@@ -148,9 +143,9 @@ impl Args {
                     for (codex_id, issuer) in contracts.issuers() {
                         let api = &issuer.default_api;
                         println!(
-                            "{codex_id}\t{:<32}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            "{:<72}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            codex_id.to_string(),
                             issuer.codex.name,
-                            api.name().expect("default API always have a name"),
                             api.conforms().map(TypeName::to_string).unwrap_or(s!("~")),
                             api.vm_type(),
                             issuer.codex.developer,
@@ -208,11 +203,13 @@ impl Args {
 
                     let schema = Schema::load(&src)?;
                     let codex_id = schema.codex.codex_id();
+                    print!("codex id {codex_id} ... ");
                     if contracts.has_issuer(codex_id) {
                         println!("already known, skipping");
                         continue;
                     }
                     contracts.import(schema)?;
+                    println!("success");
                 }
             }
 

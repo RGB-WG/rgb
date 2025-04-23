@@ -40,7 +40,9 @@ pub const RGB_PSBT_VER: &str = "RGB_PSBT_VER2";
 
 #[derive(PartialEq, Eq, Parser)]
 pub enum Cmd {
-    /// Initialize data directory if it doesn't exit
+    /// Initialize data directory
+    ///
+    /// The command will fail if the directory already exists.
     Init,
 
     // =====================================================================================
@@ -48,7 +50,7 @@ pub enum Cmd {
     /// List known wallets
     Wallets,
 
-    /// Create a new wallet
+    /// Create a new wallet from a descriptor
     Create {
         #[clap(long, conflicts_with = "wpkh")]
         tapret_key_only: bool,
@@ -63,7 +65,7 @@ pub enum Cmd {
         descriptor: String,
     },
 
-    /// Synchronize with blockchain data
+    /// Synchronize wallet and contracts with the blockchain
     Sync {
         #[clap(flatten)]
         resolver: ResolverOpt,
@@ -90,9 +92,9 @@ pub enum Cmd {
     // II. Contract management
     /// List contracts
     Contracts {
-        /// Include into the list contract issuing schemata
+        /// Include in the list contract issuing schemata
         #[clap(short, long)]
-        schemata: bool,
+        issuers: bool,
     },
 
     /// Issue a new RGB contract
@@ -106,36 +108,38 @@ pub enum Cmd {
         params: Option<PathBuf>,
     },
 
-    /// Remove contract
+    /// Remove a contract purging all its data (use with caution!)
     Purge {
         /// Force removal of a contract with a known state
         #[clap(short, long)]
         force: bool,
 
         /// Contract id to remove
-        contract: ContractRef,
+        contract: ContractId,
     },
 
     /// Import contract issuer schema(ta)
+    ///
+    /// If you need to import a contract, please use the `accept` command.
     Import {
         /// File(s) to process
         #[clap(value_hint = ValueHint::FilePath)]
         file: Vec<PathBuf>,
     },
 
-    /// Export contract articles
+    /// Export a contract as a consignment
     Export {
-        /// Contract id to export
+        /// Contract to export
         contract: ContractRef,
 
-        /// Path to export articles to
+        /// Path to save the contract consignment to
         #[clap(value_hint = ValueHint::FilePath)]
         file: Option<PathBuf>,
     },
 
     /// Back up all client-side data for all contracts
     Backup {
-        /// Path for saving backup tar file
+        /// Path for saving a backup in the form of a tar file
         #[clap(default_value = "rgb-backup.tar", value_hint = ValueHint::FilePath)]
         file: PathBuf,
     },
@@ -165,6 +169,7 @@ pub enum Cmd {
     },
 
     /// Generate an invoice
+    #[clap(alias = "i")]
     Invoice {
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
@@ -174,7 +179,7 @@ pub enum Cmd {
         #[clap(long)]
         seal_only: bool,
 
-        /// Use witness output-based seal
+        /// Use witness-output-based seal
         #[clap(long)]
         wout: bool,
 
@@ -303,7 +308,7 @@ pub enum Cmd {
         psbt: Option<PathBuf>,
     },
 
-    /// Complete finalizes PSBT and adds information about witness to the contracts mound
+    /// Complete finalizes PSBT and adds information about witness to the contracts' store
     Complete {
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
@@ -346,7 +351,7 @@ pub enum Cmd {
         tx: Option<PathBuf>,
     },
 
-    /// Verify and accept a consignment
+    /// Verify and accept a contract or a transfer consignment
     #[clap(alias = "a")]
     Accept {
         /// Wallet to use

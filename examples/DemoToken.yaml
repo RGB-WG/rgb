@@ -1,6 +1,6 @@
 consensus: bitcoin
 testnet: true
-codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
+codexId: dLmJMaGC-A4CjS2t-cauJxL1-3f1_osG-0kuj~XB-n8KCQ1k#ranger-beast-puma
 name: DemoToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
@@ -16,6 +16,6 @@ global:
     verified: 10000
 
 owned:
-  - name: owned
+  - name: amount
     seal: b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
     data: 10000
