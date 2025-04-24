@@ -99,6 +99,10 @@ pub enum Cmd {
 
     /// Issue a new RGB contract
     Issue {
+        /// Do not print error messages if something goes wrong
+        #[clap(short, long)]
+        quiet: bool,
+
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,

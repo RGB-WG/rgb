@@ -12,8 +12,8 @@ set -x
 
 $RGB import examples/RGB20-NFA.issuer
 
-rm -rf examples/data/bitcoin.testnet/DemoToken.contract
-rm -rf examples/data2/bitcoin.testnet/DemoToken.contract
+rm -rf examples/data/bitcoin.testnet/DemoToken.*.contract
+rm -rf examples/data2/bitcoin.testnet/DemoToken.*.contract
 $RGB issue -w alice examples/DemoToken.yaml
 cp -r examples/data/bitcoin.testnet/DemoToken.*.contract examples/data2/bitcoin.testnet/
 
@@ -23,7 +23,7 @@ $RGB state -go -w alice
 AUTH_TOKEN=$($RGB_2 invoice -w bob --nonce 0 --seal-only DemoToken)
 INVOICE=$($RGB_2 invoice -w bob --nonce 0 DemoToken 10)
 
-rm examples/transfer.psbt examples/Transfer.yaml examples/transfer.rgb
+rm examples/transfer.psbt examples/Transfer.yaml examples/transfer.rgb 2>/dev/null
 $RGB pay -w alice "$INVOICE" examples/transfer.rgb examples/transfer.psbt || exit 1
 $RGB state -goa -w alice --sync --mempool
 

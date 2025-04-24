@@ -134,10 +134,10 @@ impl Args {
                         println!("Contract-issuing schemata:");
                         println!(
                             "{:<72}\t{:<32}\t{:<16}\t{:<8}\t{}",
-                            "Codex Id", "Codex Name", "Standard", "Used VM", "Developer"
+                            "Codex ID", "Codex name", "Standard", "Used VM", "Developer"
                         );
                     } else {
-                        eprintln!("No contract issuing schemata found");
+                        eprintln!("No contract-issuing schemata found");
                     }
                     // TODO: Print codex and API information in separate blocks
                     for (codex_id, issuer) in contracts.issuers() {
@@ -168,9 +168,9 @@ impl Args {
                 }
             }
 
-            Cmd::Issue { params: None, wallet: _ } => {
+            Cmd::Issue { params: None, wallet: _, quiet: _ } => {
                 println!(
-                    "To issue a new contract please specify a parameters file. A contract may be \
+                    "To issue a new contract, please specify a parameter file. A contract may be \
                      issued under one of the codex listed below."
                 );
                 println!();
@@ -179,14 +179,15 @@ impl Args {
                     println!("{:<32}\t{codex_id}\t{}", issuer.codex.name, issuer.codex.developer);
                 }
             }
-            Cmd::Issue { params: Some(params), wallet } => {
+            Cmd::Issue { params: Some(params), wallet, quiet } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let file = File::open(params).context("Unable to open parameters file")?;
+                let file = File::open(params).context("Unable to open the parameter file")?;
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
-                let contract_id = runtime
-                    .issue(params)
-                    .map_err(|e| anyhow::anyhow!(e.to_string()))?;
-                println!("A new contract issued with ID {contract_id}");
+                match runtime.issue(params) {
+                    Ok(contract_id) => println!("A new contract issued with ID {contract_id}"),
+                    Err(err) if *quiet => return Ok(()),
+                    Err(err) => return Err(err.into()),
+                };
             }
 
             Cmd::Purge { force, contract } => {
@@ -257,11 +258,14 @@ impl Args {
                     println!("{contract_id}\t{}", articles.issue.meta.name);
                     if *global {
                         if state.immutable.is_empty() {
-                            println!("global: # no known global state is defined by the contract");
+                            println!("global: # no known global state");
                         } else {
                             println!(
-                                "global: {:<16}\t{:<12}\t{:<32}\t{:<32}\taddress",
-                                "state name", "conf. height", "verified state", "unverified state"
+                                "Global: {:<16}\t{:<12}\t{:<32}\t{:<32}\tAddress",
+                                "State name",
+                                "Conf. height",
+                                "Verifiable state",
+                                "Unverifiable state"
                             );
                         }
                         for (name, map) in &state.immutable {
@@ -272,9 +276,9 @@ impl Args {
                                     .map(|s| s.to_string())
                                     .unwrap_or(s!("unconfirmed"));
                                 print!("\t{:<12}", status);
-                                print!("\t{:<32}", state.data.verified);
+                                print!("\t{:<32}", state.data.verified.to_string());
                                 if let Some(unverified) = &state.data.unverified {
-                                    print!("\t{unverified:<32}");
+                                    print!("\t{:<32}", unverified.to_string());
                                 } else {
                                     print!("\t{:<32}", "~")
                                 }
@@ -283,14 +287,9 @@ impl Args {
                         }
 
                         if state.computed.is_empty() {
-                            println!(
-                                "comp:   # no known computed state is defined by the contract"
-                            );
+                            println!("Comp:   # no known computed state");
                         } else {
-                            print!(
-                                "comp:   {:<16}\t{:<32}\t{:<32}\taddress",
-                                "state name", "verified state", "unverified state"
-                            );
+                            print!("Comp:   {:<16}\t{:<32}", "State name", "Value");
                         }
                         for (name, val) in &state.computed {
                             println!("\t{name:<16}\t{val}");
@@ -298,11 +297,11 @@ impl Args {
                     }
                     if *owned {
                         if state.owned.is_empty() {
-                            println!("owned:  # no known owned state is defined by the contract");
+                            println!("owned:  # no known owned state");
                         } else {
                             println!(
-                                "owned:  {:<16}\t{:<12}\t{:<32}\t{:<46}\toutpoint",
-                                "state name", "conf. height", "value", "address"
+                                "Owned:  {:<16}\t{:<12}\t{:<32}\t{:<46}\tOutpoint",
+                                "State name", "Conf. height", "Value", "Address"
                             );
                         }
                         for (name, map) in &state.owned {
@@ -313,7 +312,7 @@ impl Args {
                                     .map(|s| s.to_string())
                                     .unwrap_or(s!("unconfirmed"));
                                 print!("\t{:<12}", status);
-                                print!("\t{:<32}", state.assignment.data);
+                                print!("\t{:<32}", state.assignment.data.to_string());
                                 print!("\t{addr:<46}");
                                 println!("\t{}", state.assignment.seal);
                             }
