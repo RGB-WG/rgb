@@ -149,7 +149,7 @@ pub enum RgbPsbtError {
     /// PSBT contains no contract consumers information
     NoContractConsumers,
 
-    /// contract {0} listed in the PSBT has an invalid number of known transitions {0}.
+    /// contract {0} listed in the PSBT has an invalid number of known transitions {1}.
     InvalidTransitionsNumber(ContractId, usize),
 
     /// inputs listed in the PSBT have an invalid number {0}.
