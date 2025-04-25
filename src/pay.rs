@@ -184,6 +184,10 @@ where Self::Descr: DescriptorRgb<K>
             }
         }
 
+        let Some(ref assignment_state) = invoice.assignment_state else {
+            return Err(CompositionError::NoAssignmentState);
+        };
+
         let invoice_assignment_type = invoice
             .assignment_name
             .as_ref()
@@ -193,7 +197,7 @@ where Self::Descr: DescriptorRgb<K>
             .or_else(|| {
                 let assignment_types = contract
                     .schema
-                    .assignment_types_for_state(invoice.assignment_state.clone().into());
+                    .assignment_types_for_state(assignment_state.clone().into());
                 if assignment_types.len() == 1 {
                     Some(assignment_types[0])
                 } else {
@@ -204,7 +208,7 @@ where Self::Descr: DescriptorRgb<K>
                         .filter(|&assignment| assignment_types.contains(&assignment))
                 }
             })
-            .ok_or(CompositionError::NoAssignment)?;
+            .ok_or(CompositionError::NoAssignmentType)?;
         let transition_type = contract
             .schema
             .default_transition_for_assignment(assignment_type);
@@ -216,7 +220,7 @@ where Self::Descr: DescriptorRgb<K>
             _key_phantom: PhantomData,
             _layer2_phantom: PhantomData,
         };
-        let prev_outputs = match invoice.assignment_state {
+        let prev_outputs = match assignment_state {
             InvoiceState::Amount(amount) => {
                 let state: BTreeMap<_, Vec<Amount>> = contract
                     .fungible_raw(*assignment_type, &filter)?
@@ -234,7 +238,7 @@ where Self::Descr: DescriptorRgb<K>
                     .iter()
                     .rev()
                     .take_while(|(val, _, _)| {
-                        if sum >= amount {
+                        if sum >= *amount {
                             false
                         } else {
                             sum += *val;
@@ -243,14 +247,14 @@ where Self::Descr: DescriptorRgb<K>
                     })
                     .map(|(_, seal, _)| *seal)
                     .collect::<BTreeSet<_>>();
-                if sum < amount {
+                if sum < *amount {
                     bset![]
                 } else {
                     selection
                 }
             }
             InvoiceState::Data(NonFungible::FractionedToken(allocation)) => {
-                let data_state = DataState::from(allocation);
+                let data_state = DataState::from(*allocation);
                 contract
                     .data_raw(*assignment_type, &filter)?
                     .filter(|x| x.state == data_state)
@@ -391,7 +395,7 @@ where Self::Descr: DescriptorRgb<K>
         }
 
         // Add payments to beneficiary and change
-        match invoice.assignment_state.clone() {
+        match assignment_state.clone() {
             InvoiceState::Amount(amt) => {
                 // Pay beneficiary
                 if sum_inputs < amt {

@@ -132,7 +132,10 @@ pub enum CompositionError {
 
     /// invoice doesn't provide information about the assignment type and it's impossible to derive
     /// which assignment type should be used from the schema.
-    NoAssignment,
+    NoAssignmentType,
+
+    /// invoice doesn't provide information about the assignment state
+    NoAssignmentState,
 
     /// invoice specifies an unknown contract.
     UnknownContract,
