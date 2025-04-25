@@ -197,7 +197,11 @@ where Self::Descr: DescriptorRgb<K>
                 if assignment_types.len() == 1 {
                     Some(assignment_types[0])
                 } else {
-                    None
+                    contract
+                        .schema
+                        .default_assignment
+                        .as_ref()
+                        .filter(|&assignment| assignment_types.contains(&assignment))
                 }
             })
             .ok_or(CompositionError::NoAssignment)?;
