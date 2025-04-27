@@ -21,7 +21,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use amplify::confinement::{Confined, SmallOrdMap, SmallOrdSet, U24};
+use amplify::confinement::{Confined, SmallOrdMap, U24};
 use amplify::{confinement, FromSliceError, Wrapper};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
@@ -29,7 +29,7 @@ use bpstd::psbt;
 use bpstd::psbt::{KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
 use rgbstd::{
-    ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
+    ContractId, InputOpids, MergeReveal, MergeRevealError, OpId, Operation, Transition,
     TransitionBundle, Vin,
 };
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
@@ -219,7 +219,7 @@ pub trait RgbExt {
     fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, TransitionBundle>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map: SmallOrdMap<Vin, SmallOrdSet<OpId>> = SmallOrdMap::new();
+            let mut input_map: SmallOrdMap<Vin, InputOpids> = SmallOrdMap::new();
             let mut known_transitions: SmallOrdMap<OpId, Transition> = SmallOrdMap::new();
             let contract_consumers = self.rgb_contract_consumers(contract_id)?;
             if contract_consumers.is_empty() {
@@ -233,17 +233,17 @@ pub trait RgbExt {
                     }
                 }
                 let opids_len = opids.len();
-                let opids = Confined::try_from(opids)
-                    .map_err(|_| RgbPsbtError::InvalidTransitionsNumber(contract_id, opids_len))?;
+                let opids =
+                    InputOpids::from(Confined::try_from(opids).map_err(|_| {
+                        RgbPsbtError::InvalidTransitionsNumber(contract_id, opids_len)
+                    })?);
                 input_map.insert(vin, opids)?;
             }
             let input_map_len = input_map.len();
             let known_transitions_len = known_transitions.len();
             let bundle = TransitionBundle {
-                input_map: InputMap::from(
-                    Confined::try_from(input_map.release())
-                        .map_err(|_| RgbPsbtError::InvalidInputsNumber(input_map_len))?,
-                ),
+                input_map: Confined::try_from(input_map.release())
+                    .map_err(|_| RgbPsbtError::InvalidInputsNumber(input_map_len))?,
                 known_transitions: Confined::try_from(known_transitions.release()).map_err(
                     |_| RgbPsbtError::InvalidTransitionsNumber(contract_id, known_transitions_len),
                 )?,
