@@ -85,7 +85,7 @@ impl Args {
     pub fn check_data_dir(&self) -> anyhow::Result<()> {
         let data_dir = self.data_dir();
         if !data_dir.is_dir() {
-            if self.command == Cmd::Init {
+            if let Cmd::Init { quiet: _ } = self.command {
                 fs::create_dir_all(self.data_dir()).map_err(|e| {
                     io::Error::new(
                         e.kind(),
@@ -94,12 +94,12 @@ impl Args {
                 })?;
             } else {
                 anyhow::bail!(
-                    "data directory at '{}' is not initialized; please initialize it with `init` \
-                     command, or change the path using `--data-dir` argument",
+                    "the data directory at '{}' is not initialized; please initialize it with \
+                     `init` command or change the path using `--data-dir` argument",
                     data_dir.display()
                 );
             }
-        } else if self.command == Cmd::Init {
+        } else if let Cmd::Init { quiet: true } = self.command {
             anyhow::bail!("data directory at '{}' is already initialized", data_dir.display());
         }
         Ok(())

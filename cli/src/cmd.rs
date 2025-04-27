@@ -43,7 +43,14 @@ pub enum Cmd {
     /// Initialize data directory
     ///
     /// The command will fail if the directory already exists.
-    Init,
+    Init {
+        /// Do not print error messages if the directory already exists; and just do nothing.
+        ///
+        /// NB: This will still produce an error if the directory is absent and can't be created
+        /// (for instance, due to a lack of access rights to one of the parent directories).
+        #[clap(short, long)]
+        quiet: bool,
+    },
 
     // =====================================================================================
     // I. Wallet management

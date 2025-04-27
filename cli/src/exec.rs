@@ -44,7 +44,7 @@ impl Args {
     pub fn exec(&self) -> anyhow::Result<()> {
         self.check_data_dir()?;
         match &self.command {
-            Cmd::Init => {
+            Cmd::Init { .. } => {
                 // Do nothing; the directory is already initialized in `check_data_dir`
             }
 
