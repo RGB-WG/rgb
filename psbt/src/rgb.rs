@@ -22,7 +22,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use amplify::confinement::{Confined, SmallOrdMap, SmallOrdSet, U24};
-use amplify::{confinement, FromSliceError};
+use amplify::{confinement, FromSliceError, Wrapper};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bpstd::psbt;
@@ -55,6 +55,9 @@ pub const PSBT_GLOBAL_RGB_TAP_HOST_CHANGE: u64 = 0x03;
 /// consumes this input.
 pub const PSBT_IN_RGB_CONSUMED_BY: u64 = 0x01;
 
+#[derive(Wrapper, WrapperMut, Clone, PartialEq, Eq, Hash, Debug, From)]
+#[wrapper(Deref)]
+#[wrapper_mut(DerefMut)]
 pub struct Opids(Vec<OpId>);
 
 impl Opids {
@@ -414,7 +417,7 @@ impl RgbInExt for psbt::Input {
         else {
             return Ok(None);
         };
-        let opids = Opids::deserialize(data)?.0;
+        let opids = Opids::deserialize(data)?.into_inner();
         Ok(Some(opids))
     }
 
