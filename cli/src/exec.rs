@@ -261,7 +261,7 @@ impl Args {
                             println!("global: # no known global state");
                         } else {
                             println!(
-                                "Global: {:<16}\t{:<12}\t{:<32}\t{:<32}\tAddress",
+                                "Global: {:<16}\t{:<12}\t{:<32}\t{:<32}\tRGB output",
                                 "State name",
                                 "Conf. height",
                                 "Verifiable state",
@@ -300,8 +300,8 @@ impl Args {
                             println!("owned:  # no known owned state");
                         } else {
                             println!(
-                                "Owned:  {:<16}\t{:<12}\t{:<32}\t{:<46}\tOutpoint",
-                                "State name", "Conf. height", "Value", "Address"
+                                "Owned:  {:<16}\t{:<12}\t{:<32}\t{:<46}\tBitcoin outpoint",
+                                "State name", "Conf. height", "Value", "RGB output"
                             );
                         }
                         for (name, map) in &state.owned {
