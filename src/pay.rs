@@ -38,14 +38,12 @@ use psrgbt::{
     TxParams,
 };
 use rgbstd::containers::{Batch, BuilderSeal, IndexedConsignment, Transfer, TransitionInfo};
-use rgbstd::contract::{AssignmentsFilter, BuilderError};
+use rgbstd::contract::{AllocatedState, AssignmentsFilter, BuilderError};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
-use rgbstd::persistence::{
-    IndexProvider, PersistedState, StashInconsistency, StashProvider, StateProvider, Stock,
-};
+use rgbstd::persistence::{IndexProvider, StashInconsistency, StashProvider, StateProvider, Stock};
 use rgbstd::validation::{ConsignmentApi, DbcProof, ResolveWitness};
 use rgbstd::{
-    AssignmentType, ChainNet, ContractId, DataState, GraphSeal, Operation, Opout, OutputSeal,
+    AssignmentType, ChainNet, ContractId, GraphSeal, Operation, Opout, OutputSeal, RevealedData,
 };
 
 use crate::invoice::NonFungible;
@@ -254,7 +252,7 @@ where Self::Descr: DescriptorRgb<K>
                 }
             }
             InvoiceState::Data(NonFungible::FractionedToken(allocation)) => {
-                let data_state = DataState::from(*allocation);
+                let data_state = RevealedData::from(*allocation);
                 contract
                     .data_raw(*assignment_type, &filter)?
                     .filter(|x| x.state == data_state)
@@ -389,9 +387,9 @@ where Self::Descr: DescriptorRgb<K>
                 if opout.ty != *assignment_type {
                     let seal = output_for_assignment(opout.ty)?;
                     main_builder = main_builder.add_owned_state_raw(opout.ty, seal, state)?;
-                } else if let PersistedState::Amount(value) = state {
-                    sum_inputs += value;
-                } else if let PersistedState::Data(value, _) = state {
+                } else if let AllocatedState::Amount(value) = state {
+                    sum_inputs += value.into();
+                } else if let AllocatedState::Data(value) = state {
                     data_inputs.push(value);
                 }
             }
@@ -422,18 +420,13 @@ where Self::Descr: DescriptorRgb<K>
             }
             InvoiceState::Data(data) => match data {
                 NonFungible::FractionedToken(allocation) => {
-                    let lookup_state = DataState::from(allocation);
+                    let lookup_state = RevealedData::from(allocation);
                     if !data_inputs.into_iter().any(|x| x == lookup_state) {
                         return Err(CompositionError::InsufficientState);
                     }
 
-                    let seal = rand::random();
-                    main_builder = main_builder.add_data_raw(
-                        *assignment_type,
-                        builder_seal,
-                        allocation,
-                        seal,
-                    )?;
+                    main_builder =
+                        main_builder.add_data_raw(*assignment_type, builder_seal, lookup_state)?;
                 }
             },
             InvoiceState::Void => {
@@ -444,7 +437,7 @@ where Self::Descr: DescriptorRgb<K>
         // 3. Prepare other transitions
         // Enumerate state
         let mut extra_state =
-            HashMap::<ContractId, HashMap<OutputSeal, HashMap<Opout, PersistedState>>>::new();
+            HashMap::<ContractId, HashMap<OutputSeal, HashMap<Opout, AllocatedState>>>::new();
         for id in stock
             .contracts_assigning(prev_outputs.iter().copied())
             .map_err(|e| e.to_string())?

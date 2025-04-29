@@ -364,7 +364,7 @@ impl Exec for RgbArgs {
                 {
                     print!("{:9}\t", direction.to_string());
                     if let AllocatedState::Amount(amount) = state {
-                        print!("{: >9}", amount.value());
+                        print!("{: >9}", amount.as_u64());
                     } else {
                         print!("{state:>9}");
                     }
