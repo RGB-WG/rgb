@@ -115,13 +115,13 @@ where
 
     /// Pay an invoice producing PSBT ready to be signed.
     ///
-    /// Should not be used in multi-party protocols like coinjoins, when a PSBT may needs to be
-    /// modified in the number of inputs or outputs. Use `construct_psbt` method for such
+    /// Should not be used in multi-party protocols like coinjoins, when a PSBT may need to be
+    /// modified in the number of inputs or outputs. Use the `construct_psbt` method for such
     /// scenarios.
     ///
     /// If you need more flexibility in constructing payments (do multiple payments with multiple
     /// contracts, use global state etc.) in a single PSBT, please use `pay_custom` APIs and
-    /// [`PrefabBundleSet`] stead of this simplified API.
+    /// [`PrefabBundleSet`] instead of this simplified API.
     pub fn pay_invoice(
         &mut self,
         invoice: &RgbInvoice<ContractId>,
