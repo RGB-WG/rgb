@@ -148,8 +148,7 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 [[package]]
 name = "aora"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "224dad22f0c757318ac61fbfbab2a77efabbe73696e6d95a13084db6c7367263"
+source = "git+https://github.com/rust-amplify/aora#ffcbc63c0ce2143ae5cf9f6c7342af34dff98f3a"
 dependencies = [
  "amplify",
  "binfile",
@@ -367,7 +366,7 @@ dependencies = [
 [[package]]
 name = "bp-electrum"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/BP-WG/bp-electrum-client?branch=v0.12#4d433e1acb52832098bcf70cfe1483e041b1cca5"
+source = "git+https://github.com/BP-WG/bp-electrum-client?branch=v0.12#88abb6e7ed03d567794f7dc595247dda27280fa3"
 dependencies = [
  "amplify",
  "bp-core",
@@ -943,7 +942,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=master#0cedd840862937d20234e7532f34992b76d6ab05"
+source = "git+https://github.com/AluVM/sonic?branch=master#40dfd3ffaa6c88fa3bd6377623ccde342d5e1a17"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1413,7 +1412,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#390d5d48ccfc8491d589d238d3c395212d212972"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#5b6ad30fdfbbe9a8f98fcecf3599404c9a3048ad"
 dependencies = [
  "amplify",
  "baid64",
@@ -1462,7 +1461,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#390d5d48ccfc8491d589d238d3c395212d212972"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#5b6ad30fdfbbe9a8f98fcecf3599404c9a3048ad"
 dependencies = [
  "amplify",
  "aora",
@@ -1773,7 +1772,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=master#0cedd840862937d20234e7532f34992b76d6ab05"
+source = "git+https://github.com/AluVM/sonic?branch=master#40dfd3ffaa6c88fa3bd6377623ccde342d5e1a17"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1792,7 +1791,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/sonic?branch=master#0cedd840862937d20234e7532f34992b76d6ab05"
+source = "git+https://github.com/AluVM/sonic?branch=master#40dfd3ffaa6c88fa3bd6377623ccde342d5e1a17"
 dependencies = [
  "amplify",
  "baid64",
