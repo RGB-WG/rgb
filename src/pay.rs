@@ -261,7 +261,10 @@ where Self::Descr: DescriptorRgb<K>
                     .map(|x| x.seal)
                     .collect::<BTreeSet<_>>()
             }
-            _ => return Err(CompositionError::Unsupported),
+            InvoiceState::Void => contract
+                .rights_raw(*assignment_type, &filter)?
+                .map(|x| x.seal)
+                .collect::<BTreeSet<_>>(),
         };
         if prev_outputs.is_empty() {
             return Err(CompositionError::InsufficientState);
@@ -433,11 +436,8 @@ where Self::Descr: DescriptorRgb<K>
                     )?;
                 }
             },
-            _ => {
-                todo!(
-                    "only PersistedState::Amount and PersistedState::Allocation are currently \
-                     supported"
-                )
+            InvoiceState::Void => {
+                main_builder = main_builder.add_rights_raw(*assignment_type, builder_seal)?;
             }
         }
 
