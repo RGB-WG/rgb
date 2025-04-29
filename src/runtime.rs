@@ -108,7 +108,7 @@ where
             };
             changed.insert(txid, status);
         }
-        self.contracts.sync(changed)?;
+        self.contracts.sync(&changed)?;
 
         Ok(())
     }
