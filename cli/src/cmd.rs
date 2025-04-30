@@ -234,20 +234,24 @@ pub enum Cmd {
         strategy: CoinselectStrategy,
 
         /// Amount of sats to send to pay-to-address invoice
-        #[clap(long, global = true)]
+        #[clap(long)]
         sats: Option<Sats>,
 
         /// Fees for PSBT
-        #[clap(long, global = true, default_value = "1000")]
+        #[clap(long, default_value = "1000")]
         fee: Sats,
 
         /// Use PSBT version 2
-        #[clap(short = '2', long, global = true, env = "RGB_PSBT_VER2")]
+        #[clap(short = '2', long, env = "RGB_PSBT_VER2")]
         psbt2: bool,
 
         /// Print PSBT to STDOUT
-        #[clap(short, long, global = true)]
+        #[clap(short, long)]
         print: bool,
+
+        /// Force re-rewrite of PSBT or a consignment if any of the files already exist
+        #[clap(short, long)]
+        force: bool,
 
         /// Invoice to fulfill
         invoice: RgbInvoice<ContractId>,

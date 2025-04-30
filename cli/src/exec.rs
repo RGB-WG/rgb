@@ -22,6 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::fs;
 use std::fs::File;
 use std::str::FromStr;
 
@@ -380,6 +381,7 @@ impl Args {
                 fee,
                 psbt2,
                 print,
+                force,
                 psbt: psbt_filename,
                 consignment: consignment_path,
             } => {
@@ -395,17 +397,24 @@ impl Args {
                     .as_ref()
                     .unwrap_or(consignment_path)
                     .with_extension("psbt");
-                let mut psbt_file =
-                    File::create_new(psbt_filename).context("Unable to create PSBT")?;
+                let mut psbt_file = if *force {
+                    File::create(psbt_filename).context("Unable to create PSBT")?
+                } else {
+                    File::create_new(psbt_filename)
+                        .context("Unable to create PSBT; try `--force`")?
+                };
                 psbt.encode(ver, &mut psbt_file)?;
                 if *print {
                     psbt.version = ver;
                     println!("{psbt}");
                 }
+                if *force {
+                    let _ = fs::remove_file(consignment_path);
+                }
                 runtime
                     .contracts
                     .consign_to_file(consignment_path, invoice.scope, [terminal])
-                    .context("Unable to consign contract")?;
+                    .context("Unable to create the consignment file; try `--force`")?;
             }
 
             Cmd::Script { wallet, sats, strategy, invoice, output } => {
