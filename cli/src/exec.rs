@@ -272,11 +272,7 @@ impl Args {
                         for (name, map) in &state.immutable {
                             for (addr, state) in map {
                                 print!("\t{:<16}", name.as_str());
-                                let status = state
-                                    .since
-                                    .map(|s| s.to_string())
-                                    .unwrap_or(s!("unconfirmed"));
-                                print!("\t{:<12}", status);
+                                print!("\t{:<12}", state.status.to_string());
                                 print!("\t{:<32}", state.data.verified.to_string());
                                 if let Some(unverified) = &state.data.unverified {
                                     print!("\t{:<32}", unverified.to_string());
@@ -308,11 +304,7 @@ impl Args {
                         for (name, map) in &state.owned {
                             for (addr, state) in map {
                                 print!("\t{:<16}", name.as_str());
-                                let status = state
-                                    .since
-                                    .map(|s| s.to_string())
-                                    .unwrap_or(s!("unconfirmed"));
-                                print!("\t{:<12}", status);
+                                print!("\t{:<12}", state.status.to_string());
                                 print!("\t{:<32}", state.assignment.data.to_string());
                                 print!("\t{addr:<46}");
                                 println!("\t{}", state.assignment.seal);
