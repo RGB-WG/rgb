@@ -148,7 +148,7 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 [[package]]
 name = "aora"
 version = "0.6.2"
-source = "git+https://github.com/rust-amplify/aora#cb0019facbcf1bd1ddfd8a234386b80118d81a45"
+source = "git+https://github.com/rust-amplify/aora#25e547c218dc0ce2f689e5abcb1d58439e807f45"
 dependencies = [
  "amplify",
  "binfile",
@@ -1396,7 +1396,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#57a1800032ce126e6fd05779f08d7792a4b42a19"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#2725b0b72bebe24a53ecd29aa71b42a4ece6915a"
 dependencies = [
  "amplify",
  "bp-core",
@@ -1412,7 +1412,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#57eb556429c399de325e3b55a554e43035343c4e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#98e1d6a81b691947a584db8941ad253670cb6703"
 dependencies = [
  "amplify",
  "baid64",
@@ -1461,7 +1461,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#57eb556429c399de325e3b55a554e43035343c4e"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#98e1d6a81b691947a584db8941ad253670cb6703"
 dependencies = [
  "amplify",
  "aora",
@@ -1736,9 +1736,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.10.8"
+version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
+checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -2205,9 +2205,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.9"
+version = "0.26.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29aad86cec885cafd03e8305fd727c418e970a521322c91688414d5b8efba16b"
+checksum = "37493cadf42a2a939ed404698ded7fb378bf301b5011f973361779a3a74f8c93"
 dependencies = [
  "rustls-pki-types",
 ]
