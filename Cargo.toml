@@ -10,7 +10,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.1-alpha.1"
+version = "0.11.1-alpha.2+unreviewed"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -26,12 +26,12 @@ nonasync = { version = "0.1.2", features = ["log"] }
 baid64 = "0.4.1"
 strict_encoding = "2.8.2"
 strict_types = "2.8.3"
-commit_verify = "0.11.0-beta.9"
-bp-core = "0.11.1-alpha.1"
-bp-std = { version = "0.11.1-alpha.1", features = ["client-side-validation"] }
-bp-wallet = { version = "0.11.1-alpha.1" }
-rgb-std = { version = "0.11.1-alpha.1" }
-rgb-psbt = { version = "0.11.1-alpha.1", path = "psbt" }
+commit_verify = "0.11.1-alpha.2"
+bp-core = "0.11.1-alpha.2"
+bp-std = { version = "0.11.1-alpha.2", features = ["client-side-validation"] }
+bp-wallet = { version = "0.11.1-alpha.2" }
+rgb-std = { version = "0.11.1-alpha.2" }
+rgb-psbt = { version = "0.11.1-alpha.2", path = "psbt" }
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
@@ -94,18 +94,3 @@ serde = ["serde_crate", "bp-std/serde", "rgb-psbt/serde"]
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-aluvm = { git = "https://github.com/zoedberg/rust-aluvm", branch = "0.11.1-2" }
-commit_verify = { git = "https://github.com/zoedberg/client_side_validation", branch = "0.11.1-2" }
-bp-consensus = { git = "https://github.com/zoedberg/bp-core", branch = "0.11.1-2" }
-bp-core = { git = "https://github.com/zoedberg/bp-core", branch = "0.11.1-2" }
-bp-std = { git = "https://github.com/zoedberg/bp-std", branch = "0.11.1-2" }
-bp-invoice = { git = "https://github.com/zoedberg/bp-std", branch = "0.11.1-2" }
-descriptors = { git = "https://github.com/zoedberg/bp-std", branch = "0.11.1-2" }
-psbt = { git = "https://github.com/zoedberg/bp-std", branch = "0.11.1-2" }
-bp-electrum = { git = "https://github.com/zoedberg/bp-electrum-client", branch= "0.11.1-2" }
-bp-esplora = { git = "https://github.com/zoedberg/bp-esplora-client", branch = "0.11.1-2" }
-bp-wallet = { git = "https://github.com/zoedberg/bp-wallet", branch = "0.11.1-2" }
-rgb-core = { git = "https://github.com/zoedberg/rgb-core", branch = "0.11.1-2" }
-rgb-std = { git = "https://github.com/zoedberg/rgb-std", branch = "0.11.1-2" }
