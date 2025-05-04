@@ -32,7 +32,8 @@ use bpstd::{Psbt, Sats};
 use bpwallet::{Indexer, TxStatus};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
-    BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle, RgbWallet,
+    BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
+    RgbWallet,
 };
 use rgb::{AcceptError, ContractId, Pile, RgbSealDef, Stockpile, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
@@ -125,7 +126,7 @@ where
     pub fn pay_invoice(
         &mut self,
         invoice: &RgbInvoice<ContractId>,
-        strategy: CoinselectStrategy,
+        strategy: impl Coinselect,
         params: TxParams,
         giveaway: Option<Sats>,
     ) -> Result<(Psbt, Payment), PayError> {
