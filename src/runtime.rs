@@ -34,12 +34,12 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle, RgbWallet,
 };
-use rgb::{AcceptError, AuthToken, ContractId, Pile, RgbSealDef, Stockpile, WitnessStatus};
+use rgb::{AcceptError, ContractId, Pile, RgbSealDef, Stockpile, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 use strict_types::SerializeError;
 
 use crate::owner::Owner;
-use crate::CoinselectStrategy;
+use crate::{CoinselectStrategy, Payment};
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -128,10 +128,10 @@ where
         strategy: CoinselectStrategy,
         params: TxParams,
         giveaway: Option<Sats>,
-    ) -> Result<(Psbt, AuthToken), PayError> {
+    ) -> Result<(Psbt, Payment), PayError> {
         let request = self.fulfill(invoice, strategy, giveaway)?;
         let script = OpRequestSet::with(request.clone());
-        let psbt = self.transfer(script, params)?;
+        let (psbt, mut payment) = self.transfer(script, params)?;
         let terminal = match invoice.auth {
             RgbBeneficiary::Token(auth) => auth,
             RgbBeneficiary::WitnessOut(wout) => request
@@ -139,7 +139,13 @@ where
                 .expect("witness out must be present in the PSBT")
                 .auth_token(),
         };
-        Ok((psbt, terminal))
+        payment.terminals.insert(terminal);
+        Ok((psbt, payment))
+    }
+
+    pub fn rbf(&mut self, payment: &Payment) -> Result<Psbt, PayError> {
+        let psbt = self.complete(payment.uncomit_psbt.clone(), &payment.bundle)?;
+        Ok(psbt)
     }
 
     /// Convert invoice into a payment script.
@@ -159,22 +165,22 @@ where
         &mut self,
         script: PaymentScript,
         params: TxParams,
-    ) -> Result<Psbt, TransferError> {
-        let (psbt, bundle) = self.exec(script, params)?;
-        let psbt = self.complete(psbt, &bundle)?;
-        Ok(psbt)
+    ) -> Result<(Psbt, Payment), TransferError> {
+        let payment = self.exec(script, params)?;
+        let psbt = self.complete(payment.uncomit_psbt.clone(), &payment.bundle)?;
+        Ok((psbt, payment))
     }
 
     /// Execute payment script creating PSBT and prefabricated operation bundle.
     ///
-    /// The returned PSBT contain only anonymous client-side validation information and is
+    /// The returned PSBT contains only anonymous client-side validation information and is
     /// modifiable, thus it can be forwarded to other payjoin participants.
     // TODO: PSBT is not modifiable since it commits to Vouts in the bundle!
     pub fn exec(
         &mut self,
         script: PaymentScript,
         params: TxParams,
-    ) -> Result<(Psbt, PrefabBundle), TransferError> {
+    ) -> Result<Payment, TransferError> {
         let (mut psbt, mut meta) = self.0.wallet.compose_psbt(&script, params)?;
 
         // From this moment transaction becomes unmodifiable
@@ -183,10 +189,15 @@ where
 
         psbt.rgb_fill_csv(&bundle)?;
 
-        Ok((psbt, bundle))
+        Ok(Payment {
+            uncomit_psbt: psbt,
+            psbt_meta: meta,
+            bundle,
+            terminals: none!(),
+        })
     }
 
-    /// Completes PSBT and includes prefabricated bundle into the contract stockpile.
+    /// Completes PSBT and includes the prefabricated bundle into the contract.
     pub fn complete(
         &mut self,
         mut psbt: Psbt,

@@ -22,26 +22,19 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
-#![cfg_attr(not(feature = "std"), no_std)]
+use std::collections::BTreeSet;
 
-extern crate alloc;
-#[macro_use]
-extern crate amplify;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
-extern crate core;
+use bpstd::psbt::PsbtMeta;
+use bpstd::Psbt;
+use rgb::popls::bp::PrefabBundle;
+use rgb::AuthToken;
 
-pub mod descriptor;
-mod owner;
-mod coinselect;
-mod runtime;
-mod payment;
-
-pub use coinselect::CoinselectStrategy;
-pub use owner::Owner;
-pub use payment::Payment;
-#[cfg(feature = "fs")]
-pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, RgbRuntime, SyncError, TransferError};
+#[derive(Clone, Eq, PartialEq, Debug)]
+// TODO: Add Deserialize once implemented in Psbt
+//#[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
+pub struct Payment {
+    pub uncomit_psbt: Psbt,
+    pub psbt_meta: PsbtMeta,
+    pub bundle: PrefabBundle,
+    pub terminals: BTreeSet<AuthToken>,
+}

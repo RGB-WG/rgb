@@ -186,7 +186,7 @@ impl Args {
                 let params = serde_yaml::from_reader::<_, CreateParams<Outpoint>>(file)?;
                 match runtime.issue(params) {
                     Ok(contract_id) => println!("A new contract issued with ID {contract_id}"),
-                    Err(err) if *quiet => return Ok(()),
+                    Err(_err) if *quiet => return Ok(()),
                     Err(err) => return Err(err.into()),
                 };
             }
@@ -381,8 +381,7 @@ impl Args {
                 // TODO: sync wallet if needed
                 // TODO: Add params and giveway to arguments
                 let params = TxParams::with(*fee);
-                let (mut psbt, terminal) =
-                    runtime.pay_invoice(invoice, *strategy, params, *sats)?;
+                let (mut psbt, payment) = runtime.pay_invoice(invoice, *strategy, params, *sats)?;
                 let ver = if *psbt2 { PsbtVer::V2 } else { PsbtVer::V0 };
 
                 let psbt_filename = psbt_filename
@@ -405,7 +404,7 @@ impl Args {
                 }
                 runtime
                     .contracts
-                    .consign_to_file(consignment_path, invoice.scope, [terminal])
+                    .consign_to_file(consignment_path, invoice.scope, payment.terminals)
                     .context("Unable to create the consignment file; try `--force`")?;
             }
 
@@ -430,7 +429,7 @@ impl Args {
                 let script = serde_yaml::from_reader::<_, PaymentScript>(src)?;
 
                 let params = TxParams::with(*fee);
-                let (mut psbt, bundle) = runtime.exec(script, params)?;
+                let mut payment = runtime.exec(script, params)?;
                 let psbt_filename = psbt_filename
                     .as_ref()
                     .unwrap_or(bundle_filename)
@@ -438,18 +437,21 @@ impl Args {
                 let mut psbt_file =
                     File::create_new(psbt_filename).context("Unable to create PSBT")?;
 
-                bundle
+                payment
+                    .bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
                     .context("Unable to write output file")?;
 
                 // This PSBT can be sent to other payjoin parties so they add their inputs and
                 // outputs, or even re-order existing ones
                 let ver = if *psbt2 { PsbtVer::V2 } else { PsbtVer::V0 };
-                psbt.encode(ver, &mut psbt_file)
+                payment
+                    .uncomit_psbt
+                    .encode(ver, &mut psbt_file)
                     .context("Unable to write PSBT")?;
                 if *print {
-                    psbt.version = ver;
-                    println!("{psbt}");
+                    payment.uncomit_psbt.version = ver;
+                    println!("{}", payment.uncomit_psbt);
                 }
             }
 
