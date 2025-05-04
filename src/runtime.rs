@@ -144,9 +144,19 @@ where
         Ok((psbt, payment))
     }
 
-    pub fn rbf(&mut self, payment: &Payment) -> Result<Psbt, PayError> {
-        let psbt = self.complete(payment.uncomit_psbt.clone(), &payment.bundle)?;
-        Ok(psbt)
+    pub fn rbf(&mut self, payment: &Payment, fee: impl Into<Sats>) -> Result<Psbt, PayError> {
+        let mut psbt = payment.uncomit_psbt.clone();
+        let change = payment
+            .psbt_meta
+            .change_vout
+            .expect("Can't RBF when no change is present");
+        let old_fee = psbt.fee().expect("Invalid PSBT with zero inputs");
+        let out = psbt
+            .output_mut(change.into_usize())
+            .expect("invalid PSBT meta-information in the payment");
+        out.amount -= fee.into() - old_fee;
+
+        Ok(self.complete(psbt, &payment.bundle)?)
     }
 
     /// Convert invoice into a payment script.
