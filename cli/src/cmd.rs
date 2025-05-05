@@ -145,7 +145,7 @@ pub enum Cmd {
 
         /// Path to save the contract consignment to
         #[clap(value_hint = ValueHint::FilePath)]
-        file: Option<PathBuf>,
+        file: PathBuf,
     },
 
     /// Back up all client-side data for all contracts

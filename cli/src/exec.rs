@@ -218,8 +218,12 @@ impl Args {
             }
 
             Cmd::Export { contract, file } => {
-                todo!();
-                //self.contracts().export_file(contract, file)
+                let contract_id = self
+                    .contracts()
+                    .find_contract_id(contract.clone())
+                    .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
+                let articles = self.contracts().contract_articles(contract_id);
+                articles.save(file)?;
             }
 
             Cmd::Backup { file } => {
