@@ -27,12 +27,12 @@ use std::str::FromStr;
 use amplify::confinement::{SmallOrdMap, U16 as MAX16};
 use baid64::DisplayBaid64;
 use bpstd::psbt::{Psbt, PsbtVer};
-use bpstd::seals::SecretSeal;
 use bpstd::{Sats, Txid, XpubDerivable};
 use bpwallet::cli::{BpCommand, Config, Exec};
 use bpwallet::Wallet;
 use rgb::containers::{
-    BuilderSeal, ConsignmentExt, ContainerVer, Contract, FileContent, Transfer, UniversalFile,
+    BuilderSeal, ConsignmentExt, ContainerVer, Contract, FileContent, SecretSeals, Transfer,
+    UniversalFile,
 };
 use rgb::invoice::{Beneficiary, Pay2Vout, RgbInvoice, RgbInvoiceBuilder, XChainNet};
 use rgb::persistence::{MemContract, StashReadProvider, Stock};
@@ -862,7 +862,7 @@ impl Exec for RgbArgs {
                 pub struct ConsignmentInspection {
                     version: ContainerVer,
                     transfer: bool,
-                    terminals: SmallOrdMap<BundleId, SecretSeal>,
+                    terminals: SmallOrdMap<BundleId, SecretSeals>,
                 }
 
                 let content = UniversalFile::load_file(file)?;
