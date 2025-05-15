@@ -33,7 +33,7 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, CreateParams, Schema};
 use rgbp::descriptor::RgbDescr;
-use rgbp::Owner;
+use rgbp::{ContractInfo, Owner};
 use strict_encoding::{StrictDeserialize, StrictSerialize, TypeName};
 use strict_types::StrictVal;
 
@@ -160,7 +160,9 @@ impl Args {
                 } else {
                     println!("Contracts:");
                 }
-                for info in contracts.contracts_info() {
+                for id in contracts.contract_ids() {
+                    let articles = contracts.contract_articles(id);
+                    let info = ContractInfo::new(id, &articles);
                     println!("---");
                     println!(
                         "{}",
@@ -205,14 +207,14 @@ impl Args {
                     };
                     print!("Processing '{}' ... ", filename.to_string_lossy());
 
-                    let schema = Schema::load(&src)?;
-                    let codex_id = schema.codex.codex_id();
+                    let issuer = Schema::load(&src)?;
+                    let codex_id = issuer.codex.codex_id();
                     print!("codex id {codex_id} ... ");
                     if contracts.has_issuer(codex_id) {
                         println!("already known, skipping");
                         continue;
                     }
-                    contracts.import(schema)?;
+                    contracts.import_issuer(issuer)?;
                     println!("success");
                 }
             }

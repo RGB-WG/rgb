@@ -38,8 +38,10 @@ mod owner;
 mod coinselect;
 mod runtime;
 mod payment;
+mod info;
 
 pub use coinselect::CoinselectStrategy;
+pub use info::{CodexInfo, ContractInfo};
 pub use owner::Owner;
 pub use payment::Payment;
 #[cfg(feature = "fs")]

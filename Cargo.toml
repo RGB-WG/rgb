@@ -28,6 +28,7 @@ rgb-std = { version = "=0.12.0-beta.6" }
 rgb-runtime = { version = "=0.12.0-beta.6", path = "." }
 rgb-psbt = { version = "=0.12.0-beta.6", path = "psbt" }
 indexmap = "2.9.0"
+chrono = { version = "0.4.41", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
@@ -60,6 +61,7 @@ bp-wallet = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
 indexmap = { workspace = true }
+chrono = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
@@ -93,3 +95,13 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "master" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
+#rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+#rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-std = { path = "../rgb-std" }
