@@ -131,6 +131,7 @@ impl Args {
                 let contracts = self.contracts();
 
                 if *issuers {
+                    #[allow(clippy::print_literal)]
                     if contracts.issuers_count() > 0 {
                         println!("Contract-issuing schemata:");
                         println!(
@@ -207,7 +208,7 @@ impl Args {
                     };
                     print!("Processing '{}' ... ", filename.to_string_lossy());
 
-                    let issuer = Schema::load(&src)?;
+                    let issuer = Schema::load(src)?;
                     let codex_id = issuer.codex.codex_id();
                     print!("codex id {codex_id} ... ");
                     if contracts.has_issuer(codex_id) {
