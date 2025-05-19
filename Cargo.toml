@@ -97,12 +97,15 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.12" }
-single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "v0.12" }
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "v0.12" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "v0.12" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "revision" }
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "revision" }
+aluvm = { git = "https://github.com/AluVM/aluvm", branch = "revision" }
+zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "revision" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "revision" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "revision" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "revision" }
+sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "revision" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "revision" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "revision" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "revision" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "revision" }

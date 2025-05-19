@@ -56,7 +56,7 @@ impl Coinselect for CoinselectStrategy {
     fn coinselect(
         &mut self,
         invoiced_state: &StrictVal,
-        calc: &mut (impl StateCalc + ?Sized),
+        calc: &mut StateCalc,
         owned_state: Vec<(CellAddr, &StrictVal)>,
     ) -> Option<Vec<CellAddr>> {
         let res = match self {

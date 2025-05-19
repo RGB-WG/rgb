@@ -14,13 +14,13 @@ dependencies = [
 [[package]]
 name = "aluvm"
 version = "0.12.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee07e0c19969cc98e341f94f0b413642341605febee7fe7823a2ec7ea71f494c"
+source = "git+https://github.com/AluVM/aluvm?branch=revision#2996dfeb8e38fd3d396b1d04e4c894c90db02bdf"
 dependencies = [
  "amplify",
  "baid64",
  "commit_verify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "paste",
  "serde",
  "strict_encoding",
@@ -429,7 +429,7 @@ dependencies = [
  "bp-consensus",
  "bp-dbc",
  "commit_verify",
- "rand",
+ "rand 0.8.5",
  "serde",
  "single_use_seals",
  "strict_encoding",
@@ -613,7 +613,7 @@ dependencies = [
 [[package]]
 name = "commit_encoding_derive"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.12#0fab90652ff33e91be9c51ee90769c9a47b40cc2"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=revision#568d00688175c24c0cd1747534135cd09476079c"
 dependencies = [
  "amplify",
  "amplify_syn",
@@ -625,12 +625,13 @@ dependencies = [
 [[package]]
 name = "commit_verify"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.12#0fab90652ff33e91be9c51ee90769c9a47b40cc2"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=revision#568d00688175c24c0cd1747534135cd09476079c"
 dependencies = [
  "amplify",
  "commit_encoding_derive",
  "getrandom 0.2.16",
- "rand",
+ "getrandom 0.3.3",
+ "rand 0.9.1",
  "ripemd",
  "serde",
  "sha2",
@@ -892,9 +893,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi",
  "wasi 0.14.2+wasi-0.2.4",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -957,13 +960,13 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#fda08609334968967483b43d242c2620c11be67c"
+source = "git+https://github.com/AluVM/sonic?branch=revision#70c29166c6974453eea2ba5a8704a08c789fec2b"
 dependencies = [
  "aluvm",
  "amplify",
- "aora",
  "commit_verify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "indexmap 2.9.0",
  "serde",
  "sonic-api",
@@ -1327,8 +1330,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
- "rand_chacha",
- "rand_core",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rand"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fbfd9d094a40bf3ae768db9361049ace4c0e04a4fd6b359518bd7b73a73dd97"
+dependencies = [
+ "rand_chacha 0.9.0",
+ "rand_core 0.9.3",
 ]
 
 [[package]]
@@ -1338,7 +1351,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
- "rand_core",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rand_chacha"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
+dependencies = [
+ "ppv-lite86",
+ "rand_core 0.9.3",
 ]
 
 [[package]]
@@ -1348,6 +1371,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom 0.2.16",
+]
+
+[[package]]
+name = "rand_core"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
+dependencies = [
+ "getrandom 0.3.3",
 ]
 
 [[package]]
@@ -1413,12 +1445,13 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-core?branch=v0.12#6719b9147f55a4e3ce5dac05164da820aa6e9720"
+source = "git+https://github.com/RGB-WG/rgb-core?branch=revision#b6579d596c493bdada69285e246318f69f9619f7"
 dependencies = [
  "amplify",
  "bp-core",
  "commit_verify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "serde",
  "single_use_seals",
  "strict_encoding",
@@ -1429,7 +1462,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#dc2e0f4f3206f845321bf7ef511740de541ce5ef"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=revision#dd21b71b019ab0d928dd98dc2ecbb2eaaebcb8d4"
 dependencies = [
  "amplify",
  "baid64",
@@ -1466,7 +1499,7 @@ dependencies = [
  "indexmap 2.9.0",
  "log",
  "nonasync",
- "rand",
+ "rand 0.8.5",
  "rgb-psbt",
  "rgb-std",
  "serde",
@@ -1479,7 +1512,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#dc2e0f4f3206f845321bf7ef511740de541ce5ef"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=revision#dd21b71b019ab0d928dd98dc2ecbb2eaaebcb8d4"
 dependencies = [
  "amplify",
  "aora",
@@ -1488,6 +1521,7 @@ dependencies = [
  "chrono",
  "commit_verify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "hypersonic",
  "indexmap 2.9.0",
  "rgb-core",
@@ -1495,6 +1529,7 @@ dependencies = [
  "serde",
  "serde_with 1.14.0",
  "single_use_seals",
+ "sonic-persist-fs",
  "strict_encoding",
  "strict_types",
  "wasm-bindgen",
@@ -1625,7 +1660,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b50c5943d326858130af85e049f2661ba3c78b26589b8ab98e65e80ae44a1252"
 dependencies = [
  "bitcoin_hashes",
- "rand",
+ "rand 0.8.5",
  "secp256k1-sys",
  "serde",
 ]
@@ -1784,7 +1819,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "single_use_seals"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/LNP-BP/client_side_validation?branch=v0.12#0fab90652ff33e91be9c51ee90769c9a47b40cc2"
+source = "git+https://github.com/LNP-BP/client_side_validation?branch=revision#568d00688175c24c0cd1747534135cd09476079c"
 dependencies = [
  "serde",
  "strict_encoding",
@@ -1793,14 +1828,16 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#fda08609334968967483b43d242c2620c11be67c"
+source = "git+https://github.com/AluVM/sonic?branch=revision#70c29166c6974453eea2ba5a8704a08c789fec2b"
 dependencies = [
  "aluvm",
  "amplify",
  "baid64",
+ "binfile",
  "chrono",
  "commit_verify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "serde",
  "sonic-callreq",
  "strict_encoding",
@@ -1812,18 +1849,35 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#fda08609334968967483b43d242c2620c11be67c"
+source = "git+https://github.com/AluVM/sonic?branch=revision#70c29166c6974453eea2ba5a8704a08c789fec2b"
 dependencies = [
  "amplify",
  "baid64",
  "chrono",
  "fluent-uri",
+ "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "indexmap 2.9.0",
  "percent-encoding",
  "serde",
  "strict_encoding",
  "strict_types",
  "ultrasonic",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "sonic-persist-fs"
+version = "0.12.0-beta.6"
+source = "git+https://github.com/AluVM/sonic?branch=revision#70c29166c6974453eea2ba5a8704a08c789fec2b"
+dependencies = [
+ "amplify",
+ "aora",
+ "binfile",
+ "hypersonic",
+ "serde_yaml",
+ "strict_encoding",
+ "toml",
 ]
 
 [[package]]
@@ -2041,12 +2095,13 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.6"
-source = "git+https://github.com/AluVM/ultrasonic?branch=v0.12#ab8fe90e88c3be6dbcfe69655792a597531fcd30"
+source = "git+https://github.com/AluVM/ultrasonic?branch=revision#b006b44c189809204505d112f10e2dd1b04b6707"
 dependencies = [
  "amplify",
  "baid64",
  "commit_verify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "serde",
  "strict_encoding",
  "wasm-bindgen",
@@ -2536,12 +2591,12 @@ checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
 [[package]]
 name = "zk-aluvm"
 version = "0.12.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25be6c6abb3a05546ef51e5256cf5f23dc739bb67dae9d9a2db6e4755de1c863"
+source = "git+https://github.com/AluVM/zk-aluvm?branch=revision#36bd0202f6100c7ba4251fa02a404b91f40c8cea"
 dependencies = [
  "aluvm",
  "amplify",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "serde",
  "strict_encoding",
  "wasm-bindgen",

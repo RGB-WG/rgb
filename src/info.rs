@@ -41,15 +41,15 @@ pub struct ContractInfo {
 
 impl ContractInfo {
     pub fn new(id: ContractId, articles: &Articles) -> Self {
+        let meta = &articles.issue().meta;
         Self {
             id,
-            name: articles.issue.meta.name.clone(),
-            issuer: articles.issue.meta.issuer.clone(),
-            timestamp: DateTime::from_timestamp(articles.issue.meta.timestamp, 0)
-                .expect("Invalid timestamp"),
-            codex: CodexInfo::new(&articles.schema.codex),
-            consensus: articles.issue.meta.consensus,
-            testnet: articles.issue.meta.testnet,
+            name: meta.name.clone(),
+            issuer: meta.issuer.clone(),
+            timestamp: DateTime::from_timestamp(meta.timestamp, 0).expect("Invalid timestamp"),
+            codex: CodexInfo::new(articles.codex()),
+            consensus: meta.consensus,
+            testnet: meta.testnet,
         }
     }
 }

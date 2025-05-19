@@ -22,6 +22,8 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::convert::Infallible;
+use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::str::FromStr;
@@ -31,7 +33,7 @@ use bpwallet::psbt::{PsbtConstructor, TxParams};
 use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
-use rgb::{CallScope, CreateParams, Schema};
+use rgb::{CallScope, Consensus, CreateParams, Identity, Issuer, SigBlob, SigValidator};
 use rgbp::descriptor::RgbDescr;
 use rgbp::{ContractInfo, Owner};
 use strict_encoding::{StrictDeserialize, StrictSerialize, TypeName};
@@ -135,21 +137,23 @@ impl Args {
                     if contracts.issuers_count() > 0 {
                         println!("Contract-issuing schemata:");
                         println!(
-                            "{:<72}\t{:<32}\t{:<16}\t{:<8}\t{}",
-                            "Codex ID", "Codex name", "Standard", "Used VM", "Developer"
+                            "{:<72}\t{:<32}\t{:<16}\t{}",
+                            "Codex ID", "Codex name", "Standard", "Developer"
                         );
                     } else {
                         eprintln!("No contract-issuing schemata found");
                     }
                     // TODO: Print codex and API information in separate blocks
                     for (codex_id, issuer) in contracts.issuers() {
-                        let api = &issuer.default_api;
+                        let api = &issuer.api;
                         println!(
-                            "{:<72}\t{:<32}\t{:<16}\t{:<8}\t{}",
+                            "{:<72}\t{:<32}\t{:<16}\t{}",
                             codex_id.to_string(),
                             issuer.codex.name,
-                            api.conforms().map(TypeName::to_string).unwrap_or(s!("~")),
-                            api.vm_type(),
+                            api.conforms()
+                                .as_ref()
+                                .map(TypeName::to_string)
+                                .unwrap_or(s!("~")),
                             issuer.codex.developer,
                         );
                     }
@@ -208,7 +212,7 @@ impl Args {
                     };
                     print!("Processing '{}' ... ", filename.to_string_lossy());
 
-                    let issuer = Schema::load(src)?;
+                    let issuer = Issuer::load(src)?;
                     let codex_id = issuer.codex.codex_id();
                     print!("codex id {codex_id} ... ");
                     if contracts.has_issuer(codex_id) {
@@ -225,8 +229,7 @@ impl Args {
                     .contracts()
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
-                let articles = self.contracts().contract_articles(contract_id);
-                articles.save(file)?;
+                todo!()
             }
 
             Cmd::Backup { file } => {
@@ -263,10 +266,10 @@ impl Args {
                         runtime.state_own(contract_id)
                     };
                     let articles = runtime.contracts.contract_articles(contract_id);
-                    println!("{contract_id}\t{}", articles.issue.meta.name);
+                    println!("{contract_id}\t{}", articles.issue().meta.name);
                     if *global {
                         if state.immutable.is_empty() {
-                            println!("global: # no known global state");
+                            println!("Global: # no known global state");
                         } else {
                             println!(
                                 "Global: {:<16}\t{:<12}\t{:<32}\t{:<32}\tRGB output",
@@ -290,18 +293,18 @@ impl Args {
                             }
                         }
 
-                        if state.computed.is_empty() {
-                            println!("Comp:   # no known computed state");
+                        if state.aggregated.is_empty() {
+                            println!("Aggr.:  # no known aggregated state");
                         } else {
-                            print!("Comp:   {:<16}\t{:<32}", "State name", "Value");
+                            print!("Aggr.:  {:<16}\t{:<32}", "State name", "Value");
                         }
-                        for (name, val) in &state.computed {
+                        for (name, val) in &state.aggregated {
                             println!("\t{name:<16}\t{val}");
                         }
                     }
                     if *owned {
                         if state.owned.is_empty() {
-                            println!("owned:  # no known owned state");
+                            println!("Owned:  # no known owned state");
                         } else {
                             println!(
                                 "Owned:  {:<16}\t{:<12}\t{:<32}\t{:<46}\tBitcoin outpoint",
@@ -358,7 +361,13 @@ impl Args {
                     CallScope::ContractQuery(s!(""))
                 };
                 let value = value.map(StrictVal::num);
-                let mut invoice = RgbInvoice::new(contract_id, beneficiary, value);
+                let mut invoice = RgbInvoice::new(
+                    contract_id,
+                    Consensus::Bitcoin,
+                    self.network.is_testnet(),
+                    beneficiary,
+                    value,
+                );
                 if let Some(api) = api {
                     invoice = invoice.use_api(api.clone());
                 }
@@ -447,7 +456,7 @@ impl Args {
                 payment
                     .bundle
                     .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
-                    .context("Unable to write output file")?;
+                    .context("Unable to write to the output file")?;
 
                 // This PSBT can be sent to other payjoin parties so they add their inputs and
                 // outputs, or even re-order existing ones
@@ -529,9 +538,22 @@ impl Args {
             }
 
             Cmd::Accept { wallet, input } => {
+                // TODO: Use some real signature validator
+                pub struct DumbValidator;
+                impl SigValidator for DumbValidator {
+                    fn validate_sig(
+                        &self,
+                        _: impl Into<[u8; 32]>,
+                        _: &Identity,
+                        _: &SigBlob,
+                    ) -> Result<u64, impl Error> {
+                        Result::<_, Infallible>::Ok(0)
+                    }
+                }
+
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 runtime
-                    .consume_from_file(input)
+                    .consume_from_file(input, DumbValidator)
                     .map_err(|e| anyhow::anyhow!(e.to_string()))?;
             }
         }
