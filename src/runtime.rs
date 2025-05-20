@@ -26,20 +26,21 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::ops::{Deref, DerefMut};
 
-use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
+use bpstd::psbt::{
+    Beneficiary, ConstructionError, DbcPsbtError, PsbtConstructor, PsbtMeta, TxParams,
+};
 use bpstd::seals::TxoSeal;
-use bpstd::{Psbt, Sats};
-use bpwallet::{Indexer, TxStatus};
+use bpstd::{Address, Psbt, Sats};
+use bpwallet::{Indexer, MayError, TxStatus};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
-    RgbWallet,
+    RgbWallet, WalletProvider,
 };
-use rgb::{AcceptError, ContractId, Pile, RgbSealDef, Stockpile, WitnessStatus};
+use rgb::{AcceptError, ContractId, EitherSeal, Pile, RgbSealDef, Stockpile, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 use strict_types::SerializeError;
 
-use crate::owner::Owner;
 use crate::{CoinselectStrategy, Payment};
 
 #[derive(Debug, Display, Error, From)]
@@ -54,37 +55,46 @@ pub enum SyncError<E: Error> {
     Forward(AcceptError),
 }
 
-pub struct RgbRuntime<Sp>(RgbWallet<Owner, Sp>)
+pub trait WalletUpdater {
+    fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>>;
+}
+
+pub struct RgbRuntime<Wallet, Sp>(RgbWallet<Wallet, Sp>)
 where
+    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>;
 
-impl<Sp> From<RgbWallet<Owner, Sp>> for RgbRuntime<Sp>
+impl<Wallet, Sp> From<RgbWallet<Wallet, Sp>> for RgbRuntime<Wallet, Sp>
 where
+    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    fn from(barrow: RgbWallet<Owner, Sp>) -> Self { Self(barrow) }
+    fn from(barrow: RgbWallet<Wallet, Sp>) -> Self { Self(barrow) }
 }
 
-impl<Sp> Deref for RgbRuntime<Sp>
+impl<Wallet, Sp> Deref for RgbRuntime<Wallet, Sp>
 where
+    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    type Target = RgbWallet<Owner, Sp>;
+    type Target = RgbWallet<Wallet, Sp>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<Sp> DerefMut for RgbRuntime<Sp>
+impl<Wallet, Sp> DerefMut for RgbRuntime<Wallet, Sp>
 where
+    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<Sp> RgbRuntime<Sp>
+impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
 where
+    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
@@ -182,6 +192,32 @@ where
         Ok((psbt, payment))
     }
 
+    fn compose_psbt(
+        &mut self,
+        bundle: &PaymentScript,
+        params: TxParams,
+    ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
+        let closes = bundle
+            .iter()
+            .flat_map(|params| &params.using)
+            .map(|used| used.outpoint);
+
+        let network = self.wallet.network();
+        let beneficiaries = bundle
+            .iter()
+            .flat_map(|params| &params.owned)
+            .filter_map(|assignment| match &assignment.state.seal {
+                EitherSeal::Alt(seal) => seal.as_ref(),
+                EitherSeal::Token(_) => None,
+            })
+            .map(|seal| {
+                let address = Address::with(&seal.wout.script_pubkey(), network)
+                    .expect("script pubkey which is not representable as an address");
+                Beneficiary::new(address, seal.sats)
+            });
+        self.wallet.construct_psbt(closes, beneficiaries, params)
+    }
+
     /// Execute payment script creating PSBT and prefabricated operation bundle.
     ///
     /// The returned PSBT contains only anonymous client-side validation information and is
@@ -192,7 +228,7 @@ where
         script: PaymentScript,
         params: TxParams,
     ) -> Result<Payment, TransferError> {
-        let (mut psbt, mut meta) = self.0.wallet.compose_psbt(&script, params)?;
+        let (mut psbt, mut meta) = self.compose_psbt(&script, params)?;
 
         // From this moment transaction becomes unmodifiable
         let request = psbt.rgb_resolve(script, &mut meta.change_vout)?;
@@ -266,7 +302,7 @@ pub mod file {
 
     use super::*;
 
-    pub type RgbpRuntimeDir = RgbRuntime<StockpileDir<TxoSeal>>;
+    pub type RgbpRuntimeDir<Wallet> = RgbRuntime<Wallet, StockpileDir<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;

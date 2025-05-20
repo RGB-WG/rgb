@@ -25,15 +25,18 @@
 use std::convert::Infallible;
 
 use amplify::Bytes32;
-use bpstd::psbt::{Beneficiary, ConstructionError, PsbtConstructor, PsbtMeta, TxParams};
+use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
-use bpstd::{Address, Keychain, Network, Outpoint, Psbt, XpubDerivable};
-use bpwallet::{Layer2Empty, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr};
+use bpstd::{Address, Keychain, Network, NormalIndex, Outpoint, ScriptPubkey, XpubDerivable};
+use bpwallet::{
+    Indexer, Layer2Empty, MayError, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr,
+};
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
-use rgb::popls::bp::{PaymentScript, WalletProvider};
-use rgb::{AuthToken, EitherSeal, RgbSealDef};
+use rgb::popls::bp::WalletProvider;
+use rgb::{AuthToken, RgbSealDef};
 
 use crate::descriptor::RgbDescr;
+use crate::WalletUpdater;
 
 // TODO: Use layer 2 supporting Lightning
 #[derive(Wrapper, WrapperMut, From)]
@@ -77,6 +80,27 @@ impl WalletProvider for Owner {
     }
 }
 
+impl PsbtConstructor for Owner {
+    type Key = XpubDerivable;
+    type Descr = RgbDescr<XpubDerivable>;
+
+    fn descriptor(&self) -> &Self::Descr { self.0.descriptor() }
+
+    fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> { self.0.utxo(outpoint) }
+
+    fn network(&self) -> Network { self.0.network() }
+
+    fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
+        self.0.next_derivation_index(keychain, shift)
+    }
+}
+
+impl WalletUpdater for Owner {
+    fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>> {
+        self.0.update(indexer)
+    }
+}
+
 impl Owner {
     pub fn create<P>(
         provider: P,
@@ -105,30 +129,5 @@ impl Owner {
             + PersistenceProvider<NoLayer2>
             + 'static {
         Wallet::load(provider, autosave).map(Owner)
-    }
-
-    pub fn compose_psbt(
-        &mut self,
-        bundle: &PaymentScript,
-        params: TxParams,
-    ) -> Result<(Psbt, PsbtMeta), ConstructionError> {
-        let closes = bundle
-            .iter()
-            .flat_map(|params| &params.using)
-            .map(|used| used.outpoint);
-        let network = self.network();
-        let beneficiaries = bundle
-            .iter()
-            .flat_map(|params| &params.owned)
-            .filter_map(|assignment| match &assignment.state.seal {
-                EitherSeal::Alt(seal) => seal.as_ref(),
-                EitherSeal::Token(_) => None,
-            })
-            .map(|seal| {
-                let address = Address::with(&seal.wout.script_pubkey(), network)
-                    .expect("script pubkey which is not representable as an address");
-                Beneficiary::new(address, seal.sats)
-            });
-        self.construct_psbt(closes, beneficiaries, params)
     }
 }
