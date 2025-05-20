@@ -245,14 +245,19 @@ where
         script: PaymentScript,
         params: TxParams,
     ) -> Result<Payment, MultiError<TransferError, <Sp::Stock as Stock>::Error>> {
-        let (mut psbt, meta) = self
+        let (mut psbt, mut meta) = self
             .compose_psbt(&script, params)
             .map_err(MultiError::from_a)?;
 
         // From this moment transaction becomes unmodifiable
+        let mut change_vout = meta.change.map(|c| c.vout);
         let request = psbt
-            .rgb_resolve(script, &mut meta.change.map(|c| c.vout))
+            .rgb_resolve(script, &mut change_vout)
             .map_err(MultiError::from_a)?;
+        if let Some(vout) = change_vout {
+            meta.change.as_mut().map(|c| c.vout = vout);
+        }
+
         let bundle = self
             .bundle(request, meta.change.map(|c| c.vout))
             .map_err(MultiError::from_other_a)?;
