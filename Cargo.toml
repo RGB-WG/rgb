@@ -3,7 +3,7 @@ members = [".", "psbt", "cli"]
 default-members = [".", "psbt"]
 
 [workspace.package]
-version = "0.12.0-rc.1"
+version = "0.12.0-rc.1.1"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
