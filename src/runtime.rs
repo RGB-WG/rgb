@@ -26,6 +26,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::ops::{Deref, DerefMut};
 
+use amplify::MultiError;
 use bpstd::psbt::{ConstructionError, DbcPsbtError, TxParams};
 use bpstd::seals::TxoSeal;
 use bpstd::{Psbt, Sats};
@@ -35,9 +36,7 @@ use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
     RgbWallet,
 };
-use rgb::{
-    AcceptError, ContractId, EitherError, Pile, RgbSealDef, Stock, Stockpile, WitnessStatus,
-};
+use rgb::{AcceptError, ContractId, Pile, RgbSealDef, Stock, Stockpile, WitnessStatus};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 use strict_types::SerializeError;
 
@@ -93,13 +92,13 @@ where
     pub fn sync<I>(
         &mut self,
         indexer: &I,
-    ) -> Result<(), EitherError<SyncError<I::Error>, <Sp::Stock as Stock>::Error>>
+    ) -> Result<(), MultiError<SyncError<I::Error>, <Sp::Stock as Stock>::Error>>
     where
         I: Indexer,
         I::Error: Error,
     {
         if let Some(err) = self.wallet.update(indexer).err {
-            return Err(EitherError::A(SyncError::Update(err)));
+            return Err(MultiError::A(SyncError::Update(err)));
         }
 
         let txids = self.contracts.witness_ids().collect::<HashSet<_>>();
@@ -107,7 +106,7 @@ where
         for txid in txids {
             let status = indexer
                 .status(txid)
-                .map_err(|e| EitherError::A(SyncError::Status(e)))?;
+                .map_err(|e| MultiError::A(SyncError::Status(e)))?;
             let status = match status {
                 TxStatus::Unknown => WitnessStatus::Archived,
                 TxStatus::Mempool => WitnessStatus::Tentative,
@@ -118,7 +117,7 @@ where
         }
         self.contracts
             .sync(&changed)
-            .map_err(EitherError::from_other_a)?;
+            .map_err(MultiError::from_other_a)?;
 
         Ok(())
     }
@@ -138,14 +137,14 @@ where
         strategy: impl Coinselect,
         params: TxParams,
         giveaway: Option<Sats>,
-    ) -> Result<(Psbt, Payment), EitherError<PayError, <Sp::Stock as Stock>::Error>> {
+    ) -> Result<(Psbt, Payment), MultiError<PayError, <Sp::Stock as Stock>::Error>> {
         let request = self
             .fulfill(invoice, strategy, giveaway)
-            .map_err(EitherError::from_a)?;
+            .map_err(MultiError::from_a)?;
         let script = OpRequestSet::with(request.clone());
         let (psbt, mut payment) = self
             .transfer(script, params)
-            .map_err(EitherError::from_other_a)?;
+            .map_err(MultiError::from_other_a)?;
         let terminal = match invoice.auth {
             RgbBeneficiary::Token(auth) => auth,
             RgbBeneficiary::WitnessOut(wout) => request
@@ -161,11 +160,11 @@ where
         let mut psbt = payment.uncomit_psbt.clone();
         let change = payment
             .psbt_meta
-            .change_vout
+            .change
             .expect("Can't RBF when no change is present");
         let old_fee = psbt.fee().expect("Invalid PSBT with zero inputs");
         let out = psbt
-            .output_mut(change.into_usize())
+            .output_mut(change.vout.into_usize())
             .expect("invalid PSBT meta-information in the payment");
         out.amount -= fee.into() - old_fee;
 
@@ -189,11 +188,11 @@ where
         &mut self,
         script: PaymentScript,
         params: TxParams,
-    ) -> Result<(Psbt, Payment), EitherError<TransferError, <Sp::Stock as Stock>::Error>> {
+    ) -> Result<(Psbt, Payment), MultiError<TransferError, <Sp::Stock as Stock>::Error>> {
         let payment = self.exec(script, params)?;
         let psbt = self
             .complete(payment.uncomit_psbt.clone(), &payment.bundle)
-            .map_err(EitherError::A)?;
+            .map_err(MultiError::A)?;
         Ok((psbt, payment))
     }
 
@@ -206,22 +205,22 @@ where
         &mut self,
         script: PaymentScript,
         params: TxParams,
-    ) -> Result<Payment, EitherError<TransferError, <Sp::Stock as Stock>::Error>> {
-        let (mut psbt, mut meta) = self
+    ) -> Result<Payment, MultiError<TransferError, <Sp::Stock as Stock>::Error>> {
+        let (mut psbt, meta) = self
             .0
             .wallet
             .compose_psbt(&script, params)
-            .map_err(EitherError::from_a)?;
+            .map_err(MultiError::from_a)?;
 
         // From this moment transaction becomes unmodifiable
         let request = psbt
-            .rgb_resolve(script, &mut meta.change_vout)
-            .map_err(EitherError::from_a)?;
+            .rgb_resolve(script, &mut meta.change.map(|c| c.vout))
+            .map_err(MultiError::from_a)?;
         let bundle = self
-            .bundle(request, meta.change_vout)
-            .map_err(EitherError::from_other_a)?;
+            .bundle(request, meta.change.map(|c| c.vout))
+            .map_err(MultiError::from_other_a)?;
 
-        psbt.rgb_fill_csv(&bundle).map_err(EitherError::from_a)?;
+        psbt.rgb_fill_csv(&bundle).map_err(MultiError::from_a)?;
 
         Ok(Payment {
             uncomit_psbt: psbt,

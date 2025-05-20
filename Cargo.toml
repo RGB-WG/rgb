@@ -3,7 +3,7 @@ members = [".", "psbt", "cli"]
 default-members = [".", "psbt"]
 
 [workspace.package]
-version = "0.12.0-beta.6"
+version = "0.12.0-rc.1"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -14,19 +14,19 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-amplify = "4.8.1"
+amplify = "4.9.0"
 nonasync = "0.1.2"
-strict_encoding = "2.8.2"
-strict_types = "2.8.3"
-commit_verify = "=0.12.0-beta.6"
-bp-core = "=0.12.0-beta.6"
-bp-std = { version = "=0.12.0-beta.6", features = ["client-side-validation"] }
-bp-electrum = "=0.12.0-beta.6"
-bp-esplora = { version = "=0.12.0-beta.6", default-features = false }
-bp-wallet = { version = "=0.12.0-beta.6" }
-rgb-std = { version = "=0.12.0-beta.6" }
-rgb-runtime = { version = "=0.12.0-beta.6", path = "." }
-rgb-psbt = { version = "=0.12.0-beta.6", path = "psbt" }
+strict_encoding = "2.9.1"
+strict_types = "2.9.0"
+commit_verify = "0.12.0-rc.1"
+bp-core = "0.12.0-rc.1"
+bp-std = { version = "0.12.0-rc.1", features = ["client-side-validation"] }
+bp-electrum = "0.12.0-rc.1"
+bp-esplora = { version = "0.12.0-rc.1", default-features = false }
+bp-wallet = { version = "0.12.0-rc.1" }
+rgb-std = { version = "0.12.0-rc.1" }
+rgb-runtime = { version = "0.12.0-rc.1", path = "." }
+rgb-psbt = { version = "0.12.0-rc.1", path = "psbt" }
 indexmap = "2.9.0"
 chrono = { version = "0.4.41", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
@@ -95,17 +95,3 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-single_use_seals = { git = "https://github.com/LNP-BP/client_side_validation", branch = "revision" }
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "revision" }
-aluvm = { git = "https://github.com/AluVM/aluvm", branch = "revision" }
-zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "revision" }
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "revision" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "revision" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "revision" }
-sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "revision" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "revision" }
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core", branch = "revision" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "revision" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "revision" }

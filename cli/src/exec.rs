@@ -198,7 +198,7 @@ impl Args {
                 };
             }
 
-            Cmd::Purge { force, contract } => {
+            Cmd::Purge { force: _, contract: _ } => {
                 todo!();
                 //self.contracts().purge(contract)
             }
@@ -224,15 +224,15 @@ impl Args {
                 }
             }
 
-            Cmd::Export { contract, file } => {
-                let contract_id = self
+            Cmd::Export { contract, file: _ } => {
+                let _contract_id = self
                     .contracts()
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
                 todo!()
             }
 
-            Cmd::Backup { file } => {
+            Cmd::Backup { file: _ } => {
                 todo!();
             }
 
