@@ -99,6 +99,7 @@ where
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
+    #[allow(clippy::type_complexity)]
     pub fn sync<I>(
         &mut self,
         indexer: &I,
@@ -141,6 +142,7 @@ where
     /// If you need more flexibility in constructing payments (do multiple payments with multiple
     /// contracts, use global state etc.) in a single PSBT, please use `pay_custom` APIs and
     /// [`PrefabBundleSet`] instead of this simplified API.
+    #[allow(clippy::type_complexity)]
     pub fn pay_invoice(
         &mut self,
         invoice: &RgbInvoice<ContractId>,
@@ -194,6 +196,7 @@ where
 
     /// Construct transfer, consisting of PSBT and a consignment stream
     // TODO: Return a dedicated Transfer object which can stream a consignment
+    #[allow(clippy::type_complexity)]
     pub fn transfer(
         &mut self,
         script: PaymentScript,
