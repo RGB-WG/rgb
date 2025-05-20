@@ -22,7 +22,7 @@ commit_verify = "0.12.0-rc.1"
 bp-core = "0.12.0-rc.1"
 bp-std = { version = "0.12.0-rc.1", features = ["client-side-validation"] }
 bp-electrum = "0.12.0-rc.1"
-bp-esplora = { version = "0.12.0-rc.1", default-features = false }
+bp-esplora = { version = "0.12.0-rc.1", default-features = false, features = ["blocking-https"] }
 bp-wallet = { version = "0.12.0-rc.1" }
 rgb-std = { version = "0.12.0-rc.1" }
 rgb-runtime = { version = "0.12.0-rc.1", path = "." }

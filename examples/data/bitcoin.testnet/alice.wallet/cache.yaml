@@ -41,6 +41,11 @@ utxo:
 - b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
 addr:
   '0':
+  - terminal: '&0/0'
+    addr: tb1qyw3xyv6dqqn30r443sv8w6am3z44up58j2tyy0
+    used: 0
+    volume: 0
+    balance: 0
   - terminal: '&0/1'
     addr: tb1qky29yhxm9lvdukqmpf9zsl2cuc3hxmzx4p8fxr
     used: 1
@@ -92,6 +97,11 @@ addr:
     volume: 0
     balance: 0
   '1':
+  - terminal: '&1/0'
+    addr: tb1qzasapugw6wtfun9ctpz0h528wdk6xdp5fs5p00
+    used: 0
+    volume: 0
+    balance: 0
   - terminal: '&1/1'
     addr: tb1qgma87fgdd595xrzz8nwawp3x9sfttwcynrn7fw
     used: 0

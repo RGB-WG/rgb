@@ -1,6 +1,6 @@
 consensus: bitcoin
 testnet: true
-codexId: dLmJMaGC-A4CjS2t-cauJxL1-3f1_osG-0kuj~XB-n8KCQ1k#ranger-beast-puma
+codexId: BOoO7uU4-jEJQVTW-5InKqHv-AFQd01q-3bToMSP-KedmASY
 name: DemoToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"

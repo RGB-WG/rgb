@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -x
+
 cargo build --workspace --all-targets --all-features || exit 1
 export RUST_BACKTRACE=1
 RGB="./target/debug/rgb -d examples/data"
@@ -7,8 +9,6 @@ RGB_2="./target/debug/rgb -d examples/data2"
 
 $RGB init 2>/dev/null
 $RGB_2 init 2>/dev/null
-
-set -x
 
 $RGB import examples/RGB20-NFA.issuer
 
