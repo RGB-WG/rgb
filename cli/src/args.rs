@@ -136,7 +136,7 @@ impl Args {
         FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
     }
 
-    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir {
+    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<Owner> {
         let provider = self.wallet_provider(opts.wallet.as_deref());
         let wallet = Owner::load(provider, true).unwrap_or_else(|_| {
             panic!(
