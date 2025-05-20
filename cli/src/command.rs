@@ -410,7 +410,7 @@ impl Exec for RgbArgs {
                             eprintln!("- script library {}", lib.id());
                         }
                         eprintln!("- strict types: {} definitions", kit.types.len());
-                        let kit = kit.validate().map_err(|(status, _)| status.to_string())?;
+                        let kit = kit.validate().map_err(|status| status.to_string())?;
                         stock.import_kit(kit)?;
                         eprintln!("Kit is imported");
                     }
@@ -421,7 +421,7 @@ impl Exec for RgbArgs {
                         eprint!("- validating the contract {} ... ", contract.contract_id());
                         let contract = contract
                             .validate(&resolver, self.chain_net(), None)
-                            .map_err(|(status, _)| {
+                            .map_err(|status| {
                                 eprintln!("failure");
                                 status.to_string()
                             })?;
@@ -461,11 +461,11 @@ impl Exec for RgbArgs {
 
             Command::State { contract_id, all } => {
                 let stock_path = self.general.base_dir();
-                let stock = self.load_stock(stock_path)?;
+                let stock = self.load_stock(stock_path.clone())?;
 
                 enum StockOrWallet {
-                    Stock(Stock),
-                    Wallet(RgbWallet<Wallet<XpubDerivable, RgbDescr>>),
+                    Stock(Box<Stock>),
+                    Wallet(Box<RgbWallet<Wallet<XpubDerivable, RgbDescr>>>),
                 }
                 impl StockOrWallet {
                     fn stock(&self) -> &Stock {
@@ -477,8 +477,8 @@ impl Exec for RgbArgs {
                 }
 
                 let stock_wallet = match self.rgb_wallet_from_stock(&config, stock) {
-                    Ok(wallet) => StockOrWallet::Wallet(wallet),
-                    Err((stock, _)) => StockOrWallet::Stock(stock),
+                    Ok(wallet) => StockOrWallet::Wallet(Box::new(wallet)),
+                    Err(_) => StockOrWallet::Stock(Box::new(self.load_stock(stock_path)?)),
                 };
 
                 let filter = match stock_wallet {
@@ -1015,7 +1015,7 @@ impl Exec for RgbArgs {
                 resolver.add_consignment_txes(&consignment);
                 let status = match consignment.validate(&resolver, self.chain_net(), None) {
                     Ok(consignment) => consignment.into_validation_status(),
-                    Err((status, _)) => status,
+                    Err(status) => status,
                 };
                 if status.validity() == Validity::Valid {
                     eprintln!("The provided consignment is valid")
@@ -1029,9 +1029,7 @@ impl Exec for RgbArgs {
                 let mut resolver = self.resolver()?;
                 let transfer = Transfer::load_file(file)?;
                 resolver.add_consignment_txes(&transfer);
-                let valid = transfer
-                    .validate(&resolver, self.chain_net(), None)
-                    .map_err(|(status, _)| status)?;
+                let valid = transfer.validate(&resolver, self.chain_net(), None)?;
                 stock.accept_transfer(valid, &resolver)?;
                 eprintln!("Transfer accepted into the stash");
             }

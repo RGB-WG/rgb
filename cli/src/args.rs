@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::needless_update)] // Required by From derive macro
+#![allow(clippy::needless_update, clippy::result_large_err)] // Required by From derive macro
 
 use std::fs;
 use std::io::ErrorKind;
@@ -163,17 +163,16 @@ impl RgbArgs {
     ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let stock = self.rgb_stock()?;
         self.rgb_wallet_from_stock(config, stock)
-            .map_err(|(_, err)| err)
     }
 
     pub fn rgb_wallet_from_stock(
         &self,
         config: &Config,
         stock: Stock,
-    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, (Stock, WalletError)> {
+    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
         let wallet = match self.inner.bp_wallet::<RgbDescr>(config) {
             Ok(wallet) => wallet,
-            Err(e) => return Err((stock, e.into())),
+            Err(e) => return Err(e.into()),
         };
         let wallet = RgbWallet::new(stock, wallet);
 
