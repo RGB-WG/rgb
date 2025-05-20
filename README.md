@@ -73,7 +73,7 @@ Run `examples/demo.sh`.
 ## Using command-line
 
 1. Initialize the data directory by running `rgb init` command.
-2. Import issuing schemata by some developer. For instance, you may take those
+2. Import contract issuers by some developer. For instance, you may take those
    from [the repository of Pandora Prime](https://github.com/pandora-prime/rgb-issuers/tree/master/compiled)
    or download from [rgbex.io]. Once downloaded, run `rgb import <ISSUERS>` command, replacing
    `<ISSUERS>` with a path to the downloaded files (you can use wildmarks, like `*.issuers`).

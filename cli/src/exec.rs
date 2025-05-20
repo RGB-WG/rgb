@@ -135,13 +135,13 @@ impl Args {
                 if *issuers {
                     #[allow(clippy::print_literal)]
                     if contracts.issuers_count() > 0 {
-                        println!("Contract-issuing schemata:");
+                        println!("Contract issuers:");
                         println!(
                             "{:<72}\t{:<32}\t{:<16}\t{}",
                             "Codex ID", "Codex name", "Standard", "Developer"
                         );
                     } else {
-                        eprintln!("No contract-issuing schemata found");
+                        eprintln!("No contract issuers found");
                     }
                     // TODO: Print codex and API information in separate blocks
                     for (codex_id, issuer) in contracts.issuers() {

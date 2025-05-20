@@ -99,7 +99,7 @@ pub enum Cmd {
     // II. Contract management
     /// List contracts
     Contracts {
-        /// Include in the list contract issuing schemata
+        /// Include in the list contract issuers
         #[clap(short, long)]
         issuers: bool,
     },
@@ -129,7 +129,7 @@ pub enum Cmd {
         contract: ContractId,
     },
 
-    /// Import contract issuer schema(ta)
+    /// Import contract issuer
     ///
     /// If you need to import a contract, please use the `accept` command.
     Import {
