@@ -249,13 +249,15 @@ where
             .compose_psbt(&script, params)
             .map_err(MultiError::from_a)?;
 
-        // From this moment transaction becomes unmodifiable
+        // From this moment the transaction becomes unmodifiable
         let mut change_vout = meta.change.map(|c| c.vout);
         let request = psbt
             .rgb_resolve(script, &mut change_vout)
             .map_err(MultiError::from_a)?;
-        if let Some(vout) = change_vout {
-            meta.change.as_mut().map(|c| c.vout = vout);
+        if let Some(c) = meta.change.as_mut() {
+            if let Some(vout) = change_vout {
+                c.vout = vout
+            }
         }
 
         let bundle = self
