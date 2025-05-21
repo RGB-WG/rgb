@@ -22,11 +22,19 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate amplify;
+use std::collections::BTreeSet;
 
-mod common;
-#[cfg(feature = "bp")]
-mod bp;
+use bpstd::psbt::PsbtMeta;
+use bpstd::Psbt;
+use rgb::popls::bp::PrefabBundle;
+use rgb::AuthToken;
 
-pub use common::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
+#[derive(Clone, Eq, PartialEq, Debug)]
+// TODO: Add Deserialize once implemented in Psbt
+//#[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
+pub struct Payment {
+    pub uncomit_psbt: Psbt,
+    pub psbt_meta: PsbtMeta,
+    pub bundle: PrefabBundle,
+    pub terminals: BTreeSet<AuthToken>,
+}

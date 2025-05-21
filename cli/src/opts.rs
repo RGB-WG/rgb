@@ -22,11 +22,29 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate amplify;
+use bpwallet::cli::ResolverOpt;
 
-mod common;
-#[cfg(feature = "bp")]
-mod bp;
+use crate::cmd::RGB_WALLET_ENV;
 
-pub use common::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct WalletOpts {
+    /// Wallet to use
+    #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
+    pub wallet: Option<String>,
+
+    #[clap(long, global = true)]
+    pub sync: bool,
+
+    #[clap(flatten)]
+    pub resolver: ResolverOpt,
+}
+
+impl WalletOpts {
+    pub fn default_with_name(name: &Option<String>) -> Self {
+        WalletOpts {
+            wallet: name.clone(),
+            sync: false,
+            resolver: ResolverOpt { electrum: None, esplora: None, mempool: None },
+        }
+    }
+}

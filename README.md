@@ -48,7 +48,8 @@ Next, you need to install developer components, which are OS-specific:
   ```
 
 * Windows: download and install the
-  latest [Build Tools for Visual Studio](https://aka.ms/vs/17/release/vs_BuildTools.exe), including the 'Desktop
+  latest [Build Tools for Visual Studio](https://aka.ms/vs/17/release/vs_BuildTools.exe), including
+  the 'Desktop
   development with C++' workflow and recommended optional features
 
 Finally, install RGB command-line utility shipped with this repo by running
@@ -65,7 +66,19 @@ rgb-std = "0.11.0-beta.7" # use the latest version
 rgb-runtime = "0.11.0-beta.7" # use the latest version
 ```
 
+## Using the demo script
+
+Run `examples/demo.sh`.
+
 ## Using command-line
+
+1. Initialize the data directory by running `rgb init` command.
+2. Import contract issuers by some developer. For instance, you may take those
+   from [the repository of Pandora Prime](https://github.com/pandora-prime/rgb-issuers/tree/master/compiled)
+   or download from [rgbex.io]. Once downloaded, run `rgb import <ISSUERS>` command, replacing
+   `<ISSUERS>` with a path to the downloaded files (you can use wildmarks, like `*.issuers`).
+3. Check that the import has completed successfully by running `rgb contracts --issuers` and
+   checking that all imported issuers are present.
 
 ## Contributing
 
@@ -93,3 +106,5 @@ See [LICENCE](LICENSE) file.
 [Zucco]: https://giacomozucco.com/
 
 [VS]: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170
+
+[rgbex.io]: https://rgbex.io

@@ -1,195 +1,187 @@
-// RGB smart contracts for Bitcoin & Lightning
+// Wallet Library for RGB smart contracts
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-// Written in 2019-2023 by
-//     Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
+// Designed in 2019-2025 by Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
+// Written in 2024-2025 by Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
 //
-// Copyright (C) 2019-2023 LNP/BP Standards Association. All rights reserved.
+// Copyright (C) 2019-2024 LNP/BP Standards Association, Switzerland.
+// Copyright (C) 2024-2025 LNP/BP Laboratories,
+//                         Institute for Distributed and Cognitive Systems (InDCS), Switzerland.
+// Copyright (C) 2025 RGB Consortium, Switzerland.
+// Copyright (C) 2019-2025 Dr Maxim Orlovsky.
+// All rights under the above copyrights are reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing, software distributed under the License
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+// or implied. See the License for the specific language governing permissions and limitations under
+// the License.
 
-#![allow(clippy::needless_update)] // Required by From derive macro
-
-use std::fs;
-use std::io::ErrorKind;
-use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+use std::process::exit;
+use std::{fs, io};
 
-use bpstd::{Wpkh, XpubDerivable};
-use bpwallet::cli::{Args as BpArgs, Config, DescriptorOpts};
-use bpwallet::Wallet;
-use rgb::persistence::Stock;
-use rgb::resolvers::AnyResolver;
-use rgb::{RgbDescr, RgbWallet, TapretKey, WalletError};
-use rgbstd::persistence::fs::FsBinStore;
-use strict_types::encoding::{DecodeError, DeserializeError};
+use bpwallet::cli::ResolverOpt;
+use bpwallet::fs::FsTextStore;
+use bpwallet::seals::TxoSeal;
+use bpwallet::{AnyIndexer, Network};
+use clap::ValueHint;
+use rgb::popls::bp::RgbWallet;
+use rgb::{Consensus, Contracts, StockpileDir};
+use rgbp::{Owner, RgbpRuntimeDir};
 
-use crate::Command;
+use crate::cmd::Cmd;
+use crate::opts::WalletOpts;
 
-#[derive(Args, Clone, PartialEq, Eq, Debug)]
-#[group()]
-pub struct DescrRgbOpts {
-    /// Use tapret(KEY) descriptor as wallet.
-    #[arg(long, global = true)]
-    pub tapret_key_only: Option<XpubDerivable>,
+pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
+pub const RGB_NO_NETWORK_PREFIX_ENV: &str = "RGB_NO_NETWORK_PREFIX";
 
-    /// Use wpkh(KEY) descriptor as wallet.
-    #[arg(long, global = true)]
-    pub wpkh: Option<XpubDerivable>,
-}
+pub const RGB_DATA_DIR_ENV: &str = "RGB_DATA_DIR";
+#[cfg(target_os = "linux")]
+pub const RGB_DATA_DIR: &str = "~/.rgb";
+#[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
+pub const RGB_DATA_DIR: &str = "~/.rgb";
+#[cfg(target_os = "macos")]
+pub const RGB_DATA_DIR: &str = "~/Library/Application Support/RGB Smart Contracts";
+#[cfg(target_os = "windows")]
+pub const RGB_DATA_DIR: &str = "~\\AppData\\Local\\RGB Smart Contracts";
+#[cfg(target_os = "ios")]
+pub const RGB_DATA_DIR: &str = "~/Documents";
+#[cfg(target_os = "android")]
+pub const RGB_DATA_DIR: &str = ".";
 
-impl DescriptorOpts for DescrRgbOpts {
-    type Descr = RgbDescr;
-
-    fn is_some(&self) -> bool { self.tapret_key_only.is_some() || self.wpkh.is_some() }
-
-    fn descriptor(&self) -> Option<Self::Descr> {
-        self.tapret_key_only
-            .clone()
-            .map(TapretKey::from)
-            .map(TapretKey::into)
-            .or(self.wpkh.clone().map(Wpkh::from).map(Wpkh::into))
-    }
-}
-
-/// Command-line arguments
 #[derive(Parser)]
-#[derive(Clone, Eq, PartialEq, Debug)]
-#[command(author, version, about)]
-pub struct RgbArgs {
-    #[clap(flatten)]
-    pub inner: BpArgs<Command, DescrRgbOpts>,
+pub struct Args {
+    /// Location of the data directory
+    #[clap(
+        short,
+        long,
+        global = true,
+        default_value = RGB_DATA_DIR,
+        env = RGB_DATA_DIR_ENV,
+        value_hint = ValueHint::DirPath
+    )]
+    pub data_dir: PathBuf,
 
-    /// Specify blockchain height starting from which witness transactions
-    /// should be checked for re-orgs
-    #[clap(short = 'H', long, requires = "sync")]
-    pub from_height: Option<u32>,
+    /// Bitcoin network
+    #[arg(short, long, global = true, default_value = "testnet4", env = RGB_NETWORK_ENV)]
+    pub network: Network,
+
+    /// Do not add network name as a prefix to the data directory
+    #[arg(long, global = true, env = RGB_NO_NETWORK_PREFIX_ENV)]
+    pub no_network_prefix: bool,
+
+    /// Command to execute
+    #[clap(subcommand)]
+    pub command: Cmd,
 }
 
-impl Deref for RgbArgs {
-    type Target = BpArgs<Command, DescrRgbOpts>;
-    #[inline]
-    fn deref(&self) -> &Self::Target { &self.inner }
-}
-
-impl DerefMut for RgbArgs {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.inner }
-}
-
-impl Default for RgbArgs {
-    fn default() -> Self { unreachable!() }
-}
-
-impl RgbArgs {
-    pub(crate) fn load_stock(
-        &self,
-        stock_path: impl ToOwned<Owned = PathBuf>,
-    ) -> Result<Stock, WalletError> {
-        let stock_path = stock_path.to_owned();
-
-        if self.verbose > 1 {
-            eprint!("Loading stock from `{}` ... ", stock_path.display());
-        }
-
-        let provider = FsBinStore::new(stock_path.clone())?;
-        let mut stock = Stock::load(provider, true).or_else(|err| {
-            if err
-                .0
-                .downcast_ref::<DeserializeError>()
-                .map(|e| matches!(e, DeserializeError::Decode(DecodeError::Io(ref e)) if e.kind() == ErrorKind::NotFound))
-                .unwrap_or_default()
-            {
-                if self.verbose > 1 {
-                    eprint!("stock file is absent, creating a new one ... ");
-                }
-                fs::create_dir_all(&stock_path)?;
-                let provider = FsBinStore::new(stock_path)?;
-                let mut stock = Stock::in_memory();
-                stock
-                    .make_persistent(provider, true)
-                    .map_err(WalletError::StockPersist)?;
-                return Ok(stock);
-            }
-            eprintln!("stock file is damaged, failing");
-            error!("Unable to load stock data: {err:?}");
-            Err(WalletError::StockPersist(err))
-        })?;
-
-        if self.sync {
-            let resolver = self.resolver()?;
-            let from_height = self.from_height.unwrap_or(1);
-            eprint!("Updating witness information starting from height {from_height} ... ");
-            let res = stock.update_witnesses(resolver, from_height)?;
-            eprint!("{} transactions were checked and updated", res.succeeded);
-            if res.failed.is_empty() {
-                eprintln!();
+impl Args {
+    pub fn check_data_dir(&self) -> anyhow::Result<()> {
+        let data_dir = self.data_dir();
+        if !data_dir.is_dir() {
+            if let Cmd::Init { quiet: _ } = self.command {
+                fs::create_dir_all(self.data_dir()).map_err(|e| {
+                    io::Error::new(
+                        e.kind(),
+                        format!("unable to initialize data directory at '{}'", data_dir.display()),
+                    )
+                })?;
             } else {
-                eprintln!(", {} resolution failures:", res.failed.len());
-                for (witness_id, failure) in res.failed {
-                    eprintln!(" - {witness_id}: {failure}");
-                }
+                anyhow::bail!(
+                    "the data directory at '{}' is not initialized; please initialize it with \
+                     `init` command or change the path using `--data-dir` argument",
+                    data_dir.display()
+                );
+            }
+        } else if let Cmd::Init { quiet: true } = self.command {
+            anyhow::bail!("data directory at '{}' is already initialized", data_dir.display());
+        }
+        Ok(())
+    }
+
+    pub fn data_dir(&self) -> PathBuf {
+        if self.no_network_prefix {
+            self.data_dir.clone()
+        } else {
+            let mut dir = self.data_dir.join("bitcoin");
+            if self.network.is_testnet() {
+                dir.set_extension("testnet");
+            }
+            dir
+        }
+    }
+
+    pub fn contracts(&self) -> Contracts<StockpileDir<TxoSeal>> {
+        if !self.network.is_testnet() {
+            panic!("Non-testnet networks are not yet supported");
+        }
+        let stockpile = StockpileDir::load(self.data_dir(), Consensus::Bitcoin, true)
+            .expect("Invalid contracts directory");
+        Contracts::load(stockpile)
+    }
+
+    fn wallet_dir(&self, name: Option<&str>) -> PathBuf {
+        self.data_dir()
+            .join(name.unwrap_or("default"))
+            .with_extension("wallet")
+    }
+
+    pub fn wallet_provider(&self, name: Option<&str>) -> FsTextStore {
+        FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
+    }
+
+    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<Owner> {
+        let provider = self.wallet_provider(opts.wallet.as_deref());
+        let wallet = Owner::load(provider, true).unwrap_or_else(|_| {
+            panic!(
+                "Error: unable to load wallet from path `{}`",
+                self.wallet_dir(opts.wallet.as_deref()).display()
+            )
+        });
+        let mut runtime = RgbpRuntimeDir::from(RgbWallet::with(wallet, self.contracts()));
+        if opts.sync {
+            eprint!("Synchronizing wallet:");
+            let indexer = self.indexer(&opts.resolver);
+            runtime
+                .sync(&indexer)
+                .expect("Unable to synchronize wallet");
+            eprintln!(" done");
+        }
+        runtime
+    }
+
+    pub fn indexer(&self, resolver: &ResolverOpt) -> AnyIndexer {
+        let network = self.network.to_string();
+        match (&resolver.esplora, &resolver.electrum, &resolver.mempool) {
+            (None, Some(url), None) => AnyIndexer::Electrum(Box::new(
+                // TODO: Check network match
+                electrum::Client::new(url).expect("Unable to initialize indexer"),
+            )),
+            (Some(url), None, None) => AnyIndexer::Esplora(Box::new(
+                bpwallet::indexers::esplora::Client::new_esplora(
+                    &url.replace("{network}", &network),
+                )
+                .expect("Unable to initialize indexer"),
+            )),
+            (None, None, Some(url)) => AnyIndexer::Mempool(Box::new(
+                bpwallet::indexers::esplora::Client::new_mempool(
+                    &url.replace("{network}", &network),
+                )
+                .expect("Unable to initialize indexer"),
+            )),
+            _ => {
+                eprintln!(
+                    "Error: no blockchain indexer specified; use either --esplora --mempool or \
+                     --electrum argument"
+                );
+                exit(1);
             }
         }
-
-        if self.verbose > 1 {
-            eprintln!("success");
-        }
-
-        Ok(stock)
-    }
-
-    pub fn rgb_stock(&self) -> Result<Stock, WalletError> {
-        let stock_path = self.general.base_dir();
-        let stock = self.load_stock(stock_path)?;
-        Ok(stock)
-    }
-
-    pub fn rgb_wallet(
-        &self,
-        config: &Config,
-    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, WalletError> {
-        let stock = self.rgb_stock()?;
-        self.rgb_wallet_from_stock(config, stock)
-            .map_err(|(_, err)| err)
-    }
-
-    pub fn rgb_wallet_from_stock(
-        &self,
-        config: &Config,
-        stock: Stock,
-    ) -> Result<RgbWallet<Wallet<XpubDerivable, RgbDescr>>, (Stock, WalletError)> {
-        let wallet = match self.inner.bp_wallet::<RgbDescr>(config) {
-            Ok(wallet) => wallet,
-            Err(e) => return Err((stock, e.into())),
-        };
-        let wallet = RgbWallet::new(stock, wallet);
-
-        Ok(wallet)
-    }
-
-    pub fn resolver(&self) -> Result<AnyResolver, WalletError> {
-        let resolver =
-            match (&self.resolver.esplora, &self.resolver.electrum, &self.resolver.mempool) {
-                (None, Some(url), None) => AnyResolver::electrum_blocking(url, None),
-                (Some(url), None, None) => AnyResolver::esplora_blocking(url, None),
-                (None, None, Some(url)) => AnyResolver::mempool_blocking(url, None),
-                _ => Err(s!(" - error: no transaction resolver is specified; use either \
-                             --esplora --mempool or --electrum argument")),
-            }
-            .map_err(WalletError::Resolver)?;
-        resolver.check(self.general.network)?;
-        Ok(resolver)
     }
 }

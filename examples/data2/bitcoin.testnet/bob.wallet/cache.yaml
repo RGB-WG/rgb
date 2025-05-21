@@ -1,0 +1,150 @@
+lastBlock:
+  height: 1
+  time: 1231006505
+  blockHash: 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
+lastChange: 0
+headers: []
+tx:
+  efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:
+    txid: efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356
+    status: !mined
+      height: 58373
+      time: 1734446715
+      blockHash: 000000003e3bb07f6583add889b2ece51f9ef2c422a02ede87615f22fdadc993
+    inputs:
+    - outpoint: d0455f0a1f4f8a699d33c78967d1285102568aaad84ee347787b18271503a400:0
+      payer: !counterparty tb1q0dzcgv7scppjxsnwlzpkt02vlmc5rtr40wyjgr
+      sequence: 4294967293
+      coinbase: false
+      scriptSig: ''
+      witness:
+      - 3044022009e5737120398635e8486023b133ea077c440e10a4b3cecb3bc97cd870ae7a77022026c3896b0c95cd5e9dd5217ee0f5f60ddf318dfd1c7c6fb2682906d527b078be01
+      - 030db9616d96a7b7a8656191b340f77e905ee2885a09a7a1e80b9c8b64ec746fb3
+      value: 94361040651
+    outputs:
+    - outpoint: efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:0
+      beneficiary: !counterparty tb1q0dzcgv7scppjxsnwlzpkt02vlmc5rtr40wyjgr
+      value: 94361035510
+      spent: null
+    - outpoint: efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:1
+      beneficiary: !wallet
+        addr: tb1qh397g85qrtwfrg2wv4u6lada3wdzdnykuqcsyr
+        terminal: '&0/1'
+      value: 5000
+      spent: null
+    fee: 141
+    size: 222
+    weight: 561
+    version: 2
+    locktime: 0
+utxo:
+- efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:1
+addr:
+  '0':
+  - terminal: '&0/0'
+    addr: tb1qufhxh8s93n29tqmks9vjfmesavstmggylaxsnw
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/1'
+    addr: tb1qh397g85qrtwfrg2wv4u6lada3wdzdnykuqcsyr
+    used: 1
+    volume: 5000
+    balance: 5000
+  - terminal: '&0/2'
+    addr: tb1qccx59nfgs2mndv32nvsk9j9w34txldp9crperf
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/3'
+    addr: tb1q5srksygehryp9p5t2av4zd8lj22a40una5gkah
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/4'
+    addr: tb1qc8u0fgd7atlg3zua77ej930xc4r4wc8r2cjyjr
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/5'
+    addr: tb1qk4rrzt6q2r2tc86urwxjsxqkzhs58cd02nyxmw
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/6'
+    addr: tb1qkvgk9sa5jaqc05qn5lt63rg54k9tyrwl2pctkk
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/7'
+    addr: tb1qcqzj6f5qulrqcw2j08m4j0est9nutfwr09eemm
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/8'
+    addr: tb1qqza7l77pndcnkxkq2750c72l7y0kx3w7v4xmt0
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/9'
+    addr: tb1q8pzl742785tke0sqy29lxntaqp0m6z5nsp6p59
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&0/10'
+    addr: tb1qxwa8jx6sllmq0zj00888xf08x2r0qgcv5qak66
+    used: 0
+    volume: 0
+    balance: 0
+  '1':
+  - terminal: '&1/0'
+    addr: tb1qhugqee7qw5fltp83ernxpl38l52mjywvn9mkkk
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/1'
+    addr: tb1ql8a9l7utw6kcrewzrzmry6wqcnxtmufr3dmms8
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/2'
+    addr: tb1qcq5xgz6prr9heu55r3ydy8t0tfgw6xgapyhdy0
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/3'
+    addr: tb1qge7w75zy7a99z4rfyhxjx6a4jxssxwdy7sq9au
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/4'
+    addr: tb1qs535dd5urn4jmnfqqrwrtyyelgyzhpg74v96hk
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/5'
+    addr: tb1qclqen4pz2gvnu0268wj3dn93ta4780th7uemlv
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/6'
+    addr: tb1q6wk9ngrh0vd30e5sp5zdjwwklkmhkxljjzn4rr
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/7'
+    addr: tb1qstpvrduxwu3wh0kn8mkvsxqxatj4uv3kuaxfvj
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/8'
+    addr: tb1qmp3mvxy07kztt5mwyw4asfa2l6kggyzh9p8yym
+    used: 0
+    volume: 0
+    balance: 0
+  - terminal: '&1/9'
+    addr: tb1qld0axaw9urkyjruhel2cvpc0fmj9krkqvhcz03
+    used: 0
+    volume: 0
+    balance: 0
+layer2: {}

@@ -1,69 +1,67 @@
-// RGB smart contracts for Bitcoin & Lightning
+// Wallet Library for RGB smart contracts
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-// Written in 2019-2023 by
-//     Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
+// Designed in 2019-2025 by Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
+// Written in 2024-2025 by Dr Maxim Orlovsky <orlovsky@lnp-bp.org>
 //
-// Copyright (C) 2019-2023 LNP/BP Standards Association. All rights reserved.
+// Copyright (C) 2019-2024 LNP/BP Standards Association, Switzerland.
+// Copyright (C) 2024-2025 LNP/BP Laboratories,
+//                         Institute for Distributed and Cognitive Systems (InDCS), Switzerland.
+// Copyright (C) 2025 RGB Consortium, Switzerland.
+// Copyright (C) 2019-2025 Dr Maxim Orlovsky.
+// All rights under the above copyrights are reserved.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing, software distributed under the License
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+// or implied. See the License for the specific language governing permissions and limitations under
+// the License.
 
 #[macro_use]
 extern crate amplify;
 #[macro_use]
-extern crate strict_types;
-#[macro_use]
-extern crate log;
-#[macro_use]
 extern crate clap;
-extern crate serde_crate as serde;
 
-mod command;
-mod args;
+pub mod opts;
+pub mod args;
+pub mod cmd;
+mod exec;
 
-use std::process::ExitCode;
+use std::backtrace::Backtrace;
+use std::fmt::Display;
+use std::panic::set_hook;
 
-use bpwallet::cli::{Config, Exec, LogLevel};
 use clap::Parser;
-use rgb::WalletError;
 
-pub use crate::args::RgbArgs;
-pub use crate::command::Command;
+use crate::args::Args;
 
-fn main() -> ExitCode {
-    if let Err(err) = run() {
-        eprintln!("Error: {err}");
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
-    }
-}
-
-fn run() -> Result<(), WalletError> {
-    let mut args = RgbArgs::parse();
-    args.process();
-    LogLevel::from_verbosity_flag_count(args.verbose).apply();
-    trace!("Command-line arguments: {:#?}", &args);
-
-    if args.verbose > 3 {
-        eprintln!("RGB: command-line wallet for RGB smart contracts");
-        eprintln!("     by LNP/BP Standards Association\n");
-    }
-
-    let conf = Config::load(&args.conf_path("rgb"));
-    debug!("Executing command: {:?}", args.command);
-    args.exec(conf, "rgb")?;
-    println!();
-    Ok(())
+fn main() -> anyhow::Result<()> {
+    set_hook(Box::new(|info| {
+        let payload = if let Some(s) = info.payload().downcast_ref::<&str>() {
+            Some(s.to_string())
+        } else if let Some(s) = info.payload().downcast_ref::<String>() {
+            Some(s.clone())
+        } else {
+            info.payload()
+                .downcast_ref::<&dyn Display>()
+                .map(ToString::to_string)
+        };
+        if let Some(error) = payload {
+            eprintln!("Abnormal program termination through panic.");
+            eprintln!("Error: {error}");
+            if let Some(location) = info.location() {
+                eprintln!("Happened in {location}");
+            }
+        } else {
+            eprintln!("Program {}", info);
+        }
+        let backtrace = Backtrace::capture();
+        eprintln!("Backtrace: {backtrace}");
+    }));
+    Args::parse().exec()
 }

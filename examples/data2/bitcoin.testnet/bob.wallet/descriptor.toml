@@ -1,0 +1,18 @@
+network = "testnet4"
+
+[generator]
+noise = "b2594d09688565e0206593e720711eea03d560e38b491b4e3c66f9e3957aac86"
+nonce = 0
+
+[generator.deriver.opretOnly]
+wpkh = "[cf05f8ea/84h/1h/1h]tpubDCpZeo9QAvMewp1ZhxjW25z3DSFC2eyt4wYimHuDNMkGzGhZsfUffCULroWTVUEfEaERv1rbbYPqG6fYb5Uivw86M3y4erJ7tGLRYcdbEFE/<0;1>/*"
+
+[[generator.seals]]
+primary = "efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:1"
+secondary = "a5b0fc8e8a8231b5ae7edcc850986936eccc03177a714c91b4811e2da2044870ffffffffffffffff"
+
+[[generator.seals]]
+primary = "efb54853788df4a3ce31d7c74511f8d8c457e2e4b659773662e42d3bc5a44356:1"
+secondary = "b9ce7d7b21145c3fd68851c2a49c1f5a479eec945bf0c7ad1ee79872b670ec6dffffffffffffffff"
+
+[layer2]
