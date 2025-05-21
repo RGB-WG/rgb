@@ -25,19 +25,18 @@ use std::convert::Infallible;
 use std::io;
 
 use amplify::IoError;
-use bp::seals::txout::CloseMethod;
 use bpstd::Psbt;
 use nonasync::persistence::PersistenceError;
 use psrgbt::{CommitError, ConstructionError, EmbedError, TapretKeyError};
-use rgbstd::containers::LoadError;
-use rgbstd::interface::{BuilderError, ContractError};
+use rgbstd::containers::{LoadError, TransitionInfoError};
+use rgbstd::contract::{BuilderError, ContractError};
 use rgbstd::persistence::{
-    ComposeError, ConsignError, ContractIfaceError, FasciaError, Stock, StockError, StockErrorAll,
-    StockErrorMem,
+    ComposeError, ConsignError, FasciaError, Stock, StockError, StockErrorAll, StockErrorMem,
 };
+use rgbstd::{AssignmentType, ChainNet};
 use strict_types::encoding::Ident;
 
-use crate::{validation, TapTweakAlreadyAssigned};
+use crate::validation;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -86,17 +85,19 @@ pub enum WalletError {
     #[display(doc_comments)]
     IncompleteContract(validation::Status),
 
+    /// cannot find the terminal to add the tapret tweak to.
+    NoTweakTerminal,
+
     /// resolver error: {0}
     #[display(doc_comments)]
     Resolver(String),
 
     #[from(StockError)]
     #[from(StockErrorAll)]
-    #[from(StockErrorMem<ContractIfaceError>)]
     #[display(inner)]
     Stock(String),
 
-    #[cfg(feature = "serde_yaml")]
+    #[cfg(feature = "cli")]
     #[from]
     Yaml(serde_yaml::Error),
 
@@ -126,19 +127,18 @@ pub enum PayError {
 #[derive(Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum CompositionError {
-    /// unspecified contract.
+    /// invoice doesn't specify a contract.
     NoContract,
 
-    /// unspecified interface.
-    NoIface,
+    /// invoice doesn't provide information about the assignment type and it's impossible to derive
+    /// which assignment type should be used from the schema.
+    NoAssignmentType,
 
-    /// invoice doesn't provide information about the operation, and the used
-    /// interface do not define default operation.
-    NoOperation,
+    /// invoice doesn't provide information about the assignment state
+    NoAssignmentState,
 
-    /// invoice doesn't provide information about the assignment type, and the
-    /// used interface do not define default assignment type.
-    NoAssignment,
+    /// invoice specifies an unknown contract.
+    UnknownContract,
 
     /// state provided via PSBT inputs is not sufficient to cover invoice state
     /// requirements.
@@ -147,16 +147,11 @@ pub enum CompositionError {
     /// the invoice has expired.
     InvoiceExpired,
 
-    /// the invoice doesn't support the contract close method {0}
-    InvoiceUnsupportsCloseMethod(CloseMethod),
+    /// invoice specifies a schema which is not valid for the specified contract.
+    InvalidSchema,
 
-    /// the wallet descriptor doesn't support the contract close method {0}
-    WalletUnsupportsCloseMethod(CloseMethod),
-
-    /// one of the RGB assignments spent require presence of tapret output -
-    /// even this is not a taproot wallet. Unable to create a valid PSBT, manual
-    /// work is needed.
-    TapretRequired,
+    /// invoice requesting chain-network pair {0} but contract commits to a different one ({1})
+    InvoiceBeneficiaryWrongChainNet(ChainNet, ChainNet),
 
     /// non-fungible state is not yet supported by the invoices.
     Unsupported,
@@ -167,16 +162,43 @@ pub enum CompositionError {
 
     #[from]
     #[display(inner)]
-    Interface(ContractError),
+    Contract(ContractError),
 
     #[from]
     #[display(inner)]
     Embed(EmbedError),
 
+    /// no outputs available to store state of type {0}
+    NoExtraOrChange(AssignmentType),
+
+    /// cannot find an output where to put the tapret commitment.
+    NoOutputForTapretCommitment,
+
+    /// the provided PSBT doesn't pay any sats to the RGB beneficiary address.
+    NoBeneficiaryOutput,
+
+    /// beneficiary output number is given when secret seal is used.
+    BeneficiaryVout,
+
+    /// the spent UTXOs contain too many seals which can't fit the state
+    /// transition input limit.
+    TooManyInputs,
+
+    #[from]
+    #[display(inner)]
+    Transition(TransitionInfoError),
+
+    /// the operation produces too many extra state transitions which can't fit
+    /// the container requirements.
+    TooManyExtras,
+
+    #[from]
+    #[display(inner)]
+    Builder(BuilderError),
+
     #[from(String)]
     #[from(StockError)]
     #[from(StockErrorMem<ComposeError>)]
-    #[from(StockErrorMem<ContractIfaceError>)]
     #[display(inner)]
     Stock(String),
 }
@@ -193,16 +215,6 @@ pub enum CompletionError {
     /// the provided PSBT has conflicting descriptor in the taptweak output.
     InconclusiveDerivation,
 
-    /// the invoice doesn't support the contract close method {0}
-    InvoiceUnsupportsCloseMethod(CloseMethod),
-
-    /// the wallet descriptor doesn't support the contract close method {0}
-    WalletUnsupportsCloseMethod(CloseMethod),
-
-    #[from]
-    #[display(inner)]
-    MultipleTweaks(TapTweakAlreadyAssigned),
-
     #[from]
     #[display(inner)]
     TapretKey(TapretKeyError),
@@ -216,4 +228,8 @@ pub enum CompletionError {
     #[from(StockErrorMem<FasciaError>)]
     #[display(inner)]
     Stock(String),
+}
+
+impl From<Infallible> for CompletionError {
+    fn from(_: Infallible) -> Self { unreachable!() }
 }

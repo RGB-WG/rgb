@@ -22,15 +22,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use amplify::confinement::{Confined, SmallOrdMap, U24};
-use amplify::{confinement, FromSliceError};
+use amplify::{confinement, FromSliceError, Wrapper};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bpstd::psbt;
-use bpstd::psbt::{KeyAlreadyPresent, KeyMap, MpcPsbtError, PropKey, Psbt};
+use bpstd::psbt::{KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
-use rgbstd::containers::VelocityHint;
 use rgbstd::{
-    ContractId, InputMap, MergeReveal, MergeRevealError, OpId, Operation, Transition,
+    ContractId, InputOpids, MergeReveal, MergeRevealError, OpId, Operation, Transition,
     TransitionBundle, Vin,
 };
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
@@ -50,12 +49,50 @@ pub const PSBT_GLOBAL_RGB_TRANSITION: u64 = 0x01;
 /// Proprietary key subtype for storing information on which close method
 /// should be used.
 pub const PSBT_GLOBAL_RGB_CLOSE_METHOD: u64 = 0x02;
+/// Proprietary key subtype to signal that tapret host has been put on change.
+pub const PSBT_GLOBAL_RGB_TAP_HOST_CHANGE: u64 = 0x03;
 /// Proprietary key subtype for storing RGB state transition operation id which
 /// consumes this input.
 pub const PSBT_IN_RGB_CONSUMED_BY: u64 = 0x01;
-/// Proprietary key subtype for storing hint for the velocity of the state
-/// which can be assigned to the provided output.
-pub const PSBT_OUT_RGB_VELOCITY_HINT: u64 = 0x01;
+
+#[derive(Wrapper, WrapperMut, Clone, PartialEq, Eq, Hash, Debug, From)]
+#[wrapper(Deref)]
+#[wrapper_mut(DerefMut)]
+pub struct Opids(Vec<OpId>);
+
+impl Opids {
+    pub fn new(opids: Vec<OpId>) -> Self { Self(opids) }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        let opid_size = std::mem::size_of::<OpId>();
+        let op_ids = &self.0;
+        let mut bytes = Vec::with_capacity(op_ids.len() * opid_size);
+        for opid in op_ids {
+            bytes.extend(opid.to_byte_array());
+        }
+        bytes
+    }
+
+    #[allow(clippy::result_large_err)]
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, RgbPsbtError> {
+        let opid_size = std::mem::size_of::<OpId>();
+        let bytes_len = bytes.len();
+        if bytes_len % opid_size != 0 {
+            return Err(RgbPsbtError::InvalidOpidsData(format!(
+                "Input data length {bytes_len} is not a multiple of {opid_size}"
+            )));
+        }
+        let len = bytes.len() / opid_size;
+        let mut op_ids = Vec::with_capacity(len);
+        for chunk in bytes.chunks_exact(opid_size) {
+            let opid = OpId::copy_from_slice(chunk).map_err(|e| {
+                RgbPsbtError::InvalidOpidsData(format!("Error deserializing an OpId: {:?}", e))
+            })?;
+            op_ids.push(opid);
+        }
+        Ok(Opids::new(op_ids))
+    }
+}
 
 /// Extension trait for static functions returning RGB-related proprietary keys.
 pub trait ProprietaryKeyRgb {
@@ -67,6 +104,7 @@ pub trait ProprietaryKeyRgb {
             data: opid.to_vec().into(),
         }
     }
+
     /// Constructs [`PSBT_GLOBAL_RGB_CLOSE_METHOD`] proprietary key.
     fn rgb_close_method() -> PropKey {
         PropKey {
@@ -85,11 +123,11 @@ pub trait ProprietaryKeyRgb {
         }
     }
 
-    /// Constructs [`PSBT_OUT_RGB_VELOCITY_HINT`] proprietary key.
-    fn rgb_out_velocity_hint() -> PropKey {
+    /// Constructs [`PSBT_GLOBAL_RGB_TAP_HOST_CHANGE`] proprietary key.
+    fn rgb_tapret_host_on_change() -> PropKey {
         PropKey {
             identifier: PSBT_RGB_PREFIX.to_owned(),
-            subtype: PSBT_OUT_RGB_VELOCITY_HINT,
+            subtype: PSBT_GLOBAL_RGB_TAP_HOST_CHANGE,
             data: none!(),
         }
     }
@@ -114,12 +152,18 @@ pub enum RgbPsbtError {
     /// PSBT contains no contract consumers information
     NoContractConsumers,
 
-    /// contract {0} listed in the PSBT has zero known transition information.
-    NoTransitions(ContractId),
+    /// contract {0} listed in the PSBT has an invalid number of known transitions {1}.
+    InvalidTransitionsNumber(ContractId, usize),
+
+    /// inputs listed in the PSBT have an invalid number {0}.
+    InvalidInputsNumber(usize),
 
     /// invalid contract id data.
     #[from(FromSliceError)]
     InvalidContractId,
+
+    /// invalid opids data: {0}.
+    InvalidOpidsData(String),
 
     /// PSBT doesn't provide information about close method.
     NoCloseMethod,
@@ -156,41 +200,53 @@ pub trait RgbExt {
     fn rgb_contract_consumers(
         &self,
         contract_id: ContractId,
-    ) -> Result<BTreeSet<(OpId, Vin)>, FromSliceError>;
+    ) -> Result<BTreeSet<(BTreeSet<OpId>, Vin)>, RgbPsbtError>;
 
-    fn rgb_op_ids(&self, contract_id: ContractId) -> Result<BTreeSet<OpId>, FromSliceError>;
+    fn rgb_op_ids(&self, contract_id: ContractId) -> Result<BTreeSet<OpId>, RgbPsbtError>;
 
     fn rgb_transition(&self, opid: OpId) -> Result<Option<Transition>, RgbPsbtError>;
 
     fn rgb_close_method(&self) -> Result<Option<CloseMethod>, RgbPsbtError>;
 
+    fn rgb_tapret_host_on_change(&self) -> bool;
+
     fn set_rgb_close_method(&mut self, close_method: CloseMethod);
+
+    fn set_rgb_tapret_host_on_change(&mut self);
 
     fn push_rgb_transition(&mut self, transition: Transition) -> Result<bool, RgbPsbtError>;
 
     fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, TransitionBundle>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map: SmallOrdMap<Vin, OpId> = SmallOrdMap::new();
+            let mut input_map: SmallOrdMap<Vin, InputOpids> = SmallOrdMap::new();
             let mut known_transitions: SmallOrdMap<OpId, Transition> = SmallOrdMap::new();
             let contract_consumers = self.rgb_contract_consumers(contract_id)?;
             if contract_consumers.is_empty() {
                 return Err(RgbPsbtError::NoContractConsumers);
             }
-            for (opid, vin) in contract_consumers {
-                let transition = self.rgb_transition(opid)?;
-                input_map.insert(vin, opid)?;
-                if let Some(transition) = transition {
-                    known_transitions.insert(opid, transition)?;
+            for (opids, vin) in contract_consumers {
+                for opid in &opids {
+                    let transition = self.rgb_transition(*opid)?;
+                    if let Some(transition) = transition {
+                        known_transitions.insert(*opid, transition)?;
+                    }
                 }
+                let opids_len = opids.len();
+                let opids =
+                    InputOpids::from(Confined::try_from(opids).map_err(|_| {
+                        RgbPsbtError::InvalidTransitionsNumber(contract_id, opids_len)
+                    })?);
+                input_map.insert(vin, opids)?;
             }
+            let input_map_len = input_map.len();
+            let known_transitions_len = known_transitions.len();
             let bundle = TransitionBundle {
-                input_map: InputMap::from(
-                    Confined::try_from(input_map.release())
-                        .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
-                ),
-                known_transitions: Confined::try_from(known_transitions.release())
-                    .map_err(|_| RgbPsbtError::NoTransitions(contract_id))?,
+                input_map: Confined::try_from(input_map.release())
+                    .map_err(|_| RgbPsbtError::InvalidInputsNumber(input_map_len))?,
+                known_transitions: Confined::try_from(known_transitions.release()).map_err(
+                    |_| RgbPsbtError::InvalidTransitionsNumber(contract_id, known_transitions_len),
+                )?,
             };
             map.insert(contract_id, bundle);
         }
@@ -222,20 +278,23 @@ impl RgbExt for Psbt {
     fn rgb_contract_consumers(
         &self,
         contract_id: ContractId,
-    ) -> Result<BTreeSet<(OpId, Vin)>, FromSliceError> {
-        let mut consumers: BTreeSet<(OpId, Vin)> = bset! {};
+    ) -> Result<BTreeSet<(BTreeSet<OpId>, Vin)>, RgbPsbtError> {
+        let mut consumers: BTreeSet<(BTreeSet<OpId>, Vin)> = bset! {};
         for (no, input) in self.inputs().enumerate() {
-            if let Some(opid) = input.rgb_consumer(contract_id)? {
-                consumers.insert((opid, Vin::from_u32(no as u32)));
+            if let Some(opids) = input.rgb_consumer(contract_id)? {
+                consumers.insert((BTreeSet::from_iter(opids), Vin::from_u32(no as u32)));
             }
         }
         Ok(consumers)
     }
 
-    fn rgb_op_ids(&self, contract_id: ContractId) -> Result<BTreeSet<OpId>, FromSliceError> {
-        self.inputs()
-            .filter_map(|input| input.rgb_consumer(contract_id).transpose())
-            .collect()
+    fn rgb_op_ids(&self, contract_id: ContractId) -> Result<BTreeSet<OpId>, RgbPsbtError> {
+        self.inputs().try_fold(BTreeSet::new(), |mut set, input| {
+            if let Some(ids) = input.rgb_consumer(contract_id)? {
+                set.extend(ids);
+            }
+            Ok(set)
+        })
     }
 
     fn rgb_transition(&self, opid: OpId) -> Result<Option<Transition>, RgbPsbtError> {
@@ -259,8 +318,16 @@ impl RgbExt for Psbt {
         Err(RgbPsbtError::InvalidCloseMethod)
     }
 
+    fn rgb_tapret_host_on_change(&self) -> bool {
+        self.has_proprietary(&PropKey::rgb_tapret_host_on_change())
+    }
+
     fn set_rgb_close_method(&mut self, close_method: CloseMethod) {
         let _ = self.push_proprietary(PropKey::rgb_close_method(), vec![close_method as u8]);
+    }
+
+    fn set_rgb_tapret_host_on_change(&mut self) {
+        let _ = self.push_proprietary(PropKey::rgb_tapret_host_on_change(), vec![]);
     }
 
     fn push_rgb_transition(&mut self, mut transition: Transition) -> Result<bool, RgbPsbtError> {
@@ -268,11 +335,9 @@ impl RgbExt for Psbt {
 
         let prev_transition = self.rgb_transition(opid)?;
         if let Some(ref prev_transition) = prev_transition {
-            transition = transition
-                .merge_reveal(prev_transition.clone())
-                .map_err(|err| {
-                    RgbPsbtError::UnrelatedTransitions(prev_transition.id(), opid, err)
-                })?;
+            transition.merge_reveal(prev_transition).map_err(|err| {
+                RgbPsbtError::UnrelatedTransitions(prev_transition.id(), opid, err)
+            })?;
         }
         let serialized_transition = transition
             .to_strict_serialized::<U24>()
@@ -314,6 +379,7 @@ impl RgbExt for Psbt {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub trait RgbInExt {
     /// Returns information which state transition consumes this PSBT input.
     ///
@@ -321,7 +387,7 @@ pub trait RgbInExt {
     /// this proprietary key to a standard one. In this case, the invalid
     /// data will be filtered at the moment of PSBT deserialization and this
     /// function will return `None` only in situations when the key is absent.
-    fn rgb_consumer(&self, contract_id: ContractId) -> Result<Option<OpId>, FromSliceError>;
+    fn rgb_consumer(&self, contract_id: ContractId) -> Result<Option<Vec<OpId>>, RgbPsbtError>;
 
     /// Adds information about state transition consuming this PSBT input.
     ///
@@ -340,71 +406,40 @@ pub trait RgbInExt {
         &mut self,
         contract_id: ContractId,
         opid: OpId,
-    ) -> Result<bool, KeyAlreadyPresent>;
+    ) -> Result<bool, RgbPsbtError>;
 }
 
 impl RgbInExt for psbt::Input {
-    fn rgb_consumer(&self, contract_id: ContractId) -> Result<Option<OpId>, FromSliceError> {
+    fn rgb_consumer(&self, contract_id: ContractId) -> Result<Option<Vec<OpId>>, RgbPsbtError> {
         let Some(data) = self
             .proprietary
             .get(&PropKey::rgb_in_consumed_by(contract_id))
         else {
             return Ok(None);
         };
-        Ok(Some(OpId::copy_from_slice(data)?))
+        let opids = Opids::deserialize(data)?.into_inner();
+        Ok(Some(opids))
     }
 
     fn set_rgb_consumer(
         &mut self,
         contract_id: ContractId,
         opid: OpId,
-    ) -> Result<bool, KeyAlreadyPresent> {
+    ) -> Result<bool, RgbPsbtError> {
         let key = PropKey::rgb_in_consumed_by(contract_id);
-        match self.rgb_consumer(contract_id) {
-            Ok(None) | Err(_) => {
-                let _ = self.push_proprietary(key, opid.to_vec());
-                Ok(true)
+        Ok(match self.rgb_consumer(contract_id)? {
+            None => {
+                let opids = Opids::new(vec![opid]);
+                let _ = self.push_proprietary(key, opids.serialize());
+                true
             }
-            Ok(Some(id)) if id == opid => Ok(false),
-            Ok(Some(_)) => Err(KeyAlreadyPresent(key)),
-        }
-    }
-}
-
-pub trait RgbOutExt {
-    /// Returns hint for the velocity of the state which may be assigned to the
-    /// provided output.
-    ///
-    /// We do not error on invalid data in order to support future update of
-    /// this proprietary key to a standard one. In this case, the invalid
-    /// data will be filtered at the moment of PSBT deserialization and this
-    /// function will return `None` only in situations when the key is absent.
-    fn rgb_velocity_hint(&self) -> Option<VelocityHint>;
-
-    /// Adds hint for the velocity of the state which may be assigned to the
-    /// PSBT output.
-    ///
-    /// # Returns
-    ///
-    /// `false`, if a velocity hint was already present in the input and
-    /// `true` otherwise.
-    fn set_rgb_velocity_hint(&mut self, hint: VelocityHint) -> bool;
-}
-
-impl RgbOutExt for psbt::Output {
-    fn rgb_velocity_hint(&self) -> Option<VelocityHint> {
-        let data = self.proprietary.get(&PropKey::rgb_out_velocity_hint())?;
-        if data.len() != 1 {
-            None
-        } else {
-            data.first().map(VelocityHint::with_value)
-        }
-    }
-
-    fn set_rgb_velocity_hint(&mut self, hint: VelocityHint) -> bool {
-        let prev = self.rgb_velocity_hint();
-        self.push_proprietary(PropKey::rgb_out_velocity_hint(), vec![hint as u8])
-            .ok();
-        Some(hint) == prev
+            Some(ids) if ids.contains(&opid) => false,
+            Some(mut opids) => {
+                opids.push(opid);
+                let opids = Opids::new(opids);
+                self.insert_proprietary(key, opids.serialize().into());
+                true
+            }
+        })
     }
 }
