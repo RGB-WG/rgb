@@ -544,9 +544,9 @@ where Self::Descr: DescriptorRgb<K>
         let (beneficiary1, beneficiary2) = match invoice.beneficiary.into_inner() {
             Beneficiary::WitnessVout(_, _) => {
                 let seal = ExplicitSeal::new(Outpoint::new(witness_id, beneficiary_vout.unwrap()));
-                (None, vec![seal])
+                (vec![], vec![seal])
             }
-            Beneficiary::BlindedSeal(seal) => (Some(seal), vec![]),
+            Beneficiary::BlindedSeal(seal) => (vec![seal], vec![]),
         };
 
         struct FasciaResolver {
