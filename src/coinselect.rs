@@ -25,7 +25,7 @@
 use core::str::FromStr;
 
 use rgb::popls::bp::Coinselect;
-use rgb::{CellAddr, StateCalc};
+use rgb::{Assignment, CellAddr, Outpoint, StateCalc};
 use strict_types::StrictVal;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display, Default)]
@@ -57,29 +57,29 @@ impl Coinselect for CoinselectStrategy {
         &mut self,
         invoiced_state: &StrictVal,
         calc: &mut StateCalc,
-        owned_state: Vec<(CellAddr, &StrictVal)>,
-    ) -> Option<Vec<CellAddr>> {
+        owned_state: Vec<(CellAddr, &Assignment<Outpoint>)>,
+    ) -> Option<Vec<(CellAddr, Outpoint)>> {
         let res = match self {
             CoinselectStrategy::Aggregate => owned_state
                 .into_iter()
-                .take_while(|(_, val)| {
+                .take_while(|(_, assignment)| {
                     if calc.is_satisfied(invoiced_state) {
                         return false;
                     }
-                    calc.accumulate(val).is_ok()
+                    calc.accumulate(&assignment.data).is_ok()
                 })
-                .map(|(addr, _)| addr)
+                .map(|(addr, assignment)| (addr, assignment.seal))
                 .collect(),
             CoinselectStrategy::SmallSize => owned_state
                 .into_iter()
                 .rev()
-                .take_while(|(_, val)| {
+                .take_while(|(_, assignment)| {
                     if calc.is_satisfied(invoiced_state) {
                         return false;
                     }
-                    calc.accumulate(val).is_ok()
+                    calc.accumulate(&assignment.data).is_ok()
                 })
-                .map(|(addr, _)| addr)
+                .map(|(addr, assignment)| (addr, assignment.seal))
                 .collect(),
         };
         if !calc.is_satisfied(invoiced_state) {
