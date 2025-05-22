@@ -25,8 +25,8 @@ INVOICE=$($RGB_2 invoice -w bob --nonce 0 DemoToken 10)
 
 rm examples/transfer.psbt examples/Transfer.yaml examples/transfer.rgb 2>/dev/null
 $RGB pay -w alice "$INVOICE" examples/transfer.rgb examples/transfer.psbt || exit 1
-$RGB state -goa -w alice --sync --mempool
+$RGB state -goa -w alice
 
 $RGB_2 accept -w bob examples/transfer.rgb || exit 1
 
-$RGB_2 state -go -w bob --sync --mempool
+$RGB_2 state -go -w bob
