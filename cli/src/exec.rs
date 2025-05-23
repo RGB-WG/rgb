@@ -360,6 +360,7 @@ impl Args {
                 } else {
                     CallScope::ContractQuery(s!(""))
                 };
+                // TODO: Support parsing values with the new StrictTypes update
                 let value = value.map(StrictVal::num);
                 let mut invoice = RgbInvoice::new(
                     contract_id,
