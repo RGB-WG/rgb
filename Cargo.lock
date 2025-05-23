@@ -1482,8 +1482,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34638dfd4c8f4cf6c0e411624e26983a66dc4c51f5f9f1bcaf55bbe72864848e"
+source = "git+https://github.com/RGB-WG/rgb-std.git?branch=v0.12#dc7b1a64790c7be4090478830fa8f59536f175b3"
 dependencies = [
  "amplify",
  "baid64",
@@ -1534,8 +1533,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bed38796d08fecab028224ccde60e46ac9a1987545c84d4dbd716d11b5686eb"
+source = "git+https://github.com/RGB-WG/rgb-std.git?branch=v0.12#dc7b1a64790c7be4090478830fa8f59536f175b3"
 dependencies = [
  "amplify",
  "aora",
