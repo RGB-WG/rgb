@@ -42,10 +42,8 @@ pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
 pub const RGB_NO_NETWORK_PREFIX_ENV: &str = "RGB_NO_NETWORK_PREFIX";
 
 pub const RGB_DATA_DIR_ENV: &str = "RGB_DATA_DIR";
-#[cfg(target_os = "linux")]
-pub const RGB_DATA_DIR: &str = "~/.rgb";
-#[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
-pub const RGB_DATA_DIR: &str = "~/.rgb";
+#[cfg(any(target_os = "linux", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
+pub const RGB_DATA_DIR: &str = "~/.local/share/rgb";
 #[cfg(target_os = "macos")]
 pub const RGB_DATA_DIR: &str = "~/Library/Application Support/RGB Smart Contracts";
 #[cfg(target_os = "windows")]
@@ -55,6 +53,15 @@ pub const RGB_DATA_DIR: &str = "~/Documents";
 #[cfg(target_os = "android")]
 pub const RGB_DATA_DIR: &str = ".";
 
+// Uses XDG_DATA_HOME if set, otherwise falls back to RGB_DATA_DIR
+fn default_data_dir() -> PathBuf {
+    if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
+        PathBuf::from(xdg).join("rgb")
+    } else {
+        PathBuf::from(RGB_DATA_DIR)
+    }
+}
+
 #[derive(Parser)]
 pub struct Args {
     /// Location of the data directory
@@ -62,7 +69,7 @@ pub struct Args {
         short,
         long,
         global = true,
-        default_value = RGB_DATA_DIR,
+        default_value_os_t = default_data_dir(),
         env = RGB_DATA_DIR_ENV,
         value_hint = ValueHint::DirPath
     )]
