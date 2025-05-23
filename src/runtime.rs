@@ -146,7 +146,7 @@ where
     pub fn pay_invoice(
         &mut self,
         invoice: &RgbInvoice<ContractId>,
-        strategy: &mut dyn Coinselect,
+        strategy: impl Coinselect,
         params: TxParams,
         giveaway: Option<Sats>,
     ) -> Result<(Psbt, Payment), MultiError<PayError, <Sp::Stock as Stock>::Error>> {
@@ -187,10 +187,10 @@ where
     pub fn script(
         &mut self,
         invoice: &RgbInvoice<ContractId>,
-        mut strategy: CoinselectStrategy,
+        strategy: CoinselectStrategy,
         giveaway: Option<Sats>,
     ) -> Result<PaymentScript, PayError> {
-        let request = self.fulfill(invoice, &mut strategy, giveaway)?;
+        let request = self.fulfill(invoice, strategy, giveaway)?;
         Ok(OpRequestSet::with(request))
     }
 

@@ -383,7 +383,7 @@ impl Args {
 
             Cmd::Pay {
                 wallet,
-                mut strategy,
+                strategy,
                 invoice,
                 sats,
                 fee,
@@ -397,8 +397,7 @@ impl Args {
                 // TODO: sync wallet if needed
                 // TODO: Add params and giveway to arguments
                 let params = TxParams::with(*fee);
-                let (mut psbt, payment) =
-                    runtime.pay_invoice(invoice, &mut strategy, params, *sats)?;
+                let (mut psbt, payment) = runtime.pay_invoice(invoice, *strategy, params, *sats)?;
                 let ver = if *psbt2 { PsbtVer::V2 } else { PsbtVer::V0 };
 
                 let psbt_filename = psbt_filename
