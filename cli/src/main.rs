@@ -22,8 +22,6 @@
 #[macro_use]
 extern crate amplify;
 #[macro_use]
-extern crate strict_types;
-#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate clap;

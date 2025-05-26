@@ -20,7 +20,7 @@
 // limitations under the License.
 
 use bpwallet::{Layer2, Wallet};
-use rgbstd::interface::AssignmentsFilter;
+use rgbstd::contract::AssignmentsFilter;
 
 use crate::{DescriptorRgb, Outpoint, Txid};
 

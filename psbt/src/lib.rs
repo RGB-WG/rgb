@@ -29,23 +29,22 @@ use bp::dbc::tapret::TapretProof;
 use bp::seals::txout::CloseMethod;
 pub use bpstd::psbt::*;
 pub use rgb::*;
-use rgbstd::containers::{AnchorSet, Batch, Fascia, PubWitness};
+use rgbstd::containers::{Batch, Fascia, PubWitness, SealWitness};
 
 pub use self::rgb::{
-    ProprietaryKeyRgb, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
-    PSBT_IN_RGB_CONSUMED_BY, PSBT_OUT_RGB_VELOCITY_HINT, PSBT_RGB_PREFIX,
+    Opids, ProprietaryKeyRgb, RgbExt, RgbInExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
+    PSBT_IN_RGB_CONSUMED_BY, PSBT_RGB_PREFIX,
 };
 
-#[derive(Clone, Eq, PartialEq, Debug, Display, Error)]
+#[derive(Clone, Eq, PartialEq, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum EmbedError {
     /// provided transaction batch references inputs which are absent from the
     /// PSBT. Possible it was created for a different PSBT.
     AbsentInputs,
 
-    /// the provided PSBT is invalid since it doublespends on some of its
-    /// inputs.
-    PsbtRepeatedInputs,
+    #[from]
+    Rgb(RgbPsbtError),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Display, Error, From)]
@@ -62,9 +61,8 @@ pub enum CommitError {
 #[display(doc_comments)]
 pub enum ExtractError {}
 
-// TODO: Batch must be homomorphic by the outpoint type (chain)
-
 pub trait RgbPsbt {
+    #[allow(clippy::result_large_err)]
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError>;
     #[allow(clippy::result_large_err)]
     fn rgb_commit(&mut self) -> Result<Fascia, CommitError>;
@@ -78,9 +76,7 @@ impl RgbPsbt for Psbt {
             let mut inputs = info.inputs.release();
             for input in self.inputs_mut() {
                 if inputs.remove(&input.prevout().outpoint()) {
-                    input
-                        .set_rgb_consumer(contract_id, info.id)
-                        .map_err(|_| EmbedError::PsbtRepeatedInputs)?;
+                    input.set_rgb_consumer(contract_id, info.id)?;
                 }
             }
             if !inputs.is_empty() {
@@ -100,15 +96,18 @@ impl RgbPsbt for Psbt {
         let close_method = self
             .rgb_close_method()?
             .ok_or(RgbPsbtError::NoCloseMethod)?;
-        let anchor = match close_method {
-            CloseMethod::TapretFirst => AnchorSet::Tapret(self.dbc_commit::<TapretProof>()?),
-            CloseMethod::OpretFirst => AnchorSet::Opret(self.dbc_commit::<OpretProof>()?),
+        let (merkle_block, dbc_proof) = match close_method {
+            CloseMethod::TapretFirst => self
+                .dbc_commit::<TapretProof>()
+                .map(|(mb, proof)| (mb, proof.into()))?,
+            CloseMethod::OpretFirst => self
+                .dbc_commit::<OpretProof>()
+                .map(|(mb, proof)| (mb, proof.into()))?,
         };
-        // TODO: Use signed transaction here!
         let witness = PubWitness::with(self.to_unsigned_tx().into());
+        let seal_witness = SealWitness::new(witness, merkle_block, dbc_proof);
         Ok(Fascia {
-            witness,
-            anchor,
+            seal_witness,
             bundles,
         })
     }
