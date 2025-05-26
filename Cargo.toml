@@ -10,7 +10,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.11.1-alpha.2+unreviewed"
+version = "0.11.1-alpha.3+unreviewed"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -30,8 +30,8 @@ commit_verify = "0.11.1-alpha.2"
 bp-core = "0.11.1-alpha.2"
 bp-std = { version = "0.11.1-alpha.2", features = ["client-side-validation"] }
 bp-wallet = { version = "0.11.1-alpha.2" }
-rgb-std = { version = "0.11.1-alpha.2" }
-rgb-psbt = { version = "0.11.1-alpha.2", path = "psbt" }
+rgb-std = { version = "0.11.1-alpha.3" }
+rgb-psbt = { version = "0.11.1-alpha.3", path = "psbt" }
 indexmap = "2.4.0"
 chrono = "0.4.38"
 serde_crate = { package = "serde", version = "1", features = ["derive"] }
