@@ -236,7 +236,7 @@ impl Args {
                 todo!()
             }
 
-            Cmd::Backup { file: _ } => {
+            Cmd::Backup { contract: _, file: _ } => {
                 todo!();
             }
 
@@ -542,10 +542,10 @@ impl Args {
                 }
             }
 
-            Cmd::Accept { wallet, input } => {
+            Cmd::Accept { unknown, wallet, input } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 runtime
-                    .consume_from_file(false, input, |_, _, _| Result::<_, Infallible>::Ok(()))
+                    .consume_from_file(*unknown, input, |_, _, _| Result::<_, Infallible>::Ok(()))
                     .map_err(|e| anyhow::anyhow!(e.to_string()))?;
             }
         }

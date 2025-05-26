@@ -148,8 +148,11 @@ pub enum Cmd {
         file: PathBuf,
     },
 
-    /// Back up all client-side data for all contracts
+    /// Back up all known contract data
     Backup {
+        /// Contract to back up
+        contract: ContractRef,
+
         /// Path for saving a backup in the form of a tar file
         #[clap(default_value = "rgb-backup.tar", value_hint = ValueHint::FilePath)]
         file: PathBuf,
@@ -289,7 +292,7 @@ pub enum Cmd {
         output: PathBuf,
     },
 
-    /// Execute a script, producing prefabricated operation bundle and PSBT
+    /// Execute a script, producing a prefabricated operation bundle and PSBT
     #[clap(alias = "x")]
     Exec {
         /// Wallet to use
@@ -359,7 +362,7 @@ pub enum Cmd {
         #[clap(short, long, global = true)]
         broadcast: bool,
 
-        /// Name of PSBT file to finalize.
+        /// Name of the PSBT file to finalize.
         psbt: PathBuf,
 
         /// File to save the extracted signed transaction.
@@ -369,6 +372,10 @@ pub enum Cmd {
     /// Verify and accept a contract or a transfer consignment
     #[clap(alias = "a")]
     Accept {
+        /// Allow accepting unknown contracts
+        #[clap(short, long, global = true)]
+        unknown: bool,
+
         /// Wallet to use
         #[clap(short, long, global = true, env = RGB_WALLET_ENV)]
         wallet: Option<String>,
