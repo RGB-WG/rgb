@@ -23,7 +23,6 @@
 // the License.
 
 use std::convert::Infallible;
-use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::str::FromStr;
@@ -33,10 +32,10 @@ use bpwallet::psbt::{PsbtConstructor, TxParams};
 use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
-use rgb::{CallScope, Consensus, CreateParams, Identity, Issuer, SigBlob, SigValidator};
+use rgb::{CallScope, Consensus, CreateParams, Issuer};
 use rgbp::descriptor::RgbDescr;
 use rgbp::{ContractInfo, Owner};
-use strict_encoding::{StrictDeserialize, StrictSerialize, TypeName};
+use strict_encoding::{StrictDeserialize, StrictSerialize};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -145,16 +144,17 @@ impl Args {
                     }
                     // TODO: Print codex and API information in separate blocks
                     for (codex_id, issuer) in contracts.issuers() {
-                        let api = &issuer.api;
+                        let api = &issuer.default_api();
                         println!(
                             "{:<72}\t{:<32}\t{:<16}\t{}",
                             codex_id.to_string(),
-                            issuer.codex.name,
+                            issuer.codex_name(),
                             api.conforms()
-                                .as_ref()
-                                .map(TypeName::to_string)
-                                .unwrap_or(s!("~")),
-                            issuer.codex.developer,
+                                .iter()
+                                .map(|no| format!("RGB-{no}"))
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                            issuer.codex().developer,
                         );
                     }
                     println!();
@@ -184,7 +184,11 @@ impl Args {
                 println!();
                 println!("{:<32}\t{:<64}\tDeveloper", "Name", "ID");
                 for (codex_id, issuer) in self.contracts().issuers() {
-                    println!("{:<32}\t{codex_id}\t{}", issuer.codex.name, issuer.codex.developer);
+                    println!(
+                        "{:<32}\t{codex_id}\t{}",
+                        issuer.codex_name(),
+                        issuer.codex().developer
+                    );
                 }
             }
             Cmd::Issue { params: Some(params), wallet, quiet } => {
@@ -212,8 +216,8 @@ impl Args {
                     };
                     print!("Processing '{}' ... ", filename.to_string_lossy());
 
-                    let issuer = Issuer::load(src)?;
-                    let codex_id = issuer.codex.codex_id();
+                    let issuer = Issuer::load(src, |_, _, _| Result::<_, Infallible>::Ok(()))?;
+                    let codex_id = issuer.codex_id();
                     print!("codex id {codex_id} ... ");
                     if contracts.has_issuer(codex_id) {
                         println!("already known, skipping");
@@ -539,22 +543,9 @@ impl Args {
             }
 
             Cmd::Accept { wallet, input } => {
-                // TODO: Use some real signature validator
-                pub struct DumbValidator;
-                impl SigValidator for DumbValidator {
-                    fn validate_sig(
-                        &self,
-                        _: impl Into<[u8; 32]>,
-                        _: &Identity,
-                        _: &SigBlob,
-                    ) -> Result<u64, impl Error> {
-                        Result::<_, Infallible>::Ok(0)
-                    }
-                }
-
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
                 runtime
-                    .consume_from_file(input, DumbValidator)
+                    .consume_from_file(false, input, |_, _, _| Result::<_, Infallible>::Ok(()))
                     .map_err(|e| anyhow::anyhow!(e.to_string()))?;
             }
         }

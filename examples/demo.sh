@@ -29,4 +29,4 @@ $RGB state -goa -w alice
 
 $RGB_2 accept -w bob examples/transfer.rgb || exit 1
 
-$RGB_2 state -go -w bob
+$RGB_2 state -goa -w bob

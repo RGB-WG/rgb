@@ -96,3 +96,11 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
