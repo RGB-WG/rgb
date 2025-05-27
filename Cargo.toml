@@ -85,7 +85,7 @@ std = []
 fs = [
     "std",
     "serde",
-    "rgb-std/fs",
+    "rgb-std/binfile",
     "bp-wallet/fs",
 ]
 log = ["dep:log", "bp-wallet/log"]

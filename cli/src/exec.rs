@@ -35,7 +35,6 @@ use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
 use rgbp::descriptor::RgbDescr;
 use rgbp::{ContractInfo, Owner};
-use strict_encoding::{StrictDeserialize, StrictSerialize};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -469,7 +468,7 @@ impl Args {
 
                 payment
                     .bundle
-                    .strict_serialize_to_file::<{ usize::MAX }>(&bundle_filename)
+                    .save(&bundle_filename)
                     .context("Unable to write to the output file")?;
 
                 // This PSBT can be sent to other payjoin parties so they add their inputs and
@@ -487,7 +486,7 @@ impl Args {
 
             Cmd::Complete { wallet, bundle, psbt: psbt_filename } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let bundle = PrefabBundle::strict_deserialize_from_file::<{ usize::MAX }>(bundle)?;
+                let bundle = PrefabBundle::load(bundle)?;
                 let mut psbt_file = File::open(psbt_filename).context("Unable to open PSBT")?;
                 let psbt = Psbt::decode(&mut psbt_file)?;
 

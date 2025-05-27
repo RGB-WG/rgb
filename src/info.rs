@@ -27,8 +27,7 @@ use chrono::{DateTime, Utc};
 use rgb::{Articles, Codex, CodexId, Consensus, ContractId, ContractName, Identity};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
 pub struct ContractInfo {
     pub id: ContractId,
     pub name: ContractName,
@@ -55,8 +54,7 @@ impl ContractInfo {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
 pub struct CodexInfo {
     pub id: CodexId,
     pub name: TinyString,
