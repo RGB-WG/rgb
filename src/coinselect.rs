@@ -25,7 +25,7 @@
 use core::str::FromStr;
 
 use rgb::popls::bp::Coinselect;
-use rgb::{Assignment, CellAddr, Outpoint, StateCalc};
+use rgb::{CellAddr, Outpoint, OwnedState, StateCalc};
 use strict_types::StrictVal;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display, Default)]
@@ -53,33 +53,36 @@ impl FromStr for CoinselectStrategy {
 }
 
 impl Coinselect for CoinselectStrategy {
-    fn coinselect(
+    fn coinselect<'a>(
         &mut self,
         invoiced_state: &StrictVal,
         calc: &mut StateCalc,
-        owned_state: Vec<(CellAddr, &Assignment<Outpoint>)>,
+        owned_state: impl IntoIterator<
+            Item = &'a OwnedState<Outpoint>,
+            IntoIter: DoubleEndedIterator<Item = &'a OwnedState<Outpoint>>,
+        >,
     ) -> Option<Vec<(CellAddr, Outpoint)>> {
         let res = match self {
             CoinselectStrategy::Aggregate => owned_state
                 .into_iter()
-                .take_while(|(_, assignment)| {
+                .take_while(|owned| {
                     if calc.is_satisfied(invoiced_state) {
                         return false;
                     }
-                    calc.accumulate(&assignment.data).is_ok()
+                    calc.accumulate(&owned.assignment.data).is_ok()
                 })
-                .map(|(addr, assignment)| (addr, assignment.seal))
+                .map(|owned| (owned.addr, owned.assignment.seal))
                 .collect(),
             CoinselectStrategy::SmallSize => owned_state
                 .into_iter()
                 .rev()
-                .take_while(|(_, assignment)| {
+                .take_while(|owned| {
                     if calc.is_satisfied(invoiced_state) {
                         return false;
                     }
-                    calc.accumulate(&assignment.data).is_ok()
+                    calc.accumulate(&owned.assignment.data).is_ok()
                 })
-                .map(|(addr, assignment)| (addr, assignment.seal))
+                .map(|owned| (owned.addr, owned.assignment.seal))
                 .collect(),
         };
         if !calc.is_satisfied(invoiced_state) {

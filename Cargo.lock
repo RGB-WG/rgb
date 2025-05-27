@@ -975,7 +975,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1488,7 +1488,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#13a63a1fde93e1de60339ad68b1163fee4d30fcb"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#9d1c9ee7250eb1a216e04543958b91607a482d6f"
 dependencies = [
  "amplify",
  "baid64",
@@ -1499,6 +1499,18 @@ dependencies = [
  "rgb-core",
  "serde",
  "sonic-callreq",
+ "strict_encoding",
+]
+
+[[package]]
+name = "rgb-persist-fs"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#9d1c9ee7250eb1a216e04543958b91607a482d6f"
+dependencies = [
+ "amplify",
+ "aora",
+ "rgb-std",
+ "sonic-persist-fs",
  "strict_encoding",
 ]
 
@@ -1527,6 +1539,7 @@ dependencies = [
  "log",
  "nonasync",
  "rand 0.9.1",
+ "rgb-persist-fs",
  "rgb-psbt",
  "rgb-std",
  "serde",
@@ -1539,7 +1552,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#13a63a1fde93e1de60339ad68b1163fee4d30fcb"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#9d1c9ee7250eb1a216e04543958b91607a482d6f"
 dependencies = [
  "amplify",
  "aora",
@@ -1557,7 +1570,6 @@ dependencies = [
  "serde",
  "serde_with 1.14.0",
  "single_use_seals",
- "sonic-persist-fs",
  "strict_encoding",
  "strict_types",
  "wasm-bindgen",
@@ -1573,6 +1585,7 @@ dependencies = [
  "bp-esplora",
  "bp-wallet",
  "clap",
+ "rgb-persist-fs",
  "rgb-psbt",
  "rgb-runtime",
  "rgb-std",
@@ -1889,7 +1902,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1912,7 +1925,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
 dependencies = [
  "amplify",
  "baid64",
@@ -1932,7 +1945,7 @@ dependencies = [
 [[package]]
 name = "sonic-persist-fs"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
 dependencies = [
  "amplify",
  "aora",

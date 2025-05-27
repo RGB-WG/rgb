@@ -292,7 +292,7 @@ impl Args {
                             );
                         }
                         for (name, map) in &state.immutable {
-                            for (addr, state) in map {
+                            for state in map {
                                 print!("\t{:<16}", name.as_str());
                                 print!("\t{:<12}", state.status.to_string());
                                 print!("\t{:<32}", state.data.verified.to_string());
@@ -301,7 +301,7 @@ impl Args {
                                 } else {
                                     print!("\t{:<32}", "~")
                                 }
-                                println!("\t{addr}");
+                                println!("\t{}", state.addr);
                             }
                         }
 
@@ -324,11 +324,11 @@ impl Args {
                             );
                         }
                         for (name, map) in &state.owned {
-                            for (addr, state) in map {
+                            for state in map {
                                 print!("\t{:<16}", name.as_str());
                                 print!("\t{:<12}", state.status.to_string());
                                 print!("\t{:<32}", state.assignment.data.to_string());
-                                print!("\t{addr:<46}");
+                                print!("\t{:<46}", state.addr);
                                 println!("\t{}", state.assignment.seal);
                             }
                         }
@@ -468,7 +468,7 @@ impl Args {
 
                 payment
                     .bundle
-                    .save(&bundle_filename)
+                    .save(bundle_filename)
                     .context("Unable to write to the output file")?;
 
                 // This PSBT can be sent to other payjoin parties so they add their inputs and

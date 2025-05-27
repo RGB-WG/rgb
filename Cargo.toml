@@ -27,6 +27,7 @@ bp-wallet = { version = "0.12.0-rc.1" }
 rgb-std = { version = "0.12.0-rc.1" }
 rgb-runtime = { version = "0.12.0-rc.1", path = "." }
 rgb-psbt = { version = "0.12.0-rc.1", path = "psbt" }
+rgb-persist-fs = { version = "0.12.0-rc.1" }
 indexmap = "2.9.0"
 chrono = { version = "0.4.41", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
@@ -60,6 +61,7 @@ bp-std = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
+rgb-persist-fs = { workspace = true, optional = true }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true, optional = true }
@@ -86,6 +88,7 @@ fs = [
     "std",
     "serde",
     "rgb-std/binfile",
+    "dep:rgb-persist-fs",
     "bp-wallet/fs",
 ]
 log = ["dep:log", "bp-wallet/log"]
@@ -102,5 +105,6 @@ sonic-api = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
 sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
 sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
 hypersonic = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
