@@ -1,6 +1,6 @@
 consensus: bitcoin
 testnet: true
-codexId: nmThRWDr-0hOJgJt-OFVCZTA-XX8aOWj-bkqWzK7-_jAtdhQ#justice-planet-viva
+issuer: nmThRWDr-0hOJgJt-OFVCZTA-XX8aOWj-bkqWzK7-_jAtdhQ#justice-planet-viva
 name: DemoToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"

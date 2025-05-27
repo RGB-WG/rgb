@@ -975,7 +975,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1488,7 +1488,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#f6ea0fd9e3d8bb7eba2349f5ae28e01d27cadf32"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#839d30467c8ec816f8ea93b22223deb96c659dd1"
 dependencies = [
  "amplify",
  "baid64",
@@ -1539,7 +1539,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#f6ea0fd9e3d8bb7eba2349f5ae28e01d27cadf32"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#839d30467c8ec816f8ea93b22223deb96c659dd1"
 dependencies = [
  "amplify",
  "aora",
@@ -1889,7 +1889,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1901,6 +1901,7 @@ dependencies = [
  "getrandom 0.3.3",
  "indexmap 2.9.0",
  "serde",
+ "serde_yaml",
  "sonic-callreq",
  "strict_encoding",
  "strict_types",
@@ -1911,7 +1912,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "amplify",
  "baid64",
@@ -1931,7 +1932,7 @@ dependencies = [
 [[package]]
 name = "sonic-persist-fs"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "amplify",
  "aora",
