@@ -110,6 +110,10 @@ pub enum Cmd {
     ///
     /// If you need to import a contract, please use the `accept` command
     Export {
+        /// Force re-rewrite of the target file if it already exists
+        #[clap(short, long)]
+        force: bool,
+
         /// Codex which should be used to select the contract issuer for export
         codex: CodexId,
 
@@ -148,6 +152,9 @@ pub enum Cmd {
 
     /// Backup a whole of a contract as a consignment
     Backup {
+        /// Force re-rewrite of the target file if it already exists
+        #[clap(short, long)]
+        force: bool,
         /// Contract to export
         contract: ContractRef,
 

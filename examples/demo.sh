@@ -15,10 +15,12 @@ $RGB import examples/RGB20-NFA.issuer
 rm -rf examples/data/bitcoin.testnet/DemoToken.*.contract
 rm -rf examples/data2/bitcoin.testnet/DemoToken.*.contract
 $RGB issue -w alice examples/DemoToken.yaml
-cp -r examples/data/bitcoin.testnet/DemoToken.*.contract examples/data2/bitcoin.testnet/
+$RGB backup -f DemoToken examples/DemoToken.rgb
+$RGB_2 accept -w bob -u examples/DemoToken.rgb
 
 $RGB contracts
 $RGB state -go -w alice
+$RGB_2 state -go -w bob
 #$RGB fund alice
 AUTH_TOKEN=$($RGB_2 invoice -w bob --nonce 0 --seal-only DemoToken)
 INVOICE=$($RGB_2 invoice -w bob --nonce 0 DemoToken 10)
@@ -29,4 +31,4 @@ $RGB state -goa -w alice
 
 $RGB_2 accept -w bob examples/transfer.rgb || exit 1
 
-$RGB_2 state -goa -w bob
+$RGB_2 state -go -w bob

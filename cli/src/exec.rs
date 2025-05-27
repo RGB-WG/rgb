@@ -206,11 +206,14 @@ impl Args {
                 self.contracts().purge(*contract)?;
             }
 
-            Cmd::Export { codex, file } => {
+            Cmd::Export { force, codex, file } => {
                 let contracts = self.contracts();
                 let issuer = contracts
                     .issuer(*codex)
                     .ok_or(anyhow::anyhow!("unknown issuer '{codex}'"))?;
+                if *force && fs::exists(file)? {
+                    fs::remove_file(file)?;
+                }
                 issuer.save(file)?;
             }
 
@@ -235,11 +238,14 @@ impl Args {
                 }
             }
 
-            Cmd::Backup { contract, file } => {
+            Cmd::Backup { force, contract, file } => {
                 let contracts = self.contracts();
                 let contract_id = contracts
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
+                if *force && fs::exists(file)? {
+                    fs::remove_file(file)?;
+                }
                 contracts.export_to_file(file, contract_id)?;
             }
 
