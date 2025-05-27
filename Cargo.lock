@@ -975,7 +975,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#f948606e70a81cffa3d832eea8f31660ce532b95"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1488,7 +1488,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#9763038f8f5c42b717db0e76f38311d127499b5c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#f6ea0fd9e3d8bb7eba2349f5ae28e01d27cadf32"
 dependencies = [
  "amplify",
  "baid64",
@@ -1539,7 +1539,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#9763038f8f5c42b717db0e76f38311d127499b5c"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=v0.12#f6ea0fd9e3d8bb7eba2349f5ae28e01d27cadf32"
 dependencies = [
  "amplify",
  "aora",
@@ -1889,7 +1889,7 @@ dependencies = [
 [[package]]
 name = "sonic-api"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#f948606e70a81cffa3d832eea8f31660ce532b95"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
 dependencies = [
  "aluvm",
  "amplify",
@@ -1911,7 +1911,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#f948606e70a81cffa3d832eea8f31660ce532b95"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
 dependencies = [
  "amplify",
  "baid64",
@@ -1931,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "sonic-persist-fs"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#f948606e70a81cffa3d832eea8f31660ce532b95"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6e71c938544d8787fda739e543b0febd1044a63"
 dependencies = [
  "amplify",
  "aora",

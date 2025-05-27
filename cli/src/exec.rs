@@ -202,9 +202,16 @@ impl Args {
                 };
             }
 
-            Cmd::Purge { force: _, contract: _ } => {
-                todo!();
-                //self.contracts().purge(contract)
+            Cmd::Purge { contract } => {
+                self.contracts().purge(*contract)?;
+            }
+
+            Cmd::Export { codex, file } => {
+                let contracts = self.contracts();
+                let issuer = contracts
+                    .issuer(*codex)
+                    .ok_or(anyhow::anyhow!("unknown issuer '{codex}'"))?;
+                issuer.save(file)?;
             }
 
             Cmd::Import { file: files } => {
@@ -228,16 +235,12 @@ impl Args {
                 }
             }
 
-            Cmd::Export { contract, file: _ } => {
-                let _contract_id = self
-                    .contracts()
+            Cmd::Backup { contract, file } => {
+                let contracts = self.contracts();
+                let contract_id = contracts
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;
-                todo!()
-            }
-
-            Cmd::Backup { contract: _, file: _ } => {
-                todo!();
+                contracts.export_to_file(file, contract_id)?;
             }
 
             // =====================================================================================
@@ -489,7 +492,7 @@ impl Args {
             }
 
             Cmd::Consign { contract, terminals, output: consignment_path } => {
-                let mut contracts = self.contracts();
+                let contracts = self.contracts();
                 let contract_id = contracts
                     .find_contract_id(contract.clone())
                     .ok_or(anyhow::anyhow!("unknown contract '{contract}'"))?;

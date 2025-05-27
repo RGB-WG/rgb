@@ -28,7 +28,7 @@ use bpwallet::cli::ResolverOpt;
 use bpwallet::Sats;
 use clap::ValueHint;
 use rgb::invoice::RgbInvoice;
-use rgb::{AuthToken, ContractId, ContractRef, MethodName, StateName};
+use rgb::{AuthToken, CodexId, ContractId, ContractRef, MethodName, StateName};
 use rgbp::CoinselectStrategy;
 use strict_encoding::TypeName;
 
@@ -97,6 +97,27 @@ pub enum Cmd {
 
     // =====================================================================================
     // II. Contract management
+    /// Import a contract issuer
+    ///
+    /// If you need to import a contract, please use the `accept` command
+    Import {
+        /// File(s) to process
+        #[clap(value_hint = ValueHint::FilePath)]
+        file: Vec<PathBuf>,
+    },
+
+    /// Export a contract issuer
+    ///
+    /// If you need to import a contract, please use the `accept` command
+    Export {
+        /// Codex which should be used to select the contract issuer for export
+        codex: CodexId,
+
+        /// Target file to save the contract issuer to
+        #[clap(value_hint = ValueHint::FilePath)]
+        file: PathBuf,
+    },
+
     /// List contracts
     Contracts {
         /// Include in the list contract issuers
@@ -121,40 +142,17 @@ pub enum Cmd {
 
     /// Remove a contract purging all its data (use with caution!)
     Purge {
-        /// Force removal of a contract with a known state
-        #[clap(short, long)]
-        force: bool,
-
         /// Contract id to remove
         contract: ContractId,
     },
 
-    /// Import contract issuer
-    ///
-    /// If you need to import a contract, please use the `accept` command.
-    Import {
-        /// File(s) to process
-        #[clap(value_hint = ValueHint::FilePath)]
-        file: Vec<PathBuf>,
-    },
-
-    /// Export a contract as a consignment
-    Export {
+    /// Backup a whole of a contract as a consignment
+    Backup {
         /// Contract to export
         contract: ContractRef,
 
         /// Path to save the contract consignment to
         #[clap(value_hint = ValueHint::FilePath)]
-        file: PathBuf,
-    },
-
-    /// Back up all known contract data
-    Backup {
-        /// Contract to back up
-        contract: ContractRef,
-
-        /// Path for saving a backup in the form of a tar file
-        #[clap(default_value = "rgb-backup.tar", value_hint = ValueHint::FilePath)]
         file: PathBuf,
     },
 
