@@ -227,6 +227,7 @@ impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<
     )
 )]
 pub struct RgbDescr<K: DeriveSet = XpubDerivable> {
+    #[cfg_attr(feature = "serde", serde(with = "serde_yaml::with::singleton_map_recursive"))]
     deriver: RgbDeriver<K>,
     seals: SealDescr,
     noise: Bytes32,
