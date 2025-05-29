@@ -1545,6 +1545,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "strict_types",
+ "toml",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
