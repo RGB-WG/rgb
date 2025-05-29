@@ -327,3 +327,45 @@ impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<
         self.deriver.taproot_witness(keysigs)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use core::str::FromStr;
+
+    use bpstd::Wpkh;
+
+    use super::*;
+
+    #[test]
+    fn descr_serde() {
+        let s = "[643a7adc/86'/1'/0']tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1;9;10>/*";
+        let xpub = XpubDerivable::from_str(s).unwrap();
+        let descr = RgbDescr::<XpubDerivable>::new_unfunded(Wpkh::from(xpub), [0u8; 32]);
+
+        let yaml = serde_yaml::to_string(&descr).unwrap();
+        let toml = toml::to_string(&descr).unwrap();
+        let descr2: RgbDescr<XpubDerivable> = serde_yaml::from_str(&yaml).unwrap();
+        let descr3: RgbDescr<XpubDerivable> = toml::from_str(&toml).unwrap();
+
+        assert_eq!(descr.to_string(), descr2.to_string());
+        assert_eq!(descr.to_string(), descr3.to_string());
+        assert_eq!(yaml, "\
+deriver:
+  opretOnly:
+    wpkh: '[643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1;9;10>/*'
+seals: []
+noise: '0000000000000000000000000000000000000000000000000000000000000000'
+nonce: 0
+");
+        assert_eq!(
+            toml,
+            r#"seals = []
+noise = "0000000000000000000000000000000000000000000000000000000000000000"
+nonce = 0
+
+[deriver.opretOnly]
+wpkh = "[643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1;9;10>/*"
+"#
+        );
+    }
+}
