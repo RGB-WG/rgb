@@ -42,7 +42,12 @@ pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
 pub const RGB_NO_NETWORK_PREFIX_ENV: &str = "RGB_NO_NETWORK_PREFIX";
 
 pub const RGB_DATA_DIR_ENV: &str = "RGB_DATA_DIR";
-#[cfg(any(target_os = "linux", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
+#[cfg(any(
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd"
+))]
 pub const RGB_DATA_DIR: &str = "~/.local/share/rgb";
 #[cfg(target_os = "macos")]
 pub const RGB_DATA_DIR: &str = "~/Library/Application Support/RGB Smart Contracts";
