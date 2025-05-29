@@ -209,7 +209,7 @@ where
         Ok((psbt, payment))
     }
 
-    fn compose_psbt(
+    pub fn compose_psbt(
         &mut self,
         bundle: &PaymentScript,
         params: TxParams,
