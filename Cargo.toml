@@ -3,7 +3,7 @@ members = [".", "psbt", "cli"]
 default-members = [".", "psbt"]
 
 [workspace.package]
-version = "0.12.0-rc.1.1"
+version = "0.12.0-rc.2"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -19,15 +19,15 @@ nonasync = "0.1.2"
 strict_encoding = "2.9.1"
 strict_types = "2.9.0"
 commit_verify = "0.12.0-rc.1"
-bp-core = "0.12.0-rc.1"
-bp-std = { version = "0.12.0-rc.1", features = ["client-side-validation"] }
+bp-core = "0.12.0-rc.2"
+bp-std = { version = "0.12.0-rc.2", features = ["client-side-validation"] }
 bp-electrum = "0.12.0-rc.1"
 bp-esplora = { version = "0.12.0-rc.1", default-features = false, features = ["blocking-https"] }
-bp-wallet = { version = "0.12.0-rc.1" }
-rgb-std = { version = "0.12.0-rc.1" }
-rgb-runtime = { version = "0.12.0-rc.1", path = "." }
-rgb-psbt = { version = "0.12.0-rc.1", path = "psbt" }
-rgb-persist-fs = { version = "0.12.0-rc.1" }
+bp-wallet = { version = "0.12.0-rc.2" }
+rgb-std = { version = "0.12.0-rc.2" }
+rgb-runtime = { version = "0.12.0-rc.2", path = "." }
+rgb-psbt = { version = "0.12.0-rc.2", path = "psbt" }
+rgb-persist-fs = { version = "0.12.0-rc.2" }
 indexmap = "2.9.0"
 chrono = { version = "0.4.41", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
@@ -103,13 +103,3 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "feat/opwitness" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
-sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
-rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }

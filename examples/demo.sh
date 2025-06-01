@@ -10,7 +10,7 @@ RGB_2="./target/debug/rgb -d examples/data2"
 $RGB init 2>/dev/null
 $RGB_2 init 2>/dev/null
 
-$RGB import examples/RGB20-NFA.issuer
+$RGB import examples/RGB20-FNA.issuer
 
 rm -rf examples/data/bitcoin.testnet/DemoToken.*.contract
 rm -rf examples/data2/bitcoin.testnet/DemoToken.*.contract

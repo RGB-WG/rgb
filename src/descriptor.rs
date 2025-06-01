@@ -30,10 +30,10 @@ use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::tapret::TapretCommitment;
 use bpstd::seals::WTxoSeal;
 use bpstd::{
-    Derive, DeriveCompr, DeriveKey, DeriveSet, DeriveXOnly, DerivedScript, Descriptor, KeyOrigin,
-    Keychain, LegacyKeySig, LegacyPk, NormalIndex, SigScript, SpkClass, StdDescr, TapDerivation,
-    TapScript, TapTree, TaprootKeySig, Terminal, Tr, TrKey, Witness, XOnlyPk, XpubAccount,
-    XpubDerivable,
+    ControlBlock, Derive, DeriveCompr, DeriveKey, DeriveLegacy, DeriveSet, DeriveXOnly,
+    DerivedScript, Descriptor, KeyOrigin, Keychain, LegacyKeySig, LegacyPk, NormalIndex,
+    RedeemScript, SigScript, SpkClass, StdDescr, TapDerivation, TapScript, TapTree, TaprootKeySig,
+    Terminal, Tr, TrKey, Witness, WitnessScript, XOnlyPk, XpubAccount, XpubDerivable,
 };
 use commit_verify::CommitVerify;
 use indexmap::IndexMap;
@@ -96,8 +96,10 @@ impl Display for TapretWeaks {
     serde(
         rename_all = "camelCase",
         bound(
-            serialize = "K::Compr: serde::Serialize, K::XOnly: serde::Serialize",
-            deserialize = "K::Compr: serde::Deserialize<'de>, K::XOnly: serde::Deserialize<'de>"
+            serialize = "K::Legacy: serde::Serialize, K::Compr: serde::Serialize, K::XOnly: \
+                         serde::Serialize",
+            deserialize = "K::Legacy: serde::Deserialize<'de>, K::Compr: serde::Deserialize<'de>, \
+                           K::XOnly: serde::Deserialize<'de>"
         )
     )
 )]
@@ -155,8 +157,8 @@ impl<K: DeriveSet> Derive<DerivedScript> for RgbDeriver<K> {
     }
 }
 
-impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K>
-    for RgbDeriver<K>
+impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
+    Descriptor<K> for RgbDeriver<K>
 {
     fn class(&self) -> SpkClass {
         match self {
@@ -199,16 +201,24 @@ impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<
     fn legacy_witness(
         &self,
         keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
-    ) -> Option<(SigScript, Witness)> {
+        redeem_script: Option<RedeemScript>,
+        witness_script: Option<WitnessScript>,
+    ) -> Option<(SigScript, Option<Witness>)> {
         match self {
-            RgbDeriver::OpretOnly(d) => d.legacy_witness(keysigs),
-            RgbDeriver::Universal { tr, tweaks: _ } => tr.legacy_witness(keysigs),
+            RgbDeriver::OpretOnly(d) => d.legacy_witness(keysigs, redeem_script, witness_script),
+            RgbDeriver::Universal { tr, tweaks: _ } => {
+                tr.legacy_witness(keysigs, redeem_script, witness_script)
+            }
         }
     }
-    fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
+    fn taproot_witness(
+        &self,
+        cb: Option<&ControlBlock>,
+        keysigs: HashMap<&KeyOrigin, TaprootKeySig>,
+    ) -> Option<Witness> {
         match self {
-            RgbDeriver::OpretOnly(d) => d.taproot_witness(keysigs),
-            RgbDeriver::Universal { tr, tweaks: _ } => tr.taproot_witness(keysigs),
+            RgbDeriver::OpretOnly(d) => d.taproot_witness(cb, keysigs),
+            RgbDeriver::Universal { tr, tweaks: _ } => tr.taproot_witness(cb, keysigs),
         }
     }
 }
@@ -221,8 +231,10 @@ impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<
     serde(
         rename_all = "camelCase",
         bound(
-            serialize = "K::Compr: serde::Serialize, K::XOnly: serde::Serialize",
-            deserialize = "K::Compr: serde::Deserialize<'de>, K::XOnly: serde::Deserialize<'de>"
+            serialize = "K::Legacy: serde::Serialize, K::Compr: serde::Serialize, K::XOnly: \
+                         serde::Serialize",
+            deserialize = "K::Legacy: serde::Deserialize<'de>, K::Compr: serde::Deserialize<'de>, \
+                           K::XOnly: serde::Deserialize<'de>"
         )
     )
 )]
@@ -300,7 +312,9 @@ impl<K: DeriveSet> Derive<DerivedScript> for RgbDescr<K> {
     }
 }
 
-impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<K> for RgbDescr<K> {
+impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
+    Descriptor<K> for RgbDescr<K>
+{
     fn class(&self) -> SpkClass { self.deriver.class() }
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where K: 'a {
@@ -320,11 +334,18 @@ impl<K: DeriveSet<Compr = K, XOnly = K> + DeriveCompr + DeriveXOnly> Descriptor<
     fn legacy_witness(
         &self,
         keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
-    ) -> Option<(SigScript, Witness)> {
-        self.deriver.legacy_witness(keysigs)
+        redeem_script: Option<RedeemScript>,
+        witness_script: Option<WitnessScript>,
+    ) -> Option<(SigScript, Option<Witness>)> {
+        self.deriver
+            .legacy_witness(keysigs, redeem_script, witness_script)
     }
-    fn taproot_witness(&self, keysigs: HashMap<&KeyOrigin, TaprootKeySig>) -> Option<Witness> {
-        self.deriver.taproot_witness(keysigs)
+    fn taproot_witness(
+        &self,
+        cb: Option<&ControlBlock>,
+        keysigs: HashMap<&KeyOrigin, TaprootKeySig>,
+    ) -> Option<Witness> {
+        self.deriver.taproot_witness(cb, keysigs)
     }
 }
 
