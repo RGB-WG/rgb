@@ -105,10 +105,11 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
-rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "feat/opwitness" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
