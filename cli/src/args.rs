@@ -32,7 +32,8 @@ use bpwallet::seals::TxoSeal;
 use bpwallet::{AnyIndexer, Network};
 use clap::ValueHint;
 use rgb::popls::bp::RgbWallet;
-use rgb::{Consensus, Contracts, StockpileDir};
+use rgb::{Consensus, Contracts};
+use rgb_persist_fs::StockpileDir;
 use rgbp::{Owner, RgbpRuntimeDir};
 
 use crate::cmd::Cmd;

@@ -328,7 +328,7 @@ pub enum TransferError {
 pub mod file {
     use std::io;
 
-    use rgb::StockpileDir;
+    use rgb_persist_fs::StockpileDir;
 
     use super::*;
 

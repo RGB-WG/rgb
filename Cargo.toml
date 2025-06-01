@@ -27,10 +27,12 @@ bp-wallet = { version = "0.12.0-rc.1" }
 rgb-std = { version = "0.12.0-rc.1" }
 rgb-runtime = { version = "0.12.0-rc.1", path = "." }
 rgb-psbt = { version = "0.12.0-rc.1", path = "psbt" }
+rgb-persist-fs = { version = "0.12.0-rc.1" }
 indexmap = "2.9.0"
 chrono = { version = "0.4.41", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.19"
+toml = "0.8.22"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_debug"] }
 
 [package]
@@ -60,11 +62,15 @@ bp-std = { workspace = true }
 bp-wallet = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
+rgb-persist-fs = { workspace = true, optional = true }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
+
+[dev-dependencies]
+toml.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -85,7 +91,8 @@ std = []
 fs = [
     "std",
     "serde",
-    "rgb-std/fs",
+    "rgb-std/binfile",
+    "dep:rgb-persist-fs",
     "bp-wallet/fs",
 ]
 log = ["dep:log", "bp-wallet/log"]
@@ -96,3 +103,13 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "feat/opwitness" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+sonic-persist-fs = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+rgb-invoice = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
+rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "v0.12" }
