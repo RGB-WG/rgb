@@ -29,7 +29,7 @@ use bpstd::psbt;
 use bpstd::psbt::{KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
 use rgbstd::{
-    ContractId, InputOpids, MergeReveal, MergeRevealError, OpId, Operation, Transition,
+    ContractId, InputOpid, MergeReveal, MergeRevealError, OpId, Operation, Opout, Transition,
     TransitionBundle, Vin,
 };
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
@@ -184,6 +184,9 @@ pub enum RgbPsbtError {
     /// the size of transition {0} exceeds 16 MB.
     TransitionTooBig(OpId),
 
+    /// a transition {0} specified as contract consumer has not been pushed.
+    MissingTransition(OpId),
+
     /// state transition data in PSBT are invalid. Details: {0}
     #[from]
     InvalidTransition(DeserializeError),
@@ -219,7 +222,7 @@ pub trait RgbExt {
     fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, TransitionBundle>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map: SmallOrdMap<Vin, InputOpids> = SmallOrdMap::new();
+            let mut input_map: SmallOrdMap<Opout, InputOpid> = SmallOrdMap::new();
             let mut known_transitions: SmallOrdMap<OpId, Transition> = SmallOrdMap::new();
             let contract_consumers = self.rgb_contract_consumers(contract_id)?;
             if contract_consumers.is_empty() {
@@ -227,17 +230,17 @@ pub trait RgbExt {
             }
             for (opids, vin) in contract_consumers {
                 for opid in &opids {
+                    let input_opid = InputOpid { opid: *opid, vin };
                     let transition = self.rgb_transition(*opid)?;
                     if let Some(transition) = transition {
+                        for opout in transition.inputs() {
+                            input_map.insert(opout, input_opid.clone())?;
+                        }
                         known_transitions.insert(*opid, transition)?;
+                    } else {
+                        return Err(RgbPsbtError::MissingTransition(*opid));
                     }
                 }
-                let opids_len = opids.len();
-                let opids =
-                    InputOpids::from(Confined::try_from(opids).map_err(|_| {
-                        RgbPsbtError::InvalidTransitionsNumber(contract_id, opids_len)
-                    })?);
-                input_map.insert(vin, opids)?;
             }
             let input_map_len = input_map.len();
             let known_transitions_len = known_transitions.len();
