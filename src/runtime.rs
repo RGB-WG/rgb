@@ -235,20 +235,18 @@ where
         self.wallet.construct_psbt(closes, beneficiaries, params)
     }
 
-    /// Execute payment script creating PSBT and prefabricated operation bundle.
+    /// Fill in RGB information into a pre-composed PSBT, aligning it with the provided payment
+    /// script.
     ///
-    /// The returned PSBT contains only anonymous client-side validation information and is
-    /// modifiable, thus it can be forwarded to other payjoin participants.
-    // TODO: PSBT is not modifiable since it commits to Vouts in the bundle!
-    pub fn exec(
+    /// This procedure internally calls [`RgbWallet::bundle`], ensuring all other RGB data (from
+    /// other contracts) which were assigned to the UTXOs spent by this RGB, are not lost and
+    /// re-assigned to the change output(s) of the PSBT.
+    pub fn color_psbt(
         &mut self,
+        mut psbt: Psbt,
+        mut meta: PsbtMeta,
         script: PaymentScript,
-        params: TxParams,
     ) -> Result<Payment, MultiError<TransferError, <Sp::Stock as Stock>::Error>> {
-        let (mut psbt, mut meta) = self
-            .compose_psbt(&script, params)
-            .map_err(MultiError::from_a)?;
-
         // From this moment the transaction becomes unmodifiable
         let mut change_vout = meta.change.map(|c| c.vout);
         let request = psbt
@@ -272,6 +270,21 @@ where
             bundle,
             terminals: none!(),
         })
+    }
+
+    /// Execute payment script creating PSBT and prefabricated operation bundle.
+    ///
+    /// The returned PSBT contains only anonymous client-side validation information and is
+    /// not modifiable, since it contains RGB data.
+    pub fn exec(
+        &mut self,
+        script: PaymentScript,
+        params: TxParams,
+    ) -> Result<Payment, MultiError<TransferError, <Sp::Stock as Stock>::Error>> {
+        let (psbt, meta) = self
+            .compose_psbt(&script, params)
+            .map_err(MultiError::from_a)?;
+        self.color_psbt(psbt, meta, script)
     }
 
     /// Completes PSBT and includes the prefabricated bundle into the contract.
