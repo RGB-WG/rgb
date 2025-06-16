@@ -60,7 +60,7 @@ pub trait WalletUpdater {
     fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>>;
 }
 
-pub struct RgbRuntime<Wallet, Sp>(RgbWallet<Wallet, Sp>)
+pub struct RgbRuntime<Wallet, Sp>(pub RgbWallet<Wallet, Sp>)
 where
     Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
     Sp: Stockpile,
