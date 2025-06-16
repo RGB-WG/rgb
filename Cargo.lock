@@ -1457,7 +1457,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "rgb-core"
 version = "0.11.1-alpha.3+unreviewed"
-source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-4#128d0eac5b42094ac29748a24778245d736fac98"
+source = "git+https://github.com/zoedberg/rgb-core?branch=0.11.1-4#3c54f70c2f19038fc431c65ecf7a2436c24323e4"
 dependencies = [
  "aluvm",
  "amplify",

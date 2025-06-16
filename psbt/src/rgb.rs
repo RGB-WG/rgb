@@ -29,7 +29,7 @@ use bpstd::psbt;
 use bpstd::psbt::{KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
 use rgbstd::{
-    ContractId, InputOpid, MergeReveal, MergeRevealError, OpId, Operation, Opout, Transition,
+    ContractId, MergeReveal, MergeRevealError, OpId, Operation, Opout, Transition,
     TransitionBundle, Vin,
 };
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
@@ -222,19 +222,18 @@ pub trait RgbExt {
     fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, TransitionBundle>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map: SmallOrdMap<Opout, InputOpid> = SmallOrdMap::new();
+            let mut input_map: SmallOrdMap<Opout, OpId> = SmallOrdMap::new();
             let mut known_transitions: SmallOrdMap<OpId, Transition> = SmallOrdMap::new();
             let contract_consumers = self.rgb_contract_consumers(contract_id)?;
             if contract_consumers.is_empty() {
                 return Err(RgbPsbtError::NoContractConsumers);
             }
-            for (opids, vin) in contract_consumers {
+            for (opids, _vin) in contract_consumers {
                 for opid in &opids {
-                    let input_opid = InputOpid { opid: *opid, vin };
                     let transition = self.rgb_transition(*opid)?;
                     if let Some(transition) = transition {
                         for opout in transition.inputs() {
-                            input_map.insert(opout, input_opid.clone())?;
+                            input_map.insert(opout, *opid)?;
                         }
                         known_transitions.insert(*opid, transition)?;
                     } else {
