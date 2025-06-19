@@ -38,7 +38,10 @@ use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
     RgbWallet, WalletProvider,
 };
-use rgb::{AcceptError, ContractId, EitherSeal, Pile, RgbSealDef, Stock, Stockpile, WitnessStatus};
+use rgb::{
+    AcceptError, ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile,
+    WitnessStatus,
+};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 use strict_types::SerializeError;
 
@@ -99,6 +102,9 @@ where
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
+    pub fn into_rgb_wallet(self) -> RgbWallet<Wallet, Sp> { self.0 }
+    pub fn unbind(self) -> (Wallet, Contracts<Sp>) { self.0.unbind() }
+
     #[allow(clippy::type_complexity)]
     pub fn sync<I>(
         &mut self,
