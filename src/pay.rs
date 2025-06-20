@@ -37,7 +37,7 @@ use psrgbt::{
     Beneficiary as BpBeneficiary, Psbt, PsbtConstructor, PsbtMeta, RgbExt, RgbPsbt, TapretKeyError,
     TxParams,
 };
-use rgbstd::containers::{Batch, BuilderSeal, IndexedConsignment, Transfer, TransitionInfo};
+use rgbstd::containers::{Batch, BuilderSeal, IndexedConsignment, Transfer};
 use rgbstd::contract::{AllocatedState, AssignmentsFilter, BuilderError};
 use rgbstd::invoice::{Amount, Beneficiary, InvoiceState, RgbInvoice};
 use rgbstd::persistence::{IndexProvider, StashInconsistency, StashProvider, StateProvider, Stock};
@@ -374,14 +374,12 @@ where Self::Descr: DescriptorRgb<K>
             .map_err(|e| e.to_string())?;
 
         let prev_outputs = prev_outputs.into_iter().collect::<HashSet<OutputSeal>>();
-        let mut main_inputs = Vec::<OutputSeal>::new();
         let mut sum_inputs = Amount::ZERO;
         let mut data_inputs = vec![];
-        for (output, list) in stock
+        for (_output, list) in stock
             .contract_assignments_for(contract_id, prev_outputs.iter().copied())
             .map_err(|e| e.to_string())?
         {
-            main_inputs.push(output);
             for (opout, state) in list {
                 main_builder = main_builder.add_input(opout, state.clone())?;
                 if opout.ty != *assignment_type {
@@ -463,7 +461,7 @@ where Self::Descr: DescriptorRgb<K>
                 .contract_schema(id)
                 .map_err(|_| BuilderError::Inconsistency(StashInconsistency::ContractAbsent(id)))?;
 
-            for (output, assigns) in seal_map {
+            for (_output, assigns) in seal_map {
                 for (opout, state) in assigns {
                     let transition_type = schema.default_transition_for_assignment(&opout.ty);
 
@@ -480,10 +478,8 @@ where Self::Descr: DescriptorRgb<K>
                         continue;
                     }
                     let transition = extra_builder.complete_transition()?;
-                    let info = TransitionInfo::new(transition, [output])
-                        .map_err(|_| CompositionError::TooManyInputs)?;
                     extras
-                        .push(info)
+                        .push(transition)
                         .map_err(|_| CompositionError::TooManyExtras)?;
                 }
             }
@@ -493,8 +489,7 @@ where Self::Descr: DescriptorRgb<K>
             return Err(CompositionError::InsufficientState);
         }
 
-        let main = TransitionInfo::new(main_builder.complete_transition()?, main_inputs)
-            .map_err(|_| CompositionError::TooManyInputs)?;
+        let main = main_builder.complete_transition()?;
         let mut batch = Batch { main, extras };
         batch.set_priority(u64::MAX);
 

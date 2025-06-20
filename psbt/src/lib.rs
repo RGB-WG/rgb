@@ -32,17 +32,13 @@ pub use rgb::*;
 use rgbstd::containers::{Batch, Fascia, PubWitness, SealWitness};
 
 pub use self::rgb::{
-    Opids, ProprietaryKeyRgb, RgbExt, RgbInExt, RgbPsbtError, PSBT_GLOBAL_RGB_TRANSITION,
-    PSBT_IN_RGB_CONSUMED_BY, PSBT_RGB_PREFIX,
+    ProprietaryKeyRgb, RgbExt, RgbPsbtError, PSBT_GLOBAL_RGB_CONSUMED_BY,
+    PSBT_GLOBAL_RGB_TRANSITION, PSBT_RGB_PREFIX,
 };
 
 #[derive(Clone, Eq, PartialEq, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum EmbedError {
-    /// provided transaction batch references inputs which are absent from the
-    /// PSBT. Possible it was created for a different PSBT.
-    AbsentInputs,
-
     #[from]
     Rgb(RgbPsbtError),
 }
@@ -71,19 +67,8 @@ pub trait RgbPsbt {
 
 impl RgbPsbt for Psbt {
     fn rgb_embed(&mut self, batch: Batch) -> Result<(), EmbedError> {
-        for info in batch {
-            let contract_id = info.transition.contract_id;
-            let mut inputs = info.inputs.release();
-            for input in self.inputs_mut() {
-                if inputs.remove(&input.prevout().outpoint()) {
-                    input.set_rgb_consumer(contract_id, info.id)?;
-                }
-            }
-            if !inputs.is_empty() {
-                return Err(EmbedError::AbsentInputs);
-            }
-            self.push_rgb_transition(info.transition)
-                .expect("transitions are unique since they are in BTreeMap indexed by opid");
+        for transition in batch {
+            self.push_rgb_transition(transition)?;
         }
         Ok(())
     }

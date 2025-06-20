@@ -28,7 +28,7 @@ use amplify::IoError;
 use bpstd::Psbt;
 use nonasync::persistence::PersistenceError;
 use psrgbt::{CommitError, ConstructionError, EmbedError, TapretKeyError};
-use rgbstd::containers::{LoadError, TransitionInfoError};
+use rgbstd::containers::LoadError;
 use rgbstd::contract::{BuilderError, ContractError};
 use rgbstd::persistence::{
     ComposeError, ConsignError, FasciaError, Stock, StockError, StockErrorAll, StockErrorMem,
@@ -179,14 +179,6 @@ pub enum CompositionError {
 
     /// beneficiary output number is given when secret seal is used.
     BeneficiaryVout,
-
-    /// the spent UTXOs contain too many seals which can't fit the state
-    /// transition input limit.
-    TooManyInputs,
-
-    #[from]
-    #[display(inner)]
-    Transition(TransitionInfoError),
 
     /// the operation produces too many extra state transitions which can't fit
     /// the container requirements.
