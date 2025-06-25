@@ -19,17 +19,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-use amplify::confinement::{Confined, SmallOrdMap, U24};
+use amplify::confinement::{Confined, NonEmptyOrdMap, SmallVec, U24};
 use amplify::{confinement, FromSliceError, Wrapper};
 use bp::dbc::Method;
 use bp::seals::txout::CloseMethod;
 use bpstd::psbt::{KeyMap, MpcPsbtError, PropKey, Psbt};
 use commit_verify::mpc;
 use rgbstd::{
-    AssignmentType, ContractId, MergeReveal, MergeRevealError, OpId, Operation, Opout, Transition,
-    TransitionBundle,
+    AssignmentType, ContractId, KnownTransition, MergeReveal, MergeRevealError, OpId, Operation,
+    Opout, Transition, TransitionBundle,
 };
 use strict_encoding::{DeserializeError, StrictDeserialize, StrictSerialize};
 
@@ -57,10 +57,10 @@ pub const PSBT_GLOBAL_RGB_CONSUMED_BY: u64 = 0x04;
 #[derive(Wrapper, WrapperMut, Clone, PartialEq, Eq, Debug, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
-pub struct OpoutAndOpids(HashMap<Opout, OpId>);
+pub struct OpoutAndOpids(BTreeMap<Opout, OpId>);
 
 impl OpoutAndOpids {
-    pub fn new(items: HashMap<Opout, OpId>) -> Self { Self(items) }
+    pub fn new(items: BTreeMap<Opout, OpId>) -> Self { Self(items) }
 
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -85,8 +85,7 @@ impl OpoutAndOpids {
                 "Input data length {bytes_len} is not a multiple of {item_size}"
             )));
         }
-        let len = bytes.len() / item_size;
-        let mut items = HashMap::with_capacity(len);
+        let mut items = BTreeMap::new();
         for chunk in bytes.chunks_exact(item_size) {
             let mut cursor = 0;
             let op = OpId::copy_from_slice(&chunk[cursor..cursor + opid_size]).map_err(|e| {
@@ -112,6 +111,57 @@ impl OpoutAndOpids {
         }
         Ok(OpoutAndOpids::new(items))
     }
+}
+
+#[allow(clippy::result_large_err)]
+fn insert_transitions_sorted(
+    transitions: &HashMap<OpId, Transition>,
+    known_transitions: &mut SmallVec<KnownTransition>,
+) -> Result<(), RgbPsbtError> {
+    #[allow(clippy::result_large_err)]
+    fn visit_and_insert(
+        opid: OpId,
+        transitions: &HashMap<OpId, Transition>,
+        known_transitions: &mut SmallVec<KnownTransition>,
+        visited: &mut HashSet<OpId>,
+        visiting: &mut HashSet<OpId>,
+    ) -> Result<(), RgbPsbtError> {
+        if visited.contains(&opid) {
+            return Ok(());
+        }
+        if visiting.contains(&opid) {
+            return Err(RgbPsbtError::KnownTransitionsInconsistency);
+        }
+        if let Some(transition) = transitions.get(&opid) {
+            visiting.insert(opid);
+            for input in transition.inputs() {
+                if transitions.contains_key(&input.op) {
+                    visit_and_insert(input.op, transitions, known_transitions, visited, visiting)?;
+                }
+            }
+            visiting.remove(&opid);
+            visited.insert(opid);
+            known_transitions
+                .push(KnownTransition {
+                    opid,
+                    transition: transition.clone(),
+                })
+                .map_err(|_| {
+                    RgbPsbtError::InvalidTransitionsNumber(
+                        transition.contract_id,
+                        transitions.len(),
+                    )
+                })?;
+        }
+        Ok(())
+    }
+
+    let mut visited = HashSet::new();
+    let mut visiting = HashSet::new();
+    for &opid in transitions.keys() {
+        visit_and_insert(opid, transitions, known_transitions, &mut visited, &mut visiting)?;
+    }
+    Ok(())
 }
 
 /// Extension trait for static functions returning RGB-related proprietary keys.
@@ -188,6 +238,9 @@ pub enum RgbPsbtError {
     /// invalid opout and opids data: {0}.
     InvalidOpoutAndOpidsData(String),
 
+    /// Unable to sort bundle's known transitions because of data inconsistency.
+    KnownTransitionsInconsistency,
+
     /// PSBT doesn't provide information about close method.
     NoCloseMethod,
 
@@ -223,7 +276,7 @@ pub trait RgbExt {
     fn rgb_contract_consumers(
         &self,
         contract_id: ContractId,
-    ) -> Result<HashMap<Opout, OpId>, RgbPsbtError>;
+    ) -> Result<BTreeMap<Opout, OpId>, RgbPsbtError>;
 
     fn rgb_transition(&self, opid: OpId) -> Result<Option<Transition>, RgbPsbtError>;
 
@@ -259,23 +312,26 @@ pub trait RgbExt {
     fn rgb_bundles(&self) -> Result<BTreeMap<ContractId, TransitionBundle>, RgbPsbtError> {
         let mut map = BTreeMap::new();
         for contract_id in self.rgb_contract_ids()? {
-            let mut input_map: SmallOrdMap<Opout, OpId> = SmallOrdMap::new();
-            let mut known_transitions: SmallOrdMap<OpId, Transition> = SmallOrdMap::new();
             let contract_consumers = self.rgb_contract_consumers(contract_id)?;
             if contract_consumers.is_empty() {
                 return Err(RgbPsbtError::NoContractConsumers);
             }
-            for (opout, opid) in contract_consumers {
-                input_map.insert(opout, opid)?;
-                if let Some(transition) = self.rgb_transition(opid)? {
-                    known_transitions.insert(opid, transition)?;
+            let inputs_len = contract_consumers.len();
+            let input_map = NonEmptyOrdMap::try_from(contract_consumers)
+                .map_err(|_| RgbPsbtError::InvalidInputsNumber(inputs_len))?;
+            let mut transitions_map: HashMap<OpId, Transition> = HashMap::new();
+            for opid in input_map.values() {
+                if let Some(transition) = self.rgb_transition(*opid)? {
+                    transitions_map.insert(*opid, transition);
                 }
             }
-            let input_map_len = input_map.len();
-            let known_transitions_len = known_transitions.len();
+            let known_transitions_len = transitions_map.values().len();
+            let mut known_transitions: SmallVec<KnownTransition> =
+                SmallVec::with_capacity(known_transitions_len);
+            insert_transitions_sorted(&transitions_map, &mut known_transitions)?;
+
             let bundle = TransitionBundle {
-                input_map: Confined::try_from(input_map.release())
-                    .map_err(|_| RgbPsbtError::InvalidInputsNumber(input_map_len))?,
+                input_map,
                 known_transitions: Confined::try_from(known_transitions.release()).map_err(
                     |_| RgbPsbtError::InvalidTransitionsNumber(contract_id, known_transitions_len),
                 )?,
@@ -306,9 +362,9 @@ impl RgbExt for Psbt {
     fn rgb_contract_consumers(
         &self,
         contract_id: ContractId,
-    ) -> Result<HashMap<Opout, OpId>, RgbPsbtError> {
+    ) -> Result<BTreeMap<Opout, OpId>, RgbPsbtError> {
         let Some(data) = self.proprietary.get(&PropKey::rgb_consumed_by(contract_id)) else {
-            return Ok(HashMap::new());
+            return Ok(BTreeMap::new());
         };
         Ok(OpoutAndOpids::deserialize(data)?.into_inner())
     }
@@ -364,7 +420,7 @@ impl RgbExt for Psbt {
             items.insert(opout, opid);
             self.insert_proprietary(key, items.serialize().into());
         } else {
-            let items = OpoutAndOpids::new(map![opout => opid]);
+            let items = OpoutAndOpids::new(bmap![opout => opid]);
             let _ = self.push_proprietary(key, items.serialize());
         }
         Ok(true)
