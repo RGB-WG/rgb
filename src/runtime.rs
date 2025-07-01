@@ -118,7 +118,7 @@ where
             return Err(MultiError::A(SyncError::Update(err)));
         }
 
-        let txids = self.contracts.witness_ids().collect::<HashSet<_>>();
+        let txids = self.contracts.witness_ids(|_| true).collect::<HashSet<_>>();
         let mut changed = HashMap::new();
         for txid in txids {
             let status = indexer
