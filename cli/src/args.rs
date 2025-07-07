@@ -35,7 +35,7 @@ use rgb_persist_fs::StockpileDir;
 use rgbp::{Owner, RgbpRuntimeDir};
 
 use crate::cmd::Cmd;
-use crate::opts::WalletOpts;
+use crate::opts::{ResolverOpt, WalletOpts};
 
 pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
 pub const RGB_NO_NETWORK_PREFIX_ENV: &str = "RGB_NO_NETWORK_PREFIX";
@@ -143,12 +143,7 @@ impl Args {
             .with_extension("wallet")
     }
 
-    pub fn wallet_provider(&self, name: Option<&str>) -> FsTextStore {
-        FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
-    }
-
-    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<Owner> {
-        let provider = self.wallet_provider(opts.wallet.as_deref());
+    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<Owner<MultiResolver>> {
         let wallet = Owner::load(provider, true).unwrap_or_else(|_| {
             panic!(
                 "Error: unable to load wallet from path `{}`",
@@ -158,32 +153,23 @@ impl Args {
         let mut runtime = RgbpRuntimeDir::from(RgbWallet::with(wallet, self.contracts()));
         if opts.sync {
             eprint!("Synchronizing wallet:");
-            let indexer = self.indexer(&opts.resolver);
+            let indexer = self.resolver(&opts.resolver);
             runtime.sync().expect("Unable to synchronize wallet");
             eprintln!(" done");
         }
         runtime
     }
 
-    pub fn indexer(&self, resolver: &ResolverOpt) -> AnyIndexer {
+    pub fn resolver(&self, resolver: &ResolverOpt) -> MultiResolver {
         let network = self.network.to_string();
         match (&resolver.esplora, &resolver.electrum, &resolver.mempool) {
-            (None, Some(url), None) => AnyIndexer::Electrum(Box::new(
-                // TODO: Check network match
-                electrum::Client::new(url).expect("Unable to initialize indexer"),
-            )),
-            (Some(url), None, None) => AnyIndexer::Esplora(Box::new(
-                bpwallet::indexers::esplora::Client::new_esplora(
-                    &url.replace("{network}", &network),
-                )
-                .expect("Unable to initialize indexer"),
-            )),
-            (None, None, Some(url)) => AnyIndexer::Mempool(Box::new(
-                bpwallet::indexers::esplora::Client::new_mempool(
-                    &url.replace("{network}", &network),
-                )
-                .expect("Unable to initialize indexer"),
-            )),
+            (None, Some(url), None) => MultiResolver::new_electrum(url),
+            (Some(url), None, None) => {
+                MultiResolver::new_esplora(&url.replace("{network}", &network))
+            }
+            (None, None, Some(url)) => {
+                MultiResolver::new_mempool(&url.replace("{network}", &network))
+            }
             _ => {
                 eprintln!(
                     "Error: no blockchain indexer specified; use either --esplora --mempool or \

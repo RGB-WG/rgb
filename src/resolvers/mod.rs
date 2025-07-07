@@ -23,7 +23,7 @@
 // the License.
 
 use bpstd::psbt::Utxo;
-use bpstd::{Keychain, NormalIndex, ScriptPubkey, Terminal, Txid, UnsignedTx};
+use bpstd::{ScriptPubkey, Terminal, Txid, UnsignedTx};
 use rgb::WitnessStatus;
 
 pub trait Resolver {
@@ -32,9 +32,8 @@ pub trait Resolver {
     fn resolve_tx(&self, txid: Txid) -> Result<UnsignedTx, Self::Error>;
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, Self::Error>;
 
-    fn resolve_utxos<I: Iterator<Item = (ScriptPubkey, Terminal)>>(
+    fn resolve_utxos(
         &self,
-        keychain: Keychain,
-        generator: impl Fn(NormalIndex) -> I,
+        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> Result<impl Iterator<Item = Utxo>, Self::Error>;
 }

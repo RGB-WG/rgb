@@ -89,7 +89,6 @@ impl Args {
             }
 
             Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
-                let provider = self.wallet_provider(Some(name));
                 let xpub = XpubDerivable::from_str(descriptor)?;
                 let noise = xpub.xpub().chain_code().to_byte_array();
                 let descr = match (tapret_key_only, wpkh) {
@@ -107,7 +106,7 @@ impl Args {
 
             Cmd::Sync { wallet, resolver } => {
                 let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let indexer = self.indexer(resolver);
+                let indexer = self.resolver(resolver);
                 runtime.sync()?;
                 println!();
             }
@@ -253,7 +252,7 @@ impl Args {
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet);
                 if wallet.sync {
-                    let indexer = self.indexer(&wallet.resolver);
+                    let indexer = self.resolver(&wallet.resolver);
                     runtime.sync()?;
                     println!();
                 }
@@ -546,7 +545,7 @@ impl Args {
                 };
 
                 if *broadcast {
-                    self.indexer(&wallet.resolver).broadcast(&extracted)?;
+                    self.resolver(&wallet.resolver).broadcast(&extracted)?;
                 }
             }
 

@@ -22,9 +22,56 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use bpwallet::cli::ResolverOpt;
+use clap::ValueHint;
 
 use crate::cmd::RGB_WALLET_ENV;
+
+pub const DEFAULT_ELECTRUM: &str = "mycitadel.io:50001";
+pub const DEFAULT_ESPLORA: &str = "https://blockstream.info/{network}/api";
+pub const DEFAULT_MEMPOOL: &str = "https://mempool.space/{network}/api";
+
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+#[group(args = ["electrum", "esplora", "mempool"])]
+pub struct ResolverOpt {
+    /// Electrum server to use
+    #[arg(
+        long,
+        global = true,
+        default_missing_value = DEFAULT_ELECTRUM,
+        num_args = 0..=1,
+        require_equals = true,
+        env = "ELECRTUM_SERVER",
+        value_hint = ValueHint::Url,
+        value_name = "URL"
+    )]
+    pub electrum: Option<String>,
+
+    /// Esplora server to use
+    #[arg(
+        long,
+        global = true,
+        default_missing_value = DEFAULT_ESPLORA,
+        num_args = 0..=1,
+        require_equals = true,
+        env = "ESPLORA_SERVER",
+        value_hint = ValueHint::Url,
+        value_name = "URL"
+    )]
+    pub esplora: Option<String>,
+
+    /// Mempool server to use
+    #[arg(
+        long,
+        global = true,
+        default_missing_value = DEFAULT_MEMPOOL,
+        num_args = 0..=1,
+        require_equals = true,
+        env = "MEMPOOL_SERVER",
+        value_hint = ValueHint::Url,
+        value_name = "URL"
+    )]
+    pub mempool: Option<String>,
+}
 
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 pub struct WalletOpts {
