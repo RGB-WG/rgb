@@ -22,7 +22,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::collections::HashMap;
 use std::convert::Infallible;
 
 use amplify::Bytes32;
@@ -32,6 +31,7 @@ use bpstd::{
     Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
     NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx,
 };
+use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
@@ -43,8 +43,8 @@ pub struct Owner<
 > {
     descriptor: RgbDescr<K>,
     network: Network,
-    next_index: HashMap<Keychain, NormalIndex>,
-    utxos: HashMap<Outpoint, (Sats, Terminal)>,
+    next_index: IndexMap<Keychain, NormalIndex>,
+    utxos: IndexMap<Outpoint, (Sats, Terminal)>,
     // TODO: Add indexer
 }
 
@@ -123,10 +123,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     fn network(&self) -> Network { self.network }
 
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        let next = self
-            .next_index
-            .get_mut(&keychain.into())
-            .expect("must be present");
+        let next = &mut self.next_index[&keychain.into()];
         if shift {
             next.saturating_inc_assign();
             // TODO: Mark dirty
