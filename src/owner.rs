@@ -232,3 +232,42 @@ where
         self.utxos.next_index(keychain, shift)
     }
 }
+
+#[cfg(feature = "fs")]
+pub mod file {
+    use std::io;
+    use std::ops::{Deref, DerefMut};
+    use std::path::{Path, PathBuf};
+
+    use super::*;
+
+    pub struct FileOwner<R: Resolver> {
+        owner: Owner<R>,
+        path: PathBuf,
+    }
+
+    impl<R: Resolver> Deref for FileOwner<R> {
+        type Target = Owner<R>;
+
+        fn deref(&self) -> &Self::Target { &self.owner }
+    }
+
+    impl<R: Resolver> DerefMut for FileOwner<R> {
+        fn deref_mut(&mut self) -> &mut Self::Target { &mut self.owner }
+    }
+
+    impl<R: Resolver> FileOwner<R> {
+        pub fn create(path: PathBuf) -> io::Result<Self> { todo!() }
+        pub fn load(path: PathBuf) -> io::Result<Self> { todo!() }
+        pub fn save(&self) -> io::Result<()> { todo!() }
+        pub fn path(&self) -> &Path { &self.path }
+    }
+
+    impl<R: Resolver> Drop for FileOwner<R> {
+        fn drop(&mut self) {
+            if let Err(err) = self.save() {
+                eprintln!("Error: unable to save wallet data. Details: {err}");
+            }
+        }
+    }
+}

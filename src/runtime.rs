@@ -61,55 +61,55 @@ pub struct Payment {
 ///   [`rgb-psbt`] crate) - like [`Self::compose_psbt`] and [`Self::color_psbt`];
 /// - high-level payment methods ([`Self::pay`], [`Self::rbf`]) relaying on the above.
 // TODO: Support Sp generics
-pub struct RgbRuntime<Wallet, Sp>(RgbWallet<Wallet, Sp>)
+pub struct RgbRuntime<W, Sp>(RgbWallet<W, Sp>)
 where
-    Wallet: WalletProvider,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>;
 
-impl<Wallet, Sp> From<RgbWallet<Wallet, Sp>> for RgbRuntime<Wallet, Sp>
+impl<W, Sp> From<RgbWallet<W, Sp>> for RgbRuntime<W, Sp>
 where
-    Wallet: WalletProvider,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    fn from(wallet: RgbWallet<Wallet, Sp>) -> Self { Self(wallet) }
+    fn from(wallet: RgbWallet<W, Sp>) -> Self { Self(wallet) }
 }
 
-impl<Wallet, Sp> Deref for RgbRuntime<Wallet, Sp>
+impl<W, Sp> Deref for RgbRuntime<W, Sp>
 where
-    Wallet: WalletProvider,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    type Target = RgbWallet<Wallet, Sp>;
+    type Target = RgbWallet<W, Sp>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<Wallet, Sp> DerefMut for RgbRuntime<Wallet, Sp>
+impl<W, Sp> DerefMut for RgbRuntime<W, Sp>
 where
-    Wallet: WalletProvider,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
+impl<W, Sp> RgbRuntime<W, Sp>
 where
-    Wallet: WalletProvider,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    pub fn with_components(wallet: Wallet, contracts: Contracts<Sp>) -> Self {
+    pub fn with_components(wallet: W, contracts: Contracts<Sp>) -> Self {
         Self(RgbWallet::with_components(wallet, contracts))
     }
-    pub fn into_rgb_wallet(self) -> RgbWallet<Wallet, Sp> { self.0 }
-    pub fn into_components(self) -> (Wallet, Contracts<Sp>) { self.0.into_components() }
+    pub fn into_rgb_wallet(self) -> RgbWallet<W, Sp> { self.0 }
+    pub fn into_components(self) -> (W, Contracts<Sp>) { self.0.into_components() }
 }
 
-impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
+impl<W, Sp> RgbRuntime<W, Sp>
 where
-    Wallet: PsbtConstructor + WalletProvider,
+    W: PsbtConstructor + WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
@@ -324,8 +324,9 @@ pub mod file {
     use rgb_persist_fs::StockpileDir;
 
     use super::*;
+    use crate::FileOwner;
 
-    pub type RgbpRuntimeDir<Wallet> = RgbRuntime<Wallet, StockpileDir<TxoSeal>>;
+    pub type RgbpRuntimeDir<R> = RgbRuntime<FileOwner<R>, StockpileDir<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;

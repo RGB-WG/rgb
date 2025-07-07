@@ -42,6 +42,8 @@ mod resolvers;
 
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
+#[cfg(feature = "fs")]
+pub use owner::file::FileOwner;
 pub use owner::{MemUtxos, Owner, UtxoSet};
 pub use resolvers::Resolver;
 #[cfg(feature = "fs")]
