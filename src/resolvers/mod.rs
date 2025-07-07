@@ -22,30 +22,19 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
-// #![cfg_attr(not(feature = "std"), no_std)]
+use bpstd::psbt::Utxo;
+use bpstd::{Keychain, NormalIndex, ScriptPubkey, Terminal, Txid, UnsignedTx};
+use rgb::WitnessStatus;
 
-extern crate alloc;
-#[macro_use]
-extern crate amplify;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
-extern crate core;
+pub trait Resolver {
+    type Error: core::error::Error;
 
-pub mod descriptor;
-mod bp;
-mod coinselect;
-mod runtime;
-mod payment;
-mod info;
-mod resolvers;
+    fn resolve_tx(&self, txid: Txid) -> Result<UnsignedTx, Self::Error>;
+    fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, Self::Error>;
 
-pub use bp::Owner;
-pub use coinselect::CoinselectStrategy;
-pub use info::{CodexInfo, ContractInfo};
-pub use payment::Payment;
-pub use resolvers::Resolver;
-#[cfg(feature = "fs")]
-pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, RgbRuntime, TransferError};
+    fn resolve_utxos<I: Iterator<Item = (ScriptPubkey, Terminal)>>(
+        &self,
+        keychain: Keychain,
+        generator: impl Fn(NormalIndex) -> I,
+    ) -> Result<impl Iterator<Item = Utxo>, Self::Error>;
+}

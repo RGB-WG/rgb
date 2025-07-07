@@ -28,19 +28,23 @@ use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
 use bpstd::{
-    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
-    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx,
+    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, DerivedScript, Idx,
+    Keychain, Network, NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx,
 };
 use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
 use crate::descriptor::RgbDescr;
+use crate::Resolver;
 
 pub trait UtxoSet {
     fn has(&self, outpoint: Outpoint) -> bool;
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
+
+    fn clear(&mut self);
+    fn extend(&mut self, set: impl IntoIterator<Item = Utxo>);
 }
 
 impl UtxoSet for IndexMap<Outpoint, (Sats, Terminal)> {
@@ -50,41 +54,56 @@ impl UtxoSet for IndexMap<Outpoint, (Sats, Terminal)> {
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> { self.get(&outpoint).copied() }
     #[inline]
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.keys().copied() }
+
+    fn clear(&mut self) { self.clear() }
+
+    fn extend(&mut self, set: impl IntoIterator<Item = Utxo>) {
+        Extend::extend(
+            self,
+            set.into_iter()
+                .map(|utxo| (utxo.outpoint, (utxo.value, utxo.terminal))),
+        )
+    }
 }
 
 #[derive(Clone)]
-pub struct Owner<
+pub struct Owner<K, R, U = IndexMap<Outpoint, (Sats, Terminal)>>
+where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-    U: UtxoSet = IndexMap<Outpoint, (Sats, Terminal)>,
-> {
+    R: Resolver,
+    U: UtxoSet,
+{
     descriptor: RgbDescr<K>,
     network: Network,
     next_index: IndexMap<Keychain, NormalIndex>,
     utxos: U,
-    // TODO: Add indexer
+    resolver: R,
 }
 
-impl<
-        K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-        U: UtxoSet,
-    > Owner<K, U>
+impl<K, R, U> WalletProvider for Owner<K, R, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    R: Resolver,
+    U: UtxoSet,
 {
-    fn resolve_tx(&self, txid: Txid) -> Result<UnsignedTx, Infallible> { todo!() }
-    fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, Infallible> { todo!() }
-}
-
-impl<
-        K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-        U: UtxoSet,
-    > WalletProvider for Owner<K, U>
-{
-    type SyncError = Infallible;
+    type SyncError = R::Error;
 
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.has(outpoint) }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
 
-    fn sync_utxos(&mut self) -> Result<(), Self::SyncError> { todo!() }
+    fn sync_utxos(&mut self) -> Result<(), Self::SyncError> {
+        self.utxos.clear();
+        for keychain in self.descriptor.keychains() {
+            let set = self.resolver.resolve_utxos(keychain, |index| {
+                self.descriptor
+                    .derive(keychain, index)
+                    .map(move |d| (d.to_script_pubkey(), Terminal::new(keychain, index)))
+            })?;
+            self.utxos.extend(set)
+        }
+        Ok(())
+    }
 
     fn register_seal(&mut self, seal: WTxoSeal) { self.descriptor.add_seal(seal); }
 
@@ -115,21 +134,22 @@ impl<
     fn next_nonce(&mut self) -> u64 { self.descriptor.next_nonce() }
 
     fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::SyncError> {
-        |txid: Txid| self.resolve_tx_status(txid)
+        |txid: Txid| self.resolver.resolve_tx_status(txid)
     }
 }
 
-impl<
-        K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-        U: UtxoSet,
-    > PsbtConstructor for Owner<K, U>
+impl<K, R, U> PsbtConstructor for Owner<K, R, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    R: Resolver,
+    U: UtxoSet,
 {
     type Key = K;
     type Descr = RgbDescr<K>;
 
     fn descriptor(&self) -> &Self::Descr { &self.descriptor }
 
-    fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.resolve_tx(txid).ok() }
+    fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.resolver.resolve_tx(txid).ok() }
 
     fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
         let (value, terminal) = self.utxos.get(outpoint)?;
@@ -148,7 +168,6 @@ impl<
         let next = &mut self.next_index[&keychain.into()];
         if shift {
             next.saturating_inc_assign();
-            // TODO: Mark dirty
         }
         *next
     }
