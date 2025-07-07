@@ -59,7 +59,7 @@ commit_verify = { workspace = true }
 strict_types = { workspace = true }
 nonasync = { workspace = true }
 bp-std = { workspace = true }
-bp-wallet = { workspace = true }
+bp-wallet = { workspace = true, optional = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
 rgb-persist-fs = { workspace = true, optional = true }
@@ -85,9 +85,10 @@ wasm-bindgen-test = "0.3"
 default = ["std"]
 all = [
     "std",
-    "serde", "log", "fs",
+    "serde", "log", "fs", "bp-wallet"
 ]
 std = []
+bp-wallet = ["dep:bp-wallet"]
 fs = [
     "std",
     "serde",

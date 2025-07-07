@@ -33,8 +33,9 @@ use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDeri
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
+use rgbp::bp::Owner;
 use rgbp::descriptor::RgbDescr;
-use rgbp::{ContractInfo, Owner};
+use rgbp::ContractInfo;
 use strict_types::StrictVal;
 
 use crate::args::Args;

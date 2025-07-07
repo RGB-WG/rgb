@@ -34,7 +34,8 @@ use clap::ValueHint;
 use rgb::popls::bp::RgbWallet;
 use rgb::{Consensus, Contracts};
 use rgb_persist_fs::StockpileDir;
-use rgbp::{Owner, RgbpRuntimeDir};
+use rgbp::bp::Owner;
+use rgbp::RgbpRuntimeDir;
 
 use crate::cmd::Cmd;
 use crate::opts::WalletOpts;
