@@ -63,6 +63,15 @@ pub trait WalletUpdater {
     fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>>;
 }
 
+/// RGB Runtime is a lightweight stateless layer integrating some wallet provider (`Wallet` generic
+/// parameter) and RGB stockpile (`Sp` generic parameter).
+///
+/// It provides
+/// - synchronization for the history of witness transactions, extending the main wallet UTXO set
+///   synchronization ([`Self::sync`]);
+/// - low-level methods for working with PSBTs using `bp-std` library (these methods utilize
+///   [`rgb-psbt`] crate) - like [`Self::compose_psbt`] and [`Self::color_psbt`];
+/// - high-level payment methods ([`Self::pay`], [`Self::rbf`]) relaying on the above.
 pub struct RgbRuntime<Wallet, Sp>(RgbWallet<Wallet, Sp>)
 where
     Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
@@ -75,7 +84,7 @@ where
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
-    fn from(barrow: RgbWallet<Wallet, Sp>) -> Self { Self(barrow) }
+    fn from(wallet: RgbWallet<Wallet, Sp>) -> Self { Self(wallet) }
 }
 
 impl<Wallet, Sp> Deref for RgbRuntime<Wallet, Sp>
