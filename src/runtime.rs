@@ -23,6 +23,7 @@
 // the License.
 
 use core::ops::{Deref, DerefMut};
+use std::collections::BTreeSet;
 
 use amplify::MultiError;
 use bpstd::psbt::{
@@ -35,10 +36,20 @@ use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
     RgbWallet, WalletProvider,
 };
-use rgb::{ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile};
+use rgb::{AuthToken, ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
-use crate::{CoinselectStrategy, Payment};
+use crate::CoinselectStrategy;
+
+#[derive(Clone, Eq, PartialEq, Debug)]
+// TODO: Add Deserialize once implemented in Psbt
+//#[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
+pub struct Payment {
+    pub uncomit_psbt: Psbt,
+    pub psbt_meta: PsbtMeta,
+    pub bundle: PrefabBundle,
+    pub terminals: BTreeSet<AuthToken>,
+}
 
 /// RGB Runtime is a lightweight stateless layer integrating some wallet provider (`Wallet` generic
 /// parameter) and RGB stockpile (`Sp` generic parameter).

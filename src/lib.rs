@@ -37,15 +37,13 @@ pub mod descriptor;
 mod bp;
 mod coinselect;
 mod runtime;
-mod payment;
 mod info;
 mod resolvers;
 
 pub use bp::Owner;
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
-pub use payment::Payment;
 pub use resolvers::Resolver;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, RgbRuntime, TransferError};
+pub use runtime::{PayError, Payment, RgbRuntime, TransferError};
