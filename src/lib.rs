@@ -46,4 +46,4 @@ pub use owner::Owner;
 pub use payment::Payment;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, RgbRuntime, SyncError, TransferError, WalletUpdater};
+pub use runtime::{PayError, RgbRuntime, TransferError, WalletUpdater};

@@ -27,24 +27,25 @@ use std::convert::Infallible;
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
-use bpstd::{Address, Keychain, Network, NormalIndex, Outpoint, ScriptPubkey, XpubDerivable};
+use bpstd::{Address, Keychain, Network, NormalIndex, Outpoint, ScriptPubkey, Txid, XpubDerivable};
 use bpwallet::{
     Indexer, Layer2Empty, MayError, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr,
 };
 use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::WalletProvider;
-use rgb::{AuthToken, RgbSealDef};
+use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
 use crate::descriptor::RgbDescr;
 use crate::WalletUpdater;
 
-// TODO: Use layer 2 supporting Lightning
 #[derive(Wrapper, WrapperMut, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
 pub struct Owner(pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, NoLayer2>);
 
 impl WalletProvider for Owner {
+    type SyncError = Infallible;
+
     fn noise_seed(&self) -> Bytes32 { self.noise() }
 
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
@@ -77,6 +78,12 @@ impl WalletProvider for Owner {
             .0
             .with_descriptor(|d| Ok::<_, Infallible>(d.next_nonce()));
         unsafe { res.unwrap_unchecked() }
+    }
+
+    fn sync_utxos(&mut self) -> Result<(), Self::SyncError> { todo!() }
+
+    fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::SyncError> {
+        |_: Txid| todo!()
     }
 }
 

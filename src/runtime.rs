@@ -22,8 +22,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use std::ops::{Deref, DerefMut};
 
 use amplify::MultiError;
@@ -32,32 +30,16 @@ use bpstd::psbt::{
 };
 use bpstd::seals::TxoSeal;
 use bpstd::{Address, Psbt, Sats};
-use bpwallet::{Indexer, MayError, TxStatus};
+use bpwallet::{Indexer, MayError};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
     RgbWallet, WalletProvider,
 };
-use rgb::{
-    AcceptError, ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile,
-    WitnessStatus,
-};
+use rgb::{ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
-use strict_types::SerializeError;
 
 use crate::{CoinselectStrategy, Payment};
-
-#[derive(Debug, Display, Error, From)]
-#[display(inner)]
-pub enum SyncError<E: Error> {
-    #[display("unable to retrieve wallet updates: {_0:?}")]
-    Update(Vec<E>),
-    Status(E),
-    #[from]
-    Rollback(SerializeError),
-    #[from]
-    Forward(AcceptError),
-}
 
 pub trait WalletUpdater {
     fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>>;
@@ -113,40 +95,6 @@ where
 {
     pub fn into_rgb_wallet(self) -> RgbWallet<Wallet, Sp> { self.0 }
     pub fn unbind(self) -> (Wallet, Contracts<Sp>) { self.0.unbind() }
-
-    #[allow(clippy::type_complexity)]
-    pub fn sync<I>(
-        &mut self,
-        indexer: &I,
-    ) -> Result<(), MultiError<SyncError<I::Error>, <Sp::Stock as Stock>::Error>>
-    where
-        I: Indexer,
-        I::Error: Error,
-    {
-        if let Some(err) = self.wallet.update(indexer).err {
-            return Err(MultiError::A(SyncError::Update(err)));
-        }
-
-        let txids = self.contracts.witness_ids().collect::<HashSet<_>>();
-        let mut changed = HashMap::new();
-        for txid in txids {
-            let status = indexer
-                .status(txid)
-                .map_err(|e| MultiError::A(SyncError::Status(e)))?;
-            let status = match status {
-                TxStatus::Unknown => WitnessStatus::Archived,
-                TxStatus::Mempool => WitnessStatus::Tentative,
-                TxStatus::Channel => WitnessStatus::Offchain,
-                TxStatus::Mined(status) => WitnessStatus::Mined(status.height.into()),
-            };
-            changed.insert(txid, status);
-        }
-        self.contracts
-            .sync(&changed)
-            .map_err(MultiError::from_other_a)?;
-
-        Ok(())
-    }
 
     /// Pay an invoice producing PSBT ready to be signed.
     ///

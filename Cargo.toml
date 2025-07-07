@@ -103,3 +103,7 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
+rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }

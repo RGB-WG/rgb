@@ -161,9 +161,7 @@ impl Args {
         if opts.sync {
             eprint!("Synchronizing wallet:");
             let indexer = self.indexer(&opts.resolver);
-            runtime
-                .sync(&indexer)
-                .expect("Unable to synchronize wallet");
+            runtime.sync().expect("Unable to synchronize wallet");
             eprintln!(" done");
         }
         runtime
