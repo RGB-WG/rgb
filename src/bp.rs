@@ -44,41 +44,81 @@ pub trait UtxoSet {
 
     fn clear(&mut self);
     fn extend(&mut self, set: impl IntoIterator<Item = Utxo>);
+
+    fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
 }
 
-impl UtxoSet for IndexMap<Outpoint, (Sats, Terminal)> {
-    #[inline]
-    fn len(&self) -> usize { self.len() }
-    #[inline]
-    fn has(&self, outpoint: Outpoint) -> bool { self.contains_key(&outpoint) }
-    #[inline]
-    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> { self.get(&outpoint).copied() }
-    #[inline]
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.keys().copied() }
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MemUtxos {
+    set: IndexMap<Outpoint, (Sats, Terminal)>,
+    next_index: IndexMap<Keychain, NormalIndex>,
+}
 
-    fn clear(&mut self) { self.clear() }
+impl UtxoSet for MemUtxos {
+    #[inline]
+    fn len(&self) -> usize { self.set.len() }
+    #[inline]
+    fn has(&self, outpoint: Outpoint) -> bool { self.set.contains_key(&outpoint) }
+    #[inline]
+    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
+        self.set.get(&outpoint).copied()
+    }
+    #[inline]
+    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
+
+    fn clear(&mut self) { self.set.clear() }
 
     fn extend(&mut self, set: impl IntoIterator<Item = Utxo>) {
-        Extend::extend(
-            self,
-            set.into_iter()
-                .map(|utxo| (utxo.outpoint, (utxo.value, utxo.terminal))),
-        )
+        let iter = set
+            .into_iter()
+            .map(|utxo| (utxo.outpoint, (utxo.value, utxo.terminal)));
+        self.set.extend(iter)
+    }
+
+    fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
+        let next = self.next_index.entry(keychain.into()).or_default();
+        if shift {
+            next.saturating_inc_assign();
+        }
+        *next
     }
 }
 
 #[derive(Clone)]
-pub struct Owner<R, K = XpubDerivable, U = IndexMap<Outpoint, (Sats, Terminal)>>
+pub struct Owner<R, K = XpubDerivable, U = MemUtxos>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     R: Resolver,
     U: UtxoSet,
 {
-    descriptor: RgbDescr<K>,
     network: Network,
-    next_index: IndexMap<Keychain, NormalIndex>,
+    descriptor: RgbDescr<K>,
     utxos: U,
     resolver: R,
+}
+
+impl<R, K, U> Owner<R, K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    R: Resolver,
+    U: UtxoSet,
+{
+    pub fn with_components(
+        network: Network,
+        descriptor: RgbDescr<K>,
+        resolver: R,
+        utxos: U,
+    ) -> Self {
+        Self { network, descriptor, utxos, resolver }
+    }
+
+    pub fn into_components(self) -> (RgbDescr<K>, R, U) {
+        (self.descriptor, self.resolver, self.utxos)
+    }
+
+    #[inline]
+    pub fn network(&self) -> Network { self.network }
 }
 
 impl<R, K, U> WalletProvider for Owner<R, K, U>
@@ -97,7 +137,7 @@ where
         self.utxos.clear();
         for keychain in self.descriptor.keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self.next_index.get(&keychain).copied().unwrap_or_default();
+            let last_index = self.utxos.next_index(keychain, false);
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -189,10 +229,6 @@ where
     fn network(&self) -> Network { self.network }
 
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        let next = &mut self.next_index[&keychain.into()];
-        if shift {
-            next.saturating_inc_assign();
-        }
-        *next
+        self.utxos.next_index(keychain, shift)
     }
 }
