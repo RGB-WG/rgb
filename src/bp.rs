@@ -22,14 +22,12 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use core::convert::Infallible;
-
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
 use bpstd::{
-    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, DerivedScript, Idx,
-    Keychain, Network, NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx,
+    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
+    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx, XpubDerivable,
 };
 use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
@@ -39,6 +37,7 @@ use crate::descriptor::RgbDescr;
 use crate::Resolver;
 
 pub trait UtxoSet {
+    fn len(&self) -> usize;
     fn has(&self, outpoint: Outpoint) -> bool;
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
@@ -48,6 +47,8 @@ pub trait UtxoSet {
 }
 
 impl UtxoSet for IndexMap<Outpoint, (Sats, Terminal)> {
+    #[inline]
+    fn len(&self) -> usize { self.len() }
     #[inline]
     fn has(&self, outpoint: Outpoint) -> bool { self.contains_key(&outpoint) }
     #[inline]
@@ -67,7 +68,7 @@ impl UtxoSet for IndexMap<Outpoint, (Sats, Terminal)> {
 }
 
 #[derive(Clone)]
-pub struct Owner<K, R, U = IndexMap<Outpoint, (Sats, Terminal)>>
+pub struct Owner<R, K = XpubDerivable, U = IndexMap<Outpoint, (Sats, Terminal)>>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     R: Resolver,
@@ -80,7 +81,7 @@ where
     resolver: R,
 }
 
-impl<K, R, U> WalletProvider for Owner<K, R, U>
+impl<R, K, U> WalletProvider for Owner<R, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     R: Resolver,
@@ -95,12 +96,35 @@ where
     fn sync_utxos(&mut self) -> Result<(), Self::SyncError> {
         self.utxos.clear();
         for keychain in self.descriptor.keychains() {
-            let set = self.resolver.resolve_utxos(keychain, |index| {
-                self.descriptor
-                    .derive(keychain, index)
-                    .map(move |d| (d.to_script_pubkey(), Terminal::new(keychain, index)))
-            })?;
-            self.utxos.extend(set)
+            let mut index = NormalIndex::ZERO;
+            let last_index = self.next_index.get(&keychain).copied().unwrap_or_default();
+            loop {
+                let Some(to) = index.checked_add(20u16) else {
+                    break;
+                };
+
+                let mut range = Vec::with_capacity(20);
+                while index < to {
+                    let terminal = Terminal::new(keychain, index);
+                    let iter = self.descriptor.derive(keychain, index);
+
+                    range.extend(iter.map(|d| (terminal, d.to_script_pubkey())));
+
+                    if index.checked_inc_assign().is_none() {
+                        break;
+                    }
+                }
+
+                let set = self.resolver.resolve_utxos(range)?;
+                let prev_len = self.utxos.len();
+                self.utxos.extend(set);
+                let next_len = self.utxos.len();
+                if prev_len == next_len && index > last_index {
+                    break;
+                }
+
+                index = to;
+            }
         }
         Ok(())
     }
@@ -138,7 +162,7 @@ where
     }
 }
 
-impl<K, R, U> PsbtConstructor for Owner<K, R, U>
+impl<R, K, U> PsbtConstructor for Owner<R, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     R: Resolver,
