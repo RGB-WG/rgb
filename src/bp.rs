@@ -22,7 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::convert::Infallible;
+use core::convert::Infallible;
 
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
@@ -37,32 +37,52 @@ use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
 use crate::descriptor::RgbDescr;
 
+pub trait UtxoSet {
+    fn has(&self, outpoint: Outpoint) -> bool;
+    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
+    fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
+}
+
+impl UtxoSet for IndexMap<Outpoint, (Sats, Terminal)> {
+    #[inline]
+    fn has(&self, outpoint: Outpoint) -> bool { self.contains_key(&outpoint) }
+    #[inline]
+    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> { self.get(&outpoint).copied() }
+    #[inline]
+    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.keys().copied() }
+}
+
 #[derive(Clone)]
 pub struct Owner<
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet = IndexMap<Outpoint, (Sats, Terminal)>,
 > {
     descriptor: RgbDescr<K>,
     network: Network,
     next_index: IndexMap<Keychain, NormalIndex>,
-    utxos: IndexMap<Outpoint, (Sats, Terminal)>,
+    utxos: U,
     // TODO: Add indexer
 }
 
-impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
-    Owner<K>
+impl<
+        K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+        U: UtxoSet,
+    > Owner<K, U>
 {
     fn resolve_tx(&self, txid: Txid) -> Result<UnsignedTx, Infallible> { todo!() }
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, Infallible> { todo!() }
 }
 
-impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
-    WalletProvider for Owner<K>
+impl<
+        K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+        U: UtxoSet,
+    > WalletProvider for Owner<K, U>
 {
     type SyncError = Infallible;
 
-    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.contains_key(&outpoint) }
+    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.has(outpoint) }
 
-    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.keys().copied() }
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
 
     fn sync_utxos(&mut self) -> Result<(), Self::SyncError> { todo!() }
 
@@ -99,8 +119,10 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     }
 }
 
-impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
-    PsbtConstructor for Owner<K>
+impl<
+        K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+        U: UtxoSet,
+    > PsbtConstructor for Owner<K, U>
 {
     type Key = K;
     type Descr = RgbDescr<K>;
@@ -110,7 +132,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.resolve_tx(txid).ok() }
 
     fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
-        let (value, terminal) = self.utxos.get(&outpoint).copied()?;
+        let (value, terminal) = self.utxos.get(outpoint)?;
         let utxo = Utxo { outpoint, value, terminal };
         let script = self
             .descriptor
