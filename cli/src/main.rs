@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<()> {
                 eprintln!("Happened in {location}");
             }
         } else {
-            eprintln!("Program {}", info);
+            eprintln!("Program {info}");
         }
         let backtrace = Backtrace::capture();
         eprintln!("Backtrace: {backtrace}");
