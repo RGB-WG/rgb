@@ -24,7 +24,6 @@
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
-use std::collections::HashMap;
 
 use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::tapret::TapretCommitment;
@@ -103,6 +102,7 @@ impl Display for TapretWeaks {
         )
     )
 )]
+// TODO: Remove DeriveSet bound
 enum RgbDeriver<K: DeriveSet = XpubDerivable> {
     #[from]
     #[display(inner)]
@@ -200,7 +200,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     }
     fn legacy_witness(
         &self,
-        keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
+        keysigs: IndexMap<&KeyOrigin, LegacyKeySig>,
         redeem_script: Option<RedeemScript>,
         witness_script: Option<WitnessScript>,
     ) -> Option<(SigScript, Option<Witness>)> {
@@ -214,7 +214,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     fn taproot_witness(
         &self,
         cb: Option<&ControlBlock>,
-        keysigs: HashMap<&KeyOrigin, TaprootKeySig>,
+        keysigs: IndexMap<&KeyOrigin, TaprootKeySig>,
     ) -> Option<Witness> {
         match self {
             RgbDeriver::OpretOnly(d) => d.taproot_witness(cb, keysigs),
@@ -333,7 +333,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     }
     fn legacy_witness(
         &self,
-        keysigs: HashMap<&KeyOrigin, LegacyKeySig>,
+        keysigs: IndexMap<&KeyOrigin, LegacyKeySig>,
         redeem_script: Option<RedeemScript>,
         witness_script: Option<WitnessScript>,
     ) -> Option<(SigScript, Option<Witness>)> {
@@ -343,7 +343,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     fn taproot_witness(
         &self,
         cb: Option<&ControlBlock>,
-        keysigs: HashMap<&KeyOrigin, TaprootKeySig>,
+        keysigs: IndexMap<&KeyOrigin, TaprootKeySig>,
     ) -> Option<Witness> {
         self.deriver.taproot_witness(cb, keysigs)
     }

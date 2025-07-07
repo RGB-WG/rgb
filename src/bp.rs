@@ -22,119 +22,115 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::collections::HashMap;
 use std::convert::Infallible;
 
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
-use bpstd::{Address, Keychain, Network, NormalIndex, Outpoint, ScriptPubkey, Txid, XpubDerivable};
-use bpwallet::{
-    Indexer, Layer2Empty, MayError, NoLayer2, Wallet, WalletCache, WalletData, WalletDescr,
+use bpstd::{
+    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
+    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx,
 };
-use nonasync::persistence::{PersistenceError, PersistenceProvider};
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
 use crate::descriptor::RgbDescr;
-use crate::WalletUpdater;
 
-#[derive(Wrapper, WrapperMut, From)]
-#[wrapper(Deref)]
-#[wrapper_mut(DerefMut)]
-pub struct Owner(pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, NoLayer2>);
+#[derive(Clone)]
+pub struct Owner<
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+> {
+    descriptor: RgbDescr<K>,
+    network: Network,
+    next_index: HashMap<Keychain, NormalIndex>,
+    utxos: HashMap<Outpoint, (Sats, Terminal)>,
+    // TODO: Add indexer
+}
 
-impl WalletProvider for Owner {
+impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
+    Owner<K>
+{
+    fn resolve_tx(&self, txid: Txid) -> Result<UnsignedTx, Infallible> { todo!() }
+    fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, Infallible> { todo!() }
+}
+
+impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
+    WalletProvider for Owner<K>
+{
     type SyncError = Infallible;
 
-    fn noise_seed(&self) -> Bytes32 { self.noise() }
+    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.contains_key(&outpoint) }
 
-    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.0.utxo(outpoint).is_some() }
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.keys().copied() }
 
-    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.0.utxos().map(|utxo| utxo.outpoint) }
+    fn sync_utxos(&mut self) -> Result<(), Self::SyncError> { todo!() }
 
-    fn register_seal(&mut self, seal: WTxoSeal) {
-        let _ = self.0.with_descriptor(|d| {
-            d.add_seal(seal);
-            Ok::<_, Infallible>(())
-        });
-    }
+    fn register_seal(&mut self, seal: WTxoSeal) { self.descriptor.add_seal(seal); }
 
     fn resolve_seals(
         &self,
         seals: impl Iterator<Item = AuthToken>,
     ) -> impl Iterator<Item = WTxoSeal> {
         seals.flat_map(|auth| {
-            self.0
-                .descriptor()
+            self.descriptor
                 .seals()
                 .filter(move |seal| seal.auth_token() == auth)
         })
     }
 
-    fn next_address(&mut self) -> Address { self.0.next_address(Keychain::OUTER, true) }
+    fn noise_seed(&self) -> Bytes32 { self.descriptor.noise() }
 
-    fn next_nonce(&mut self) -> u64 {
-        let res = self
-            .0
-            .with_descriptor(|d| Ok::<_, Infallible>(d.next_nonce()));
-        unsafe { res.unwrap_unchecked() }
+    fn next_address(&mut self) -> Address {
+        let next = self.next_derivation_index(Keychain::OUTER, true);
+        let spk = self
+            .descriptor
+            .derive(Keychain::OUTER, next)
+            .next()
+            .expect("at least one address must be derivable")
+            .to_script_pubkey();
+        Address::with(&spk, self.network).expect("invalid scriptpubkey derivation")
     }
 
-    fn sync_utxos(&mut self) -> Result<(), Self::SyncError> { todo!() }
+    fn next_nonce(&mut self) -> u64 { self.descriptor.next_nonce() }
 
     fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::SyncError> {
-        |_: Txid| todo!()
+        |txid: Txid| self.resolve_tx_status(txid)
     }
 }
 
-impl PsbtConstructor for Owner {
-    type Key = XpubDerivable;
-    type Descr = RgbDescr<XpubDerivable>;
+impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly>
+    PsbtConstructor for Owner<K>
+{
+    type Key = K;
+    type Descr = RgbDescr<K>;
 
-    fn descriptor(&self) -> &Self::Descr { self.0.descriptor() }
+    fn descriptor(&self) -> &Self::Descr { &self.descriptor }
 
-    fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> { self.0.utxo(outpoint) }
+    fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.resolve_tx(txid).ok() }
 
-    fn network(&self) -> Network { self.0.network() }
+    fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
+        let (value, terminal) = self.utxos.get(&outpoint).copied()?;
+        let utxo = Utxo { outpoint, value, terminal };
+        let script = self
+            .descriptor
+            .derive(terminal.keychain, terminal.index)
+            .next()
+            .expect("unable to derive");
+        Some((utxo, script.to_script_pubkey()))
+    }
+
+    fn network(&self) -> Network { self.network }
 
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        self.0.next_derivation_index(keychain, shift)
-    }
-}
-
-impl WalletUpdater for Owner {
-    fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>> {
-        self.0.update(indexer)
-    }
-}
-
-impl Owner {
-    pub fn create<P>(
-        provider: P,
-        descr: RgbDescr<XpubDerivable>,
-        network: Network,
-        autosave: bool,
-    ) -> Result<Self, PersistenceError>
-    where
-        P: Clone
-            + PersistenceProvider<WalletDescr<XpubDerivable, RgbDescr<XpubDerivable>, Layer2Empty>>
-            + PersistenceProvider<WalletData<Layer2Empty>>
-            + PersistenceProvider<WalletCache<Layer2Empty>>
-            + PersistenceProvider<NoLayer2>
-            + 'static,
-    {
-        let mut wallet = Wallet::new_layer1(descr, network);
-        wallet.make_persistent(provider, autosave)?;
-        Ok(Self(wallet))
-    }
-
-    pub fn load<P>(provider: P, autosave: bool) -> Result<Self, PersistenceError>
-    where P: Clone
-            + PersistenceProvider<WalletDescr<XpubDerivable, RgbDescr<XpubDerivable>, Layer2Empty>>
-            + PersistenceProvider<WalletData<Layer2Empty>>
-            + PersistenceProvider<WalletCache<Layer2Empty>>
-            + PersistenceProvider<NoLayer2>
-            + 'static {
-        Wallet::load(provider, autosave).map(Owner)
+        let next = self
+            .next_index
+            .get_mut(&keychain.into())
+            .expect("must be present");
+        if shift {
+            next.saturating_inc_assign();
+            // TODO: Mark dirty
+        }
+        *next
     }
 }

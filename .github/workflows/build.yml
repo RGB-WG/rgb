@@ -34,7 +34,6 @@ jobs:
       fail-fast: false
       matrix:
         feature:
-          - bp-wallet
           - fs
           - log
           - serde

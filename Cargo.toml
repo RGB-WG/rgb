@@ -23,7 +23,6 @@ bp-core = "0.12.0-rc.2"
 bp-std = { version = "0.12.0-rc.2", features = ["client-side-validation"] }
 bp-electrum = "0.12.0-rc.1"
 bp-esplora = { version = "0.12.0-rc.1", default-features = false, features = ["blocking-https"] }
-bp-wallet = { version = "0.12.0-rc.2" }
 rgb-std = { version = "0.12.0-rc.2" }
 rgb-runtime = { version = "0.12.0-rc.2", path = "." }
 rgb-psbt = { version = "0.12.0-rc.2", path = "psbt" }
@@ -59,7 +58,6 @@ commit_verify = { workspace = true }
 strict_types = { workspace = true }
 nonasync = { workspace = true }
 bp-std = { workspace = true }
-bp-wallet = { workspace = true, optional = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
 rgb-persist-fs = { workspace = true, optional = true }
@@ -85,18 +83,16 @@ wasm-bindgen-test = "0.3"
 default = ["std"]
 all = [
     "std",
-    "serde", "log", "fs", "bp-wallet"
+    "serde", "log", "fs",
 ]
 std = []
-bp-wallet = ["dep:bp-wallet"]
 fs = [
     "std",
     "serde",
     "rgb-std/binfile",
     "dep:rgb-persist-fs",
-    "bp-wallet/fs",
 ]
-log = ["dep:log", "bp-wallet/log"]
+log = ["dep:log"]
 serde = [
     "dep:serde", "serde_yaml",
     "bp-std/serde", "rgb-std/serde"
@@ -106,5 +102,12 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
+bp-consensus = { git = "https://github.com/BP-WG/bp-core" }
+bp-core = { git = "https://github.com/BP-WG/bp-core" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
+descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
+psbt = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
+bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }
 rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "develop" }

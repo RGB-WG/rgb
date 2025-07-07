@@ -30,7 +30,6 @@ use bpstd::psbt::{
 };
 use bpstd::seals::TxoSeal;
 use bpstd::{Address, Psbt, Sats};
-use bpwallet::{Indexer, MayError};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
@@ -41,10 +40,6 @@ use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
 use crate::{CoinselectStrategy, Payment};
 
-pub trait WalletUpdater {
-    fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>>;
-}
-
 /// RGB Runtime is a lightweight stateless layer integrating some wallet provider (`Wallet` generic
 /// parameter) and RGB stockpile (`Sp` generic parameter).
 ///
@@ -54,15 +49,16 @@ pub trait WalletUpdater {
 /// - low-level methods for working with PSBTs using `bp-std` library (these methods utilize
 ///   [`rgb-psbt`] crate) - like [`Self::compose_psbt`] and [`Self::color_psbt`];
 /// - high-level payment methods ([`Self::pay`], [`Self::rbf`]) relaying on the above.
+// TODO: Support Sp generics
 pub struct RgbRuntime<Wallet, Sp>(RgbWallet<Wallet, Sp>)
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    Wallet: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>;
 
 impl<Wallet, Sp> From<RgbWallet<Wallet, Sp>> for RgbRuntime<Wallet, Sp>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    Wallet: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
@@ -71,7 +67,7 @@ where
 
 impl<Wallet, Sp> Deref for RgbRuntime<Wallet, Sp>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    Wallet: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
@@ -80,7 +76,7 @@ where
 }
 impl<Wallet, Sp> DerefMut for RgbRuntime<Wallet, Sp>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    Wallet: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
@@ -89,13 +85,23 @@ where
 
 impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    Wallet: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
+    pub fn with_components(wallet: Wallet, contracts: Contracts<Sp>) -> Self {
+        Self(RgbWallet::with(wallet, contracts))
+    }
     pub fn into_rgb_wallet(self) -> RgbWallet<Wallet, Sp> { self.0 }
-    pub fn unbind(self) -> (Wallet, Contracts<Sp>) { self.0.unbind() }
+    pub fn into_components(self) -> (Wallet, Contracts<Sp>) { self.0.unbind() }
+}
 
+impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
+where
+    Wallet: PsbtConstructor + WalletProvider,
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+{
     /// Pay an invoice producing PSBT ready to be signed.
     ///
     /// Should not be used in multi-party protocols like coinjoins, when a PSBT may need to be

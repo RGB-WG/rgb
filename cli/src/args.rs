@@ -26,16 +26,13 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::{fs, io};
 
-use bpwallet::cli::ResolverOpt;
-use bpwallet::fs::FsTextStore;
-use bpwallet::seals::TxoSeal;
-use bpwallet::{AnyIndexer, Network};
+use bpstd::seals::TxoSeal;
+use bpstd::Network;
 use clap::ValueHint;
 use rgb::popls::bp::RgbWallet;
 use rgb::{Consensus, Contracts};
 use rgb_persist_fs::StockpileDir;
-use rgbp::bp::Owner;
-use rgbp::RgbpRuntimeDir;
+use rgbp::{Owner, RgbpRuntimeDir};
 
 use crate::cmd::Cmd;
 use crate::opts::WalletOpts;

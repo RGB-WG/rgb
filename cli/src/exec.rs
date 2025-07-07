@@ -28,14 +28,13 @@ use std::fs::File;
 use std::str::FromStr;
 
 use anyhow::Context;
-use bpwallet::psbt::{PsbtConstructor, TxParams};
-use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
+use bpstd::psbt::{PsbtConstructor, TxParams};
+use bpstd::{ConsensusEncode, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
-use rgbp::bp::Owner;
 use rgbp::descriptor::RgbDescr;
-use rgbp::ContractInfo;
+use rgbp::{ContractInfo, Owner};
 use strict_types::StrictVal;
 
 use crate::args::Args;

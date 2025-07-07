@@ -34,16 +34,16 @@ extern crate serde;
 extern crate core;
 
 pub mod descriptor;
-#[cfg(feature = "bp-wallet")]
-pub mod bp;
+mod bp;
 mod coinselect;
 mod runtime;
 mod payment;
 mod info;
 
+pub use bp::Owner;
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
 pub use payment::Payment;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, RgbRuntime, TransferError, WalletUpdater};
+pub use runtime::{PayError, RgbRuntime, TransferError};

@@ -24,8 +24,7 @@
 
 use std::path::PathBuf;
 
-use bpwallet::cli::ResolverOpt;
-use bpwallet::Sats;
+use bpstd::Sats;
 use clap::ValueHint;
 use rgb::invoice::RgbInvoice;
 use rgb::{AuthToken, CodexId, ContractId, ContractRef, MethodName, StateName};

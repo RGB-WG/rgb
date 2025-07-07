@@ -19,11 +19,11 @@ name = "rgb"
 amplify.workspace = true
 strict_encoding.workspace = true
 strict_types.workspace = true
-bp-wallet = { workspace = true, features = ["fs", "serde", "cli"] }
+bp-std = { workspace = true }
 bp-electrum = { workspace = true }
 bp-esplora = { workspace = true }
 rgb-std = { workspace = true, features = ["binfile", "uri", "serde"] }
-rgb-runtime = { workspace = true, features = ["bp-wallet", "fs", "serde"] }
+rgb-runtime = { workspace = true, features = ["fs", "serde"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
 rgb-persist-fs.workspace = true
 serde.workspace = true
@@ -34,4 +34,4 @@ clap = { version = "4.5.21", features = ["derive", "env"] }
 [features]
 default = []
 all = ["log"]
-log = ["rgb-runtime/log", "bp-wallet/log"]
+log = ["rgb-runtime/log"]
