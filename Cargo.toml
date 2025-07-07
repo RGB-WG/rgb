@@ -103,3 +103,8 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+bp-wallet = { git = "https://github.com/Crayon-Shin-chan-bitlightlabs/bp-wallet.git", branch = "master" }
+rgb-std = { git = "https://github.com/Crayon-Shin-chan-bitlightlabs/rgb-std.git", branch = "master" }
+rgb-persist-fs = { git = "https://github.com/Crayon-Shin-chan-bitlightlabs/rgb-std.git", branch = "master" }

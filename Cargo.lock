@@ -467,8 +467,7 @@ dependencies = [
 [[package]]
 name = "bp-wallet"
 version = "0.12.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41bfb4d3b583ddfd094d042eb787c997af5ab042a33fd7c86abf246eb963c4f8"
+source = "git+https://github.com/Crayon-Shin-chan-bitlightlabs/bp-wallet.git?branch=master#1f5817cc5d2b5471b03ed1ab2c36289c2f7dc433"
 dependencies = [
  "amplify",
  "base64",
@@ -1489,8 +1488,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92104fe5d90c6682ae6de6bf8da5f453bfdb91cac5a088c28984196b76b5b565"
+source = "git+https://github.com/Crayon-Shin-chan-bitlightlabs/rgb-std.git?branch=master#4148dbc9a086b441c62472d44d918e5d48c49959"
 dependencies = [
  "amplify",
  "baid64",
@@ -1507,8 +1505,7 @@ dependencies = [
 [[package]]
 name = "rgb-persist-fs"
 version = "0.12.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d187774586b05347ef29a8f8222ad0822c6e95516d6b53c0498aa02c196cf325"
+source = "git+https://github.com/Crayon-Shin-chan-bitlightlabs/rgb-std.git?branch=master#4148dbc9a086b441c62472d44d918e5d48c49959"
 dependencies = [
  "amplify",
  "aora",
@@ -1556,8 +1553,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d18c0e7f801937b02bb595064e051d28ee7af64b10a6420084f282ac4d72775b"
+source = "git+https://github.com/Crayon-Shin-chan-bitlightlabs/rgb-std.git?branch=master#4148dbc9a086b441c62472d44d918e5d48c49959"
 dependencies = [
  "amplify",
  "aora",

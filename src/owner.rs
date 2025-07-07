@@ -42,7 +42,9 @@ use crate::WalletUpdater;
 #[derive(Wrapper, WrapperMut, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
-pub struct Owner(pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, NoLayer2>);
+pub struct Owner(
+    pub Wallet<XpubDerivable, RgbDescr<XpubDerivable>, WalletCache<Layer2Empty>, NoLayer2>,
+);
 
 impl WalletProvider for Owner {
     fn noise_seed(&self) -> Bytes32 { self.noise() }
