@@ -34,15 +34,15 @@ extern crate serde;
 extern crate core;
 
 pub mod descriptor;
-mod bp;
+mod owner;
 mod coinselect;
 mod runtime;
 mod info;
 mod resolvers;
 
-pub use bp::Owner;
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
+pub use owner::{MemUtxos, Owner, UtxoSet};
 pub use resolvers::Resolver;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};

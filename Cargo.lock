@@ -361,7 +361,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#acdc4c5b04887fa2d3d5b5bfd333667684dd6a48"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -411,7 +411,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#acdc4c5b04887fa2d3d5b5bfd333667684dd6a48"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
 dependencies = [
  "amplify",
  "bech32",
@@ -441,7 +441,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#acdc4c5b04887fa2d3d5b5bfd333667684dd6a48"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -717,7 +717,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#acdc4c5b04887fa2d3d5b5bfd333667684dd6a48"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
 dependencies = [
  "amplify",
  "bp-derive",
@@ -1179,7 +1179,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#acdc4c5b04887fa2d3d5b5bfd333667684dd6a48"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
 dependencies = [
  "amplify",
  "base64",
@@ -1336,7 +1336,7 @@ dependencies = [
 [[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#29e9d210ecf9d936b1672a064a18e3fd9afc5b07"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#7ed82d7123cee33678c447930adddd36781c3203"
 dependencies = [
  "amplify",
  "baid64",
@@ -1353,7 +1353,7 @@ dependencies = [
 [[package]]
 name = "rgb-persist-fs"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#29e9d210ecf9d936b1672a064a18e3fd9afc5b07"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#7ed82d7123cee33678c447930adddd36781c3203"
 dependencies = [
  "amplify",
  "aora",
@@ -1400,7 +1400,7 @@ dependencies = [
 [[package]]
 name = "rgb-std"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#29e9d210ecf9d936b1672a064a18e3fd9afc5b07"
+source = "git+https://github.com/RGB-WG/rgb-std?branch=develop#7ed82d7123cee33678c447930adddd36781c3203"
 dependencies = [
  "amplify",
  "aora",

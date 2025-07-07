@@ -101,10 +101,10 @@ where
     Sp::Pile: Pile<Seal = TxoSeal>,
 {
     pub fn with_components(wallet: Wallet, contracts: Contracts<Sp>) -> Self {
-        Self(RgbWallet::with(wallet, contracts))
+        Self(RgbWallet::with_components(wallet, contracts))
     }
     pub fn into_rgb_wallet(self) -> RgbWallet<Wallet, Sp> { self.0 }
-    pub fn into_components(self) -> (Wallet, Contracts<Sp>) { self.0.unbind() }
+    pub fn into_components(self) -> (Wallet, Contracts<Sp>) { self.0.into_components() }
 }
 
 impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
