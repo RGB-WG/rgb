@@ -27,55 +27,60 @@ use std::num::NonZeroU64;
 
 use bpstd::psbt::Utxo;
 use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
-use esplora::{BlockingClient as EsploraClient, Error, Error as EsploraError};
+#[cfg(feature = "async")]
+use esplora::AsyncClient as EsploraAsyncClient;
+#[cfg(not(feature = "async"))]
+use esplora::BlockingClient as EsploraClient;
+use esplora::{Error as EsploraError, TxStatus};
 use rgb::WitnessStatus;
 
-use crate::resolvers::ResolverError;
-use crate::Resolver;
+use super::{Resolver, ResolverError};
 
 /// Represents the kind of client used for interacting with the Esplora indexer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 enum ClientKind {
     #[default]
     Esplora,
-    #[cfg(feature = "resolver-mempool")]
+    #[cfg(any(feature = "resolver-mempool", feature = "resolver-mempool-async"))]
     Mempool,
 }
 
+#[cfg(not(feature = "async"))]
 pub struct EsploraResolver {
     inner: EsploraClient,
     kind: ClientKind,
 }
 
+#[cfg(feature = "async")]
+pub struct EsploraAsyncResolver {
+    inner: EsploraAsyncClient,
+    kind: ClientKind,
+}
+
+fn convert_esplora_status(status: TxStatus) -> WitnessStatus {
+    if !status.confirmed {
+        return WitnessStatus::Tentative;
+    }
+    if let Some(height) = status.block_height {
+        match NonZeroU64::new(height as u64) {
+            Some(height) => WitnessStatus::Mined(height),
+            None => WitnessStatus::Genesis,
+        }
+    } else {
+        WitnessStatus::Archived
+    }
+}
+
+#[cfg(not(feature = "async"))]
 impl Resolver for EsploraResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
         let tx = self.inner.tx(&txid)?;
         Ok(tx.map(UnsignedTx::with_sigs_removed))
     }
 
-    #[cfg(feature = "async")]
-    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        todo!()
-    }
-
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
         let status = self.inner.tx_status(&txid)?;
-        if !status.confirmed {
-            return Ok(WitnessStatus::Tentative);
-        }
-        if let Some(height) = status.block_height {
-            Ok(match NonZeroU64::new(height as u64) {
-                Some(height) => WitnessStatus::Mined(height),
-                None => WitnessStatus::Genesis,
-            })
-        } else {
-            Ok(WitnessStatus::Archived)
-        }
-    }
-
-    #[cfg(feature = "async")]
-    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        todo!()
+        Ok(convert_esplora_status(status))
     }
 
     fn resolve_utxos(
@@ -113,7 +118,26 @@ impl Resolver for EsploraResolver {
         iter::empty()
     }
 
-    #[cfg(feature = "async")]
+    fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.inner.height()? as u64) }
+
+    fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
+        self.inner.broadcast(tx)?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "async")]
+impl Resolver for EsploraAsyncResolver {
+    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
+        let tx = self.inner.tx(&txid).await?;
+        Ok(tx.map(UnsignedTx::with_sigs_removed))
+    }
+
+    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
+        let status = self.inner.tx_status(&txid).await?;
+        Ok(convert_esplora_status(status))
+    }
+
     async fn resolve_utxos_async(
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
@@ -122,38 +146,37 @@ impl Resolver for EsploraResolver {
         iter::empty()
     }
 
-    fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.inner.height()? as u64) }
-
-    #[cfg(feature = "async")]
-    async fn last_block_height_async(&self) -> Result<u64, ResolverError> { todo!() }
-
-    fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
-        self.inner.broadcast(tx)?;
-        Ok(())
+    async fn last_block_height_async(&self) -> Result<u64, ResolverError> {
+        Ok(self.inner.height().await? as u64)
     }
 
-    #[cfg(feature = "async")]
-    async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> { todo!() }
+    async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> {
+        self.inner.broadcast(tx).await?;
+        Ok(())
+    }
 }
 
 impl From<EsploraError> for ResolverError {
     fn from(err: EsploraError) -> Self {
         match err {
             #[cfg(feature = "async")]
-            Error::Reqwest(_) => ResolverError::Connectivity,
+            EsploraError::Reqwest(_) => ResolverError::Connectivity,
 
-            Error::Minreq(_)
-            | Error::InvalidHttpHeaderName(_)
-            | Error::InvalidHttpHeaderValue(_) => ResolverError::Connectivity,
+            #[cfg(not(feature = "async"))]
+            EsploraError::Minreq(_) => ResolverError::Connectivity,
 
-            Error::StatusCode(_)
-            | Error::HttpResponse { .. }
-            | Error::InvalidServerData
-            | Error::Parsing(_)
-            | Error::BitcoinEncoding
-            | Error::Hex(_) => ResolverError::Protocol,
+            EsploraError::InvalidHttpHeaderName(_) | EsploraError::InvalidHttpHeaderValue(_) => {
+                ResolverError::Connectivity
+            }
 
-            Error::TransactionNotFound(_) => ResolverError::Logic,
+            EsploraError::StatusCode(_)
+            | EsploraError::HttpResponse { .. }
+            | EsploraError::InvalidServerData
+            | EsploraError::Parsing(_)
+            | EsploraError::BitcoinEncoding
+            | EsploraError::Hex(_) => ResolverError::Protocol,
+
+            EsploraError::TransactionNotFound(_) => ResolverError::Logic,
         }
     }
 }

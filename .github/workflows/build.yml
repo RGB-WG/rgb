@@ -43,6 +43,11 @@ jobs:
           - resolver-esplora
           - resolver-mempool
           - resolver-bitcoinrpc
+          - resolvers-all-async
+          - resolver-electrum-async
+          - resolver-esplora-async
+          - resolver-mempool-async
+          - resolver-bitcoinrpc-async
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -74,4 +79,4 @@ jobs:
         with:
           toolchain: ${{matrix.toolchain}}
       - name: Toolchain ${{matrix.toolchain}}
-        run: cargo +${{matrix.toolchain}} check --workspace --all-targets --all-features
+        run: cargo +${{matrix.toolchain}} check --workspace --all-targets --features=all

@@ -34,28 +34,32 @@ use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
 use crate::descriptor::RgbDescr;
-use crate::resolvers::ResolverError;
-use crate::Resolver;
+use crate::resolvers::{Resolver, ResolverError};
 
 #[allow(clippy::len_without_is_empty)]
 pub trait UtxoSet {
     fn len(&self) -> usize;
     fn has(&self, outpoint: Outpoint) -> bool;
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
+
+    #[cfg(not(feature = "async"))]
     fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
     #[cfg(feature = "async")]
     async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
 
+    #[cfg(not(feature = "async"))]
     fn clear(&mut self);
     #[cfg(feature = "async")]
     async fn clear_async(&mut self);
 
+    #[cfg(not(feature = "async"))]
     fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     #[cfg(feature = "async")]
     async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
 
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
 
+    #[cfg(not(feature = "async"))]
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
     #[cfg(feature = "async")]
     async fn next_index_async(&mut self, keychain: impl Into<Keychain>, shift: bool)
@@ -78,7 +82,9 @@ impl UtxoSet for MemUtxos {
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
         self.set.get(&outpoint).copied()
     }
+
     #[inline]
+    #[cfg(not(feature = "async"))]
     fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
         self.set.insert(outpoint, (value, terminal));
     }
@@ -89,12 +95,14 @@ impl UtxoSet for MemUtxos {
     }
 
     #[inline]
+    #[cfg(not(feature = "async"))]
     fn clear(&mut self) { self.set.clear() }
     #[inline]
     #[cfg(feature = "async")]
     async fn clear_async(&mut self) { self.set.clear() }
 
     #[inline]
+    #[cfg(not(feature = "async"))]
     fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
         self.set.shift_remove(&outpoint)
     }
@@ -107,6 +115,7 @@ impl UtxoSet for MemUtxos {
     #[inline]
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
 
+    #[cfg(not(feature = "async"))]
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
         let index = self.next_index.entry(keychain.into()).or_default();
         let next = *index;
@@ -122,7 +131,12 @@ impl UtxoSet for MemUtxos {
         keychain: impl Into<Keychain>,
         shift: bool,
     ) -> NormalIndex {
-        self.next_index(keychain, shift)
+        let index = self.next_index.entry(keychain.into()).or_default();
+        let next = *index;
+        if shift {
+            index.saturating_inc_assign();
+        }
+        next
     }
 }
 
@@ -178,6 +192,7 @@ where
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
 
+    #[cfg(not(feature = "async"))]
     fn update_utxos(&mut self) -> Result<(), Self::Error> {
         self.utxos.clear();
         for keychain in self.descriptor.keychains() {
@@ -287,6 +302,7 @@ where
 
     fn next_nonce(&mut self) -> u64 { self.descriptor.next_nonce() }
 
+    #[cfg(not(feature = "async"))]
     fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
         |txid: Txid| self.resolver.resolve_tx_status(txid)
     }
@@ -296,6 +312,7 @@ where
         |txid: Txid| self.resolver.resolve_tx_status_async(txid)
     }
 
+    #[cfg(not(feature = "async"))]
     fn last_block_height(&self) -> Result<u64, Self::Error> { self.resolver.last_block_height() }
 
     #[cfg(feature = "async")]
@@ -303,6 +320,7 @@ where
         self.resolver.last_block_height_async().await
     }
 
+    #[cfg(not(feature = "async"))]
     fn broadcast(&mut self, tx: &Tx, change: Option<(Vout, u32, u32)>) -> Result<(), Self::Error> {
         self.resolver.broadcast(tx)?;
 
@@ -361,8 +379,17 @@ where
 
     fn descriptor(&self) -> &Self::Descr { &self.descriptor }
 
+    #[cfg(not(feature = "async"))]
     fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> {
         self.resolver.resolve_tx(txid).ok().flatten()
+    }
+
+    #[cfg(feature = "async")]
+    fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> {
+        use futures::executor::block_on;
+        block_on(self.resolver.resolve_tx_async(txid))
+            .ok()
+            .flatten()
     }
 
     fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
@@ -378,8 +405,14 @@ where
 
     fn network(&self) -> Network { self.network }
 
+    #[cfg(not(feature = "async"))]
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
         self.utxos.next_index(keychain, shift)
+    }
+    #[cfg(feature = "async")]
+    fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
+        use futures::executor::block_on;
+        block_on(self.utxos.next_index_async(keychain, shift))
     }
 }
 
@@ -569,7 +602,7 @@ pub mod file {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "async")))]
 mod test {
     use super::*;
 

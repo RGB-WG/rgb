@@ -22,29 +22,27 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::iter;
-use std::num::NonZeroU64;
+use core::num::NonZeroU64;
 
 use bpstd::psbt::Utxo;
 use bpstd::{Outpoint, Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
 use electrum::client::Client as ElectrumClient;
-use electrum::{ElectrumApi, Error as ElectrumError, Error};
+use electrum::{ElectrumApi, Error as ElectrumError};
 use rgb::WitnessStatus;
 
-use crate::resolvers::ResolverError;
-use crate::Resolver;
+use super::{Resolver, ResolverError};
 
+#[cfg(not(feature = "async"))]
 pub struct ElectrumResolver(ElectrumClient);
 
+#[cfg(feature = "async")]
+pub struct ElectrumAsyncResolver(ElectrumClient);
+
+#[cfg(not(feature = "async"))]
 impl Resolver for ElectrumResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
         let tx = self.0.transaction_get(&txid)?;
         Ok(tx.map(UnsignedTx::with_sigs_removed))
-    }
-
-    #[cfg(feature = "async")]
-    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        todo!()
     }
 
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
@@ -63,11 +61,6 @@ impl Resolver for ElectrumResolver {
             return Ok(WitnessStatus::Genesis);
         };
         Ok(WitnessStatus::Mined(height))
-    }
-
-    #[cfg(feature = "async")]
-    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        todo!()
     }
 
     fn resolve_utxos(
@@ -90,54 +83,66 @@ impl Resolver for ElectrumResolver {
             })
     }
 
-    #[cfg(feature = "async")]
-    async fn resolve_utxos_async(
-        &self,
-        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
-    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        todo!();
-        iter::empty()
-    }
-
     fn last_block_height(&self) -> Result<u64, ResolverError> {
         Ok(self.0.block_headers_subscribe()?.height as u64)
     }
-
-    #[cfg(feature = "async")]
-    async fn last_block_height_async(&self) -> Result<u64, ResolverError> { todo!() }
 
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
         self.0.transaction_broadcast(tx)?;
         Ok(())
     }
+}
 
-    #[cfg(feature = "async")]
+#[cfg(feature = "async")]
+impl Resolver for ElectrumAsyncResolver {
+    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
+        todo!()
+    }
+
+    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
+        todo!()
+    }
+
+    async fn resolve_utxos_async(
+        &self,
+        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
+    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
+        todo!();
+        core::iter::empty()
+    }
+
+    async fn last_block_height_async(&self) -> Result<u64, ResolverError> { todo!() }
+
     async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> { todo!() }
 }
 
 impl From<ElectrumError> for ResolverError {
     fn from(err: ElectrumError) -> Self {
         match err {
-            Error::IOError(err) => ResolverError::Io(err.into()),
-            Error::SharedIOError(err) => ResolverError::Io(err.kind().into()),
+            ElectrumError::IOError(err) => ResolverError::Io(err.into()),
+            ElectrumError::SharedIOError(err) => ResolverError::Io(err.kind().into()),
 
-            Error::InvalidDNSNameError(_) | Error::MissingDomain => ResolverError::Connectivity,
-
-            Error::CouldNotCreateConnection(_) | Error::CouldntLockReader | Error::Mpsc => {
-                ResolverError::Local
+            ElectrumError::InvalidDNSNameError(_) | ElectrumError::MissingDomain => {
+                ResolverError::Connectivity
             }
 
-            Error::InvalidResponse(_)
-            | Error::JSON(_)
-            | Error::Hex(_)
-            | Error::JSONRpc(_)
-            | Error::Bitcoin(_) => ResolverError::Protocol,
+            ElectrumError::CouldNotCreateConnection(_)
+            | ElectrumError::CouldntLockReader
+            | ElectrumError::Mpsc => ResolverError::Local,
 
-            Error::Protocol(err) => ResolverError::ServerSide(err.message),
+            ElectrumError::InvalidResponse(_)
+            | ElectrumError::JSON(_)
+            | ElectrumError::Hex(_)
+            | ElectrumError::JSONRpc(_)
+            | ElectrumError::Bitcoin(_) => ResolverError::Protocol,
 
-            Error::AlreadySubscribed(_) | Error::NotSubscribed(_) => ResolverError::Logic,
+            ElectrumError::Protocol(err) => ResolverError::ServerSide(err.message),
 
-            Error::AllAttemptsErrored(list) => list
+            ElectrumError::AlreadySubscribed(_) | ElectrumError::NotSubscribed(_) => {
+                ResolverError::Logic
+            }
+
+            ElectrumError::AllAttemptsErrored(list) => list
                 .into_iter()
                 .next()
                 .map(ResolverError::from)

@@ -32,7 +32,7 @@ use bpstd::psbt::{
     UnfinalizedInputs,
 };
 use bpstd::seals::TxoSeal;
-use bpstd::{Address, IdxBase, Psbt, Sats};
+use bpstd::{Address, IdxBase, Psbt, Sats, Tx, Vout};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
@@ -309,20 +309,42 @@ where
         Ok(psbt)
     }
 
-    /// Finalizes PSBT, extracts the signed transaction, broadcasts it and updates wallet UTXO set
-    /// accordingly.
-    pub fn finalize(
+    fn finalize_inner(
         &mut self,
         mut psbt: Psbt,
         meta: PsbtMeta,
-    ) -> Result<(), FinalizeError<W::Error>> {
+    ) -> Result<(Tx, Option<(Vout, u32, u32)>), FinalizeError<W::Error>> {
         psbt.finalize(self.wallet.descriptor());
         let tx = psbt.extract()?;
         let change = meta.change.map(|change| {
             (change.vout, change.terminal.keychain.index(), change.terminal.index.index())
         });
+        Ok((tx, change))
+    }
+
+    #[cfg(not(feature = "async"))]
+    /// Finalizes PSBT, extracts the signed transaction, broadcasts it and updates wallet UTXO set
+    /// accordingly.
+    pub fn finalize(&mut self, psbt: Psbt, meta: PsbtMeta) -> Result<(), FinalizeError<W::Error>> {
+        let (tx, change) = self.finalize_inner(psbt, meta)?;
         self.wallet
             .broadcast(&tx, change)
+            .map_err(FinalizeError::Broadcast)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "async")]
+    /// Finalizes PSBT, extracts the signed transaction, broadcasts it and updates wallet UTXO set
+    /// accordingly.
+    pub async fn finalize_async(
+        &mut self,
+        psbt: Psbt,
+        meta: PsbtMeta,
+    ) -> Result<(), FinalizeError<W::Error>> {
+        let (tx, change) = self.finalize_inner(psbt, meta)?;
+        self.wallet
+            .broadcast_async(&tx, change)
+            .await
             .map_err(FinalizeError::Broadcast)?;
         Ok(())
     }
