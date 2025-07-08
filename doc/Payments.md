@@ -46,39 +46,133 @@ required in some scenarios:
 
 1. Converting invoice to a payment script (optional): `rgb script` command and `Runtime::script`
    API.
-2. Execute payment script, creating PSBT and prefabricated bundle: `rgb exec` command and
+2. Execute a payment script, creating PSBT and prefabricated bundle: `rgb exec` command and
    `Runtime::exec` API. The PSBT file, returned by this operation, is not ready to be signed! It
    has to be _completed_ first, as described in step 4 below.
 3. Customize PSBT (optional): a PSBT file from the previous step may be further modified in multiple
    ways, like re-ordering inputs or outputs; adding more inputs; merging with other PSBT files
    (which may also contain other RGB payments from other peers). All of these operations may happen
-   as a part of independent workflows for transaction aggregation, payjoin or coinjoin etc.
+   as a part of independent workflows for transaction aggregation, payjoin or coinjoin, etc.
 4. Complete PSBT, using `rgb complete` command or `Runtime::complete` API. This creates all
-   necessary deterministic bitcoin commitments, after which transaction can't be anymore modified
-   and becomes ready to be signed.
+   necessary deterministic bitcoin commitments, after which the transaction can't be anymore
+   modified and becomes ready to be signed.
 5. Share PSBT and prefabricated bundle with other signers (optional). It is important to share both
-   of the files, since without prefabricated bundle other signers will have no idea which RGB
+   of the files, since without a prefabricated bundle, other signers will have no idea which RGB
    operations the transaction commits to, and won't be able to properly sign it.
 6. Produce and send consignment to the beneficiary using `rgb consign` and `Runtime::consign` (or
    `Runtime::consign_to_file`) APIs. The consignment creation will require providing a
    **terminal** (or multiple terminals, if required), which are **authentication tokens** present
    in the payment script in outputs sent to the beneficiary.
 7. Sign PSBT; finalize and extract transaction. It is important to note that unlike in non-RGB PSBT
-   workflows a partially-signed PSBT transaction can't be modified, merged etc., since this may
-   invalidate deterministic bitcoin commitments. If necessary such operations must be performed on
-   the step 3. PSBT signing is not managed by RGB runtime API or command-line tool and can be
+   workflows, a partially signed PSBT transaction can't be modified, merged etc., since this may
+   invalidate deterministic bitcoin commitments. If necessary, such operations must be performed on
+   step 3. PSBT signing is not managed by RGB runtime API or command-line tool and can be
    performed using existing bitcoin wallets and hardware signers.
-8. Receive confirmation from the beneficiary that he is fine with the consignment. Publish the
-   signed transaction to the network.
+8. Receive confirmation from the beneficiary that he is fine with the consignment. Finalize and
+   broadcast the signed transaction to the network, using `Runtime::finalize` (this will also update
+   the wallet state accordingly).
 
 Custom payments are useful in the following cases:
 
 - multisig wallets (makes step 5 required);
 - custom coin selection (makes step 3 required);
-- payment aggregation (may skip step 1, or use it to create separate scripts, which can be merged
-  together; also makes step 3 required);
+- payment aggregation (may skip step 1, or use it to create separate scripts, which may be merged
+  together; this also makes step 3 required);
 - payjoin/coinjoin (makes step 3 required);
 - lightning.
+
+## Payment workflow
+
+```mermaid
+flowchart TD
+    invoice[/Invoice/]
+    coinselect[/Coinselect strategy\]
+    request[/Operation Request/]
+    script[/"`Payment script
+    (combines multiple operation requests)`"/]
+    payment[/Payment spec/]
+    prefab[/Prefab bundle/]
+    psbt0[/Initial PSBT/]
+    psbt1[/Pre-commit PSBT/]
+    psbt2[/Comitted PSBT/]
+    tx[/Signed transaction/]
+    consignment[/Consignment/]
+    fulfill[RgbWallet::fulfill]
+    compose[RgbRuntime::compose_psbt]
+    construct[[PsbtConstructor::construct]]
+    bundle[RgbWallet::bundle]
+    include[RgbWallet::include]
+    consign[Contract::consign]
+    resolve[Psbt::rgb_resolve]
+    fill[Psbt::rgb_fill_csv]
+    commit[Psbt::dbc_commit]
+    finalize[Psbt::finalize]
+    extract[Psbt::extract]
+    update[Update UTXO set]
+    broadcast[Broadcast Tx]
+    lightning(((Lightning node)))
+    lnsign(((LN signer)))
+    sign(((HW Signer)))
+    multisig((("Multisig<br/>partners")))
+    payjoin(((Payjoin peers)))
+    lnnode(((LN Node)))
+    wallet(((Wallet UI)))
+    rbf((("Replace-<br>by-fee")))
+    lightning --> script
+    lightning --> psbt0
+    coinselect --> fulfill
+    invoice --> fulfill
+    payment --> rbf --> payment
+    payment --> prefab
+
+    subgraph "RgbRuntime::pay_invoice"
+        fulfill --> request --> script
+        script --> compose
+        bundle --> payment
+        script --> resolve
+
+        subgraph "RgbRuntime::transfer"
+            subgraph "RgbRuntime::exec"
+                compose --> construct --> compose
+                compose --> psbt0 --> resolve
+                psbt0 --> fill
+                subgraph "RgbRuntime::color_psbt"
+                    resolve --> bundle --> fill
+                    fill --> psbt1
+                end
+            end
+            psbt1 --> payment
+            subgraph "RgbRuntime::complete"
+                commit --> include
+            end
+            payment --> commit
+        end
+    end
+
+    compose --> payjoin --> compose
+    include -.-> consign
+    payment --> consign --> consignment
+    commit --> psbt2
+    prefab --> sign
+    prefab --> lnsign
+    prefab --> multisig
+    psbt2 --> sign
+    psbt2 --> lnsign
+    psbt2 --> multisig
+    sign --> tx
+    lnsign --> tx
+    multisig --> tx
+    multisig -.-> include
+
+    subgraph "RgbRuntime::finalize"
+        tx --> finalize --> extract --> broadcast --> update
+    end
+
+    include -.->|Valid contract state| lnnode
+    include -.->|Valid contract state| wallet
+    update -.->|Valid contract state| lnnode
+    update -.->|Valid contract state| wallet
+```
 
 ## Changes from v0.11
 
