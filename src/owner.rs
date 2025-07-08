@@ -43,11 +43,23 @@ pub trait UtxoSet {
     fn has(&self, outpoint: Outpoint) -> bool;
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
+    #[cfg(feature = "async")]
+    async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
+
     fn clear(&mut self);
+    #[cfg(feature = "async")]
+    async fn clear_async(&mut self);
+
     fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
+    #[cfg(feature = "async")]
+    async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
+
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
 
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
+    #[cfg(feature = "async")]
+    async fn next_index_async(&mut self, keychain: impl Into<Keychain>, shift: bool)
+        -> NormalIndex;
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -71,14 +83,29 @@ impl UtxoSet for MemUtxos {
         self.set.insert(outpoint, (value, terminal));
     }
     #[inline]
+    #[cfg(feature = "async")]
+    async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
+        self.set.insert(outpoint, (value, terminal));
+    }
+
+    #[inline]
+    fn clear(&mut self) { self.set.clear() }
+    #[inline]
+    #[cfg(feature = "async")]
+    async fn clear_async(&mut self) { self.set.clear() }
+
+    #[inline]
     fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
+        self.set.shift_remove(&outpoint)
+    }
+    #[inline]
+    #[cfg(feature = "async")]
+    async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
         self.set.shift_remove(&outpoint)
     }
 
     #[inline]
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
-
-    fn clear(&mut self) { self.set.clear() }
 
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
         let index = self.next_index.entry(keychain.into()).or_default();
@@ -87,6 +114,15 @@ impl UtxoSet for MemUtxos {
             index.saturating_inc_assign();
         }
         next
+    }
+    #[inline]
+    #[cfg(feature = "async")]
+    async fn next_index_async(
+        &mut self,
+        keychain: impl Into<Keychain>,
+        shift: bool,
+    ) -> NormalIndex {
+        self.next_index(keychain, shift)
     }
 }
 
@@ -181,6 +217,48 @@ where
         Ok(())
     }
 
+    #[cfg(feature = "async")]
+    async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
+        self.utxos.clear_async().await;
+        for keychain in self.descriptor.keychains() {
+            let mut index = NormalIndex::ZERO;
+            let last_index = self.utxos.next_index_async(keychain, false).await;
+            loop {
+                let Some(to) = index.checked_add(20u16) else {
+                    break;
+                };
+
+                let mut range = Vec::with_capacity(20);
+                while index < to {
+                    let terminal = Terminal::new(keychain, index);
+                    let iter = self.descriptor.derive(keychain, index);
+
+                    range.extend(iter.map(|d| (terminal, d.to_script_pubkey())));
+
+                    if index.checked_inc_assign().is_none() {
+                        break;
+                    }
+                }
+
+                let set = self.resolver.resolve_utxos_async(range).await;
+                let prev_len = self.utxos.len();
+                for utxo in set {
+                    let utxo = utxo?;
+                    self.utxos
+                        .insert_async(utxo.outpoint, utxo.value, utxo.terminal)
+                        .await;
+                }
+                let next_len = self.utxos.len();
+                if prev_len == next_len && index > last_index {
+                    break;
+                }
+
+                index = to;
+            }
+        }
+        Ok(())
+    }
+
     fn register_seal(&mut self, seal: WTxoSeal) { self.descriptor.add_seal(seal); }
 
     fn resolve_seals(
@@ -213,7 +291,17 @@ where
         |txid: Txid| self.resolver.resolve_tx_status(txid)
     }
 
+    #[cfg(feature = "async")]
+    fn txid_resolver_async(&self) -> impl AsyncFn(Txid) -> Result<WitnessStatus, Self::Error> {
+        |txid: Txid| self.resolver.resolve_tx_status_async(txid)
+    }
+
     fn last_block_height(&self) -> Result<u64, Self::Error> { self.resolver.last_block_height() }
+
+    #[cfg(feature = "async")]
+    async fn last_block_height_async(&self) -> Result<u64, Self::Error> {
+        self.resolver.last_block_height_async().await
+    }
 
     fn broadcast(&mut self, tx: &Tx, change: Option<(Vout, u32, u32)>) -> Result<(), Self::Error> {
         self.resolver.broadcast(tx)?;
@@ -230,6 +318,32 @@ where
             );
             self.utxos
                 .insert(Outpoint::new(txid, vout), out.value, terminal);
+        }
+
+        Ok(())
+    }
+
+    #[cfg(feature = "async")]
+    async fn broadcast_async(
+        &mut self,
+        tx: &Tx,
+        change: Option<(Vout, u32, u32)>,
+    ) -> Result<(), Self::Error> {
+        self.resolver.broadcast_async(tx).await?;
+
+        for inp in &tx.inputs {
+            self.utxos.remove_async(inp.prev_output).await;
+        }
+        if let Some((vout, keychain, index)) = change {
+            let txid = tx.txid();
+            let out = &tx.outputs[vout.into_usize()];
+            let terminal = Terminal::new(
+                Keychain::with(keychain as u8),
+                NormalIndex::try_from_index(index).expect("invalid derivation index"),
+            );
+            self.utxos
+                .insert_async(Outpoint::new(txid, vout), out.value, terminal)
+                .await;
         }
 
         Ok(())
@@ -373,6 +487,12 @@ pub mod file {
         #[inline]
         fn update_utxos(&mut self) -> Result<(), Self::Error> { self.owner.update_utxos() }
         #[inline]
+        #[cfg(feature = "async")]
+        async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
+            self.owner.update_utxos_async().await
+        }
+
+        #[inline]
         fn register_seal(&mut self, seal: WTxoSeal) { self.owner.register_seal(seal) }
         #[inline]
         fn resolve_seals(
@@ -392,7 +512,18 @@ pub mod file {
             self.owner.txid_resolver()
         }
         #[inline]
+        #[cfg(feature = "async")]
+        fn txid_resolver_async(&self) -> impl AsyncFn(Txid) -> Result<WitnessStatus, Self::Error> {
+            self.owner.txid_resolver_async()
+        }
+
+        #[inline]
         fn last_block_height(&self) -> Result<u64, Self::Error> { self.owner.last_block_height() }
+        #[inline]
+        #[cfg(feature = "async")]
+        async fn last_block_height_async(&self) -> Result<u64, Self::Error> {
+            self.owner.last_block_height_async().await
+        }
 
         #[inline]
         fn broadcast(
@@ -401,6 +532,15 @@ pub mod file {
             change: Option<(Vout, u32, u32)>,
         ) -> Result<(), Self::Error> {
             self.owner.broadcast(tx, change)
+        }
+        #[inline]
+        #[cfg(feature = "async")]
+        async fn broadcast_async(
+            &mut self,
+            tx: &Tx,
+            change: Option<(Vout, u32, u32)>,
+        ) -> Result<(), Self::Error> {
+            self.owner.broadcast_async(tx, change).await
         }
     }
 

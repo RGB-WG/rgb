@@ -34,14 +34,15 @@ jobs:
       fail-fast: false
       matrix:
         feature:
+          - async
           - fs
           - log
           - serde
           - resolvers-all
-          - electrum
-          - esplora
-          - mempool
-          - bitcoinrpc
+          - resolver-electrum
+          - resolver-esplora
+          - resolver-mempool
+          - resolver-bitcoinrpc
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

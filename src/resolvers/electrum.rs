@@ -22,6 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::iter;
 use std::num::NonZeroU64;
 
 use bpstd::psbt::Utxo;
@@ -41,6 +42,11 @@ impl Resolver for ElectrumResolver {
         Ok(tx.map(UnsignedTx::with_sigs_removed))
     }
 
+    #[cfg(feature = "async")]
+    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
+        todo!()
+    }
+
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
         let Some(verbose) = self.0.transaction_get_verbose(&txid)? else {
             return Ok(WitnessStatus::Archived);
@@ -57,6 +63,11 @@ impl Resolver for ElectrumResolver {
             return Ok(WitnessStatus::Genesis);
         };
         Ok(WitnessStatus::Mined(height))
+    }
+
+    #[cfg(feature = "async")]
+    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
+        todo!()
     }
 
     fn resolve_utxos(
@@ -79,14 +90,29 @@ impl Resolver for ElectrumResolver {
             })
     }
 
+    #[cfg(feature = "async")]
+    async fn resolve_utxos_async(
+        &self,
+        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
+    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
+        todo!();
+        iter::empty()
+    }
+
     fn last_block_height(&self) -> Result<u64, ResolverError> {
         Ok(self.0.block_headers_subscribe()?.height as u64)
     }
+
+    #[cfg(feature = "async")]
+    async fn last_block_height_async(&self) -> Result<u64, ResolverError> { todo!() }
 
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
         self.0.transaction_broadcast(tx)?;
         Ok(())
     }
+
+    #[cfg(feature = "async")]
+    async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> { todo!() }
 }
 
 impl From<ElectrumError> for ResolverError {

@@ -82,11 +82,12 @@ wasm-bindgen-test = "0.3"
 [features]
 default = ["std"]
 all = [
-    "std",
+    "std", "async",
     "serde", "log", "fs",
-    "resolvers-all",
+    "resolvers-all", "resolvers-all-async"
 ]
 std = []
+async = ["rgb-std/async"]
 fs = [
     "std",
     "serde",
@@ -100,6 +101,12 @@ resolver-electrum = ["dep:bp-electrum"]
 resolver-esplora = ["dep:bp-esplora"]
 resolver-mempool = ["dep:bp-esplora"]
 resolver-bitcoinrpc = [] # TODO
+
+resolvers-all-async = ["resolver-electrum-async", "resolver-esplora-async", "resolver-mempool-async", "resolver-bitcoinrpc-async"]
+resolver-electrum-async = ["dep:bp-electrum"] # TODO: ["bp-electrum/async"]
+resolver-esplora-async = ["bp-esplora/async"]
+resolver-mempool-async = ["bp-esplora/async"]
+resolver-bitcoinrpc-async = [] # TODO
 
 serde = [
     "dep:serde", "toml",

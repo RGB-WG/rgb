@@ -24,6 +24,7 @@
 
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 // #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(feature = "async", allow(async_fn_in_trait))]
 
 extern crate alloc;
 #[macro_use]
