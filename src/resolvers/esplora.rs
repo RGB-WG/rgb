@@ -22,17 +22,16 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::iter;
-use std::num::NonZeroU64;
+use core::num::NonZeroU64;
 
 use bpstd::psbt::Utxo;
-use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
+use bpstd::{Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout};
 #[cfg(feature = "async")]
 use esplora::AsyncClient as EsploraAsyncClient;
 #[cfg(not(feature = "async"))]
 use esplora::BlockingClient as EsploraClient;
 use esplora::{Error as EsploraError, TxStatus};
-use rgb::WitnessStatus;
+use rgb::{Outpoint, WitnessStatus};
 
 use super::{Resolver, ResolverError};
 
@@ -87,35 +86,23 @@ impl Resolver for EsploraResolver {
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        todo!();
-        /*
-        const PAGE_SIZE: usize = 25;
-
-        let mut res = Vec::new();
-        let mut last_seen = None;
-        let script = derive.addr.script_pubkey();
-
-        loop {
-            let r = match self.kind {
-                ClientKind::Esplora => self.inner.scripthash_txs(&script, last_seen)?,
-                #[cfg(feature = "resolver-mempool")]
-                ClientKind::Mempool => self.inner.address_txs(&derive.addr, last_seen)?,
-            };
-            match &r[..] {
-                [a @ .., esplora::Tx { txid, .. }] if a.len() >= PAGE_SIZE - 1 => {
-                    last_seen = Some(*txid);
-                    res.extend(r);
-                }
-                _ => {
-                    res.extend(r);
-                    break;
-                }
-            }
-        }
-
-        Ok(res)
-         */
-        iter::empty()
+        iter.into_iter()
+            .flat_map(|(terminal, spk)| match self.inner.scripthash_utxo(&spk) {
+                Err(err) => vec![Err(ResolverError::from(err))],
+                Ok(list) => list
+                    .into_iter()
+                    .map(|utxo| {
+                        Ok(Utxo {
+                            outpoint: Outpoint::new(
+                                utxo.txid,
+                                Vout::from_u32(utxo.vout.value as u32),
+                            ),
+                            value: Sats::from_sats(utxo.value),
+                            terminal,
+                        })
+                    })
+                    .collect::<Vec<_>>(),
+            })
     }
 
     fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.inner.height()? as u64) }
@@ -142,8 +129,20 @@ impl Resolver for EsploraAsyncResolver {
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        todo!();
-        iter::empty()
+        let mut utxos = Vec::new();
+        for (terminal, spk) in iter {
+            match self.inner.scripthash_utxo(&spk).await {
+                Err(err) => utxos.push(Err(ResolverError::from(err))),
+                Ok(list) => utxos.extend(list.into_iter().map(|utxo| {
+                    Ok(Utxo {
+                        outpoint: Outpoint::new(utxo.txid, Vout::from_u32(utxo.vout.value as u32)),
+                        value: Sats::from_sats(utxo.value),
+                        terminal,
+                    })
+                })),
+            }
+        }
+        utxos.into_iter()
     }
 
     async fn last_block_height_async(&self) -> Result<u64, ResolverError> {

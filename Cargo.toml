@@ -131,5 +131,6 @@ bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptor
 descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
 psbt = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
 bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
+bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
 rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "async" }
 rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "async" }

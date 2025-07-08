@@ -425,8 +425,7 @@ dependencies = [
 [[package]]
 name = "bp-esplora"
 version = "0.12.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc5542e440042e34b5b60d7285f3c3a3e81e39eaa40b77f98e3f4f4ef177119a"
+source = "git+https://github.com/BP-WG/bp-esplora-client?branch=master#8d39c4ac615c0b117a09027e216e3a7dfd321c02"
 dependencies = [
  "amplify",
  "bp-core",
@@ -2075,7 +2074,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2618,7 +2617,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
