@@ -27,7 +27,7 @@ use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
 use bpstd::{
     Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
-    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Txid, UnsignedTx, XpubDerivable,
+    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout, XpubDerivable,
 };
 use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
@@ -40,6 +40,8 @@ pub trait UtxoSet {
     fn len(&self) -> usize;
     fn has(&self, outpoint: Outpoint) -> bool;
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
+    fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
+    fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
 
     fn clear(&mut self);
@@ -64,6 +66,15 @@ impl UtxoSet for MemUtxos {
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
         self.set.get(&outpoint).copied()
     }
+    #[inline]
+    fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
+        self.set.insert(outpoint, (value, terminal));
+    }
+    #[inline]
+    fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
+        self.set.shift_remove(&outpoint)
+    }
+
     #[inline]
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
 
@@ -127,13 +138,13 @@ where
     R: Resolver,
     U: UtxoSet,
 {
-    type SyncError = R::Error;
+    type Error = R::Error;
 
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.has(outpoint) }
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
 
-    fn sync_utxos(&mut self) -> Result<(), Self::SyncError> {
+    fn sync_utxos(&mut self) -> Result<(), Self::Error> {
         self.utxos.clear();
         for keychain in self.descriptor.keychains() {
             let mut index = NormalIndex::ZERO;
@@ -197,8 +208,28 @@ where
 
     fn next_nonce(&mut self) -> u64 { self.descriptor.next_nonce() }
 
-    fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::SyncError> {
+    fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
         |txid: Txid| self.resolver.resolve_tx_status(txid)
+    }
+
+    fn broadcast(&mut self, tx: &Tx, change: Option<(Vout, u32, u32)>) -> Result<(), Self::Error> {
+        self.resolver.broadcast(&tx)?;
+
+        for inp in &tx.inputs {
+            self.utxos.remove(inp.prev_output);
+        }
+        if let Some((vout, keychain, index)) = change {
+            let txid = tx.txid();
+            let out = &tx.outputs[vout.into_usize()];
+            let terminal = Terminal::new(
+                Keychain::with(keychain as u8),
+                NormalIndex::try_from_index(index).expect("invalid derivation index"),
+            );
+            self.utxos
+                .insert(Outpoint::new(txid, vout), out.value, terminal);
+        }
+
+        Ok(())
     }
 }
 

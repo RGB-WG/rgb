@@ -23,7 +23,7 @@
 // the License.
 
 use bpstd::psbt::Utxo;
-use bpstd::{ScriptPubkey, Terminal, Txid, UnsignedTx};
+use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
 use rgb::WitnessStatus;
 
 pub trait Resolver {
@@ -36,4 +36,6 @@ pub trait Resolver {
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> Result<impl Iterator<Item = Utxo>, Self::Error>;
+
+    fn broadcast(&self, tx: &Tx) -> Result<(), Self::Error>;
 }

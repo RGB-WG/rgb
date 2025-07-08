@@ -28,9 +28,10 @@ use std::collections::BTreeSet;
 use amplify::MultiError;
 use bpstd::psbt::{
     Beneficiary, ConstructionError, DbcPsbtError, PsbtConstructor, PsbtMeta, TxParams,
+    UnfinalizedInputs,
 };
 use bpstd::seals::TxoSeal;
-use bpstd::{Address, Psbt, Sats};
+use bpstd::{Address, IdxBase, Psbt, Sats};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
@@ -285,9 +286,20 @@ where
         Ok(psbt)
     }
 
-    pub fn finalize(&mut self, mut psbt: Psbt) -> Result<(), ()> {
+    pub fn finalize(
+        &mut self,
+        mut psbt: Psbt,
+        meta: PsbtMeta,
+    ) -> Result<(), FinalizeError<W::Error>> {
         psbt.finalize(self.wallet.descriptor());
         let tx = psbt.extract()?;
+        let change = meta.change.map(|change| {
+            (change.vout, change.terminal.keychain.index(), change.terminal.index.index())
+        });
+        self.wallet
+            .broadcast(&tx, change)
+            .map_err(FinalizeError::Broadcast)?;
+        Ok(())
     }
 }
 
@@ -320,6 +332,14 @@ pub enum TransferError {
 
     #[from]
     Include(IncludeError),
+}
+
+#[derive(Debug, Display, Error, From)]
+#[display(inner)]
+pub enum FinalizeError<E: core::error::Error> {
+    #[from]
+    UnfinalizedPsbt(UnfinalizedInputs),
+    Broadcast(E),
 }
 
 #[cfg(feature = "fs")]

@@ -48,4 +48,4 @@ pub use owner::{MemUtxos, Owner, UtxoSet};
 pub use resolvers::Resolver;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, Payment, RgbRuntime, TransferError};
+pub use runtime::{FinalizeError, PayError, Payment, RgbRuntime, TransferError};
