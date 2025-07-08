@@ -32,13 +32,8 @@ use rgb::WitnessStatus;
 
 use super::{Resolver, ResolverError};
 
-#[cfg(not(feature = "async"))]
 pub struct ElectrumResolver(ElectrumClient);
 
-#[cfg(feature = "async")]
-pub struct ElectrumAsyncResolver(ElectrumClient);
-
-#[cfg(not(feature = "async"))]
 impl Resolver for ElectrumResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
         let tx = self.0.transaction_get(&txid)?;
@@ -91,29 +86,6 @@ impl Resolver for ElectrumResolver {
         self.0.transaction_broadcast(tx)?;
         Ok(())
     }
-}
-
-#[cfg(feature = "async")]
-impl Resolver for ElectrumAsyncResolver {
-    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        todo!()
-    }
-
-    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        todo!()
-    }
-
-    async fn resolve_utxos_async(
-        &self,
-        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
-    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        todo!();
-        core::iter::empty()
-    }
-
-    async fn last_block_height_async(&self) -> Result<u64, ResolverError> { todo!() }
-
-    async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> { todo!() }
 }
 
 impl From<ElectrumError> for ResolverError {

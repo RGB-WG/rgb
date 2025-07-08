@@ -44,7 +44,7 @@ jobs:
           - resolver-mempool
           - resolver-bitcoinrpc
           - resolvers-all-async
-          - resolver-electrum-async
+          # - resolver-electrum-async
           - resolver-esplora-async
           - resolver-mempool-async
           - resolver-bitcoinrpc-async

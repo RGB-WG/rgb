@@ -22,7 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[cfg(any(feature = "resolver-electrum", feature = "resolver-electrum-async"))]
+#[cfg(feature = "resolver-electrum")]
 mod electrum;
 #[cfg(any(
     feature = "resolver-esplora",
@@ -43,8 +43,8 @@ use bpstd::psbt::Utxo;
 use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
 use rgb::WitnessStatus;
 
-#[cfg(feature = "resolver-electrum-async")]
-pub use self::electrum::ElectrumAsyncResolver;
+//#[cfg(feature = "resolver-electrum-async")]
+//pub use self::electrum::ElectrumAsyncResolver;
 #[cfg(feature = "resolver-electrum")]
 pub use self::electrum::ElectrumResolver;
 #[cfg(feature = "resolver-esplora-async")]
@@ -98,8 +98,8 @@ pub struct MultiResolver {
     // TODO: Implement Bitcoin RPC resolver
     bitcoinrpc: Option<NoResolver>,
 
-    #[cfg(feature = "resolver-electrum-async")]
-    electrum: Option<ElectrumAsyncResolver>,
+    //#[cfg(feature = "resolver-electrum-async")]
+    //electrum: Option<ElectrumAsyncResolver>,
     #[cfg(feature = "resolver-esplora-async")]
     esplora: Option<EsploraAsyncResolver>,
     #[cfg(feature = "resolver-mempool-async")]
@@ -287,10 +287,10 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_tx_async(txid).await;
         }
-        #[cfg(feature = "resolver-electrum-async")]
-        if let Some(resolver) = &self.electrum {
-            return resolver.resolve_tx_async(txid).await;
-        }
+        // #[cfg(feature = "resolver-electrum-async")]
+        // if let Some(resolver) = &self.electrum {
+        //     return resolver.resolve_tx_async(txid).await;
+        // }
         #[cfg(feature = "resolver-bitcoinrpc-async")]
         if let Some(resolver) = &self.bitcoinrpc {
             return resolver.resolve_tx_async(txid).await;
@@ -307,10 +307,10 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_tx_status_async(txid).await;
         }
-        #[cfg(feature = "resolver-electrum-async")]
-        if let Some(resolver) = &self.electrum {
-            return resolver.resolve_tx_status_async(txid).await;
-        }
+        // #[cfg(feature = "resolver-electrum-async")]
+        // if let Some(resolver) = &self.electrum {
+        //     return resolver.resolve_tx_status_async(txid).await;
+        // }
         #[cfg(feature = "resolver-bitcoinrpc-async")]
         if let Some(resolver) = &self.bitcoinrpc {
             return resolver.resolve_tx_status_async(txid).await;
@@ -338,14 +338,14 @@ impl Resolver for MultiResolver {
                 .collect::<Vec<_>>()
                 .into_iter();
         }
-        #[cfg(feature = "resolver-electrum-async")]
-        if let Some(resolver) = &self.electrum {
-            return resolver
-                .resolve_utxos_async(iter)
-                .await
-                .collect::<Vec<_>>()
-                .into_iter();
-        }
+        // #[cfg(feature = "resolver-electrum-async")]
+        // if let Some(resolver) = &self.electrum {
+        //     return resolver
+        //         .resolve_utxos_async(iter)
+        //         .await
+        //         .collect::<Vec<_>>()
+        //         .into_iter();
+        // }
         #[cfg(feature = "resolver-bitcoinrpc-async")]
         if let Some(resolver) = &self.bitcoinrpc {
             return resolver
@@ -366,10 +366,10 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.esplora {
             return resolver.last_block_height_async().await;
         }
-        #[cfg(feature = "resolver-electrum-async")]
-        if let Some(resolver) = &self.electrum {
-            return resolver.last_block_height_async().await;
-        }
+        // #[cfg(feature = "resolver-electrum-async")]
+        // if let Some(resolver) = &self.electrum {
+        //     return resolver.last_block_height_async().await;
+        // }
         #[cfg(feature = "resolver-bitcoinrpc-async")]
         if let Some(resolver) = &self.bitcoinrpc {
             return resolver.last_block_height_async().await;
@@ -386,10 +386,10 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.esplora {
             return resolver.broadcast_async(tx).await;
         }
-        #[cfg(feature = "resolver-electrum-async")]
-        if let Some(resolver) = &self.electrum {
-            return resolver.broadcast_async(tx).await;
-        }
+        // #[cfg(feature = "resolver-electrum-async")]
+        // if let Some(resolver) = &self.electrum {
+        //     return resolver.broadcast_async(tx).await;
+        // }
         #[cfg(feature = "resolver-bitcoinrpc-async")]
         if let Some(resolver) = &self.bitcoinrpc {
             return resolver.broadcast_async(tx).await;
