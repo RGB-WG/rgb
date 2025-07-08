@@ -36,6 +36,7 @@ use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 use crate::descriptor::RgbDescr;
 use crate::Resolver;
 
+#[allow(clippy::len_without_is_empty)]
 pub trait UtxoSet {
     fn len(&self) -> usize;
     fn has(&self, outpoint: Outpoint) -> bool;
@@ -218,7 +219,7 @@ where
     }
 
     fn broadcast(&mut self, tx: &Tx, change: Option<(Vout, u32, u32)>) -> Result<(), Self::Error> {
-        self.resolver.broadcast(&tx)?;
+        self.resolver.broadcast(tx)?;
 
         for inp in &tx.inputs {
             self.utxos.remove(inp.prev_output);
@@ -305,12 +306,12 @@ pub mod file {
         ) -> io::Result<Self> {
             fs::create_dir_all(&path)?;
 
-            let mut file = fs::File::create_new(&path.join(Self::DESCRIPTOR_FILENAME))?;
+            let mut file = fs::File::create_new(path.join(Self::DESCRIPTOR_FILENAME))?;
             let ser = toml::to_string(&descriptor)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
-            let mut file = fs::File::create_new(&path.join(Self::UTXO_FILENAME))?;
+            let mut file = fs::File::create_new(path.join(Self::UTXO_FILENAME))?;
             let utxos = MemUtxos::default();
             let ser = toml::to_string(&utxos)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
@@ -321,13 +322,13 @@ pub mod file {
         }
 
         pub fn load(path: PathBuf, network: Network, resolver: R) -> io::Result<Self> {
-            let mut file = fs::File::open(&path.join(Self::DESCRIPTOR_FILENAME))?;
+            let mut file = fs::File::open(path.join(Self::DESCRIPTOR_FILENAME))?;
             let mut deser = String::new();
             file.read_to_string(&mut deser)?;
             let descriptor: RgbDescr = toml::from_str(&deser)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
 
-            let mut file = fs::File::open(&path.join(Self::UTXO_FILENAME))?;
+            let mut file = fs::File::open(path.join(Self::UTXO_FILENAME))?;
             let mut deser = String::new();
             file.read_to_string(&mut deser)?;
             let utxos: MemUtxos = toml::from_str(&deser)
@@ -340,12 +341,12 @@ pub mod file {
         pub fn save(&self) -> io::Result<()> {
             fs::create_dir_all(&self.path)?;
 
-            let mut file = fs::File::create(&self.path.join(Self::DESCRIPTOR_FILENAME))?;
+            let mut file = fs::File::create(self.path.join(Self::DESCRIPTOR_FILENAME))?;
             let ser = toml::to_string(&self.descriptor)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
-            let mut file = fs::File::create(&self.path.join(Self::UTXO_FILENAME))?;
+            let mut file = fs::File::create(self.path.join(Self::UTXO_FILENAME))?;
             let ser = toml::to_string(&self.utxos)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
