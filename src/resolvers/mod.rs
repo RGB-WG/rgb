@@ -22,6 +22,9 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use core::convert::Infallible;
+use core::iter;
+
 use bpstd::psbt::Utxo;
 use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
 use rgb::WitnessStatus;
@@ -38,4 +41,33 @@ pub trait Resolver {
     ) -> Result<impl Iterator<Item = Utxo>, Self::Error>;
 
     fn broadcast(&self, tx: &Tx) -> Result<(), Self::Error>;
+}
+
+pub type MultiResolver = NoResolver;
+
+pub struct NoResolver;
+
+impl MultiResolver {
+    pub fn new_electrum(_url: &str) -> Self { todo!() }
+    pub fn new_esplora(_url: &str) -> Self { todo!() }
+    pub fn new_mempool(_url: &str) -> Self { todo!() }
+}
+
+impl Resolver for NoResolver {
+    type Error = Infallible;
+
+    fn resolve_tx(&self, _txid: Txid) -> Result<UnsignedTx, Self::Error> { unimplemented!() }
+
+    fn resolve_tx_status(&self, _txid: Txid) -> Result<WitnessStatus, Self::Error> {
+        unimplemented!()
+    }
+
+    fn resolve_utxos(
+        &self,
+        _iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
+    ) -> Result<impl Iterator<Item = Utxo>, Self::Error> {
+        Ok(iter::empty())
+    }
+
+    fn broadcast(&self, _tx: &Tx) -> Result<(), Self::Error> { unimplemented!() }
 }

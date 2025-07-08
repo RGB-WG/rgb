@@ -38,7 +38,7 @@ mod owner;
 mod coinselect;
 mod runtime;
 mod info;
-mod resolvers;
+pub mod resolvers;
 
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};

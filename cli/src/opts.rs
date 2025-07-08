@@ -22,6 +22,8 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::path::PathBuf;
+
 use clap::ValueHint;
 
 use crate::cmd::RGB_WALLET_ENV;
@@ -93,5 +95,9 @@ impl WalletOpts {
             sync: false,
             resolver: ResolverOpt { electrum: None, esplora: None, mempool: None },
         }
+    }
+
+    pub fn wallet_path(&self) -> PathBuf {
+        PathBuf::new().join(self.wallet.as_deref().unwrap_or("default"))
     }
 }

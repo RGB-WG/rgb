@@ -15,7 +15,6 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 amplify = "4.9.0"
-nonasync = "0.1.2"
 strict_encoding = "2.9.1"
 strict_types = "2.9.0"
 commit_verify = "0.12.0-rc.1"
@@ -56,7 +55,6 @@ crate-type = ["cdylib", "rlib"]
 amplify = { workspace = true }
 commit_verify = { workspace = true }
 strict_types = { workspace = true }
-nonasync = { workspace = true }
 bp-std = { workspace = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
@@ -64,7 +62,7 @@ rgb-persist-fs = { workspace = true, optional = true }
 indexmap = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true, optional = true }
-serde_yaml = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [dev-dependencies]
@@ -94,7 +92,7 @@ fs = [
 ]
 log = ["dep:log"]
 serde = [
-    "dep:serde", "serde_yaml",
+    "dep:serde", "toml",
     "bp-std/serde", "rgb-std/serde"
 ]
 

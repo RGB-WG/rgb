@@ -34,7 +34,8 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
 use rgbp::descriptor::RgbDescr;
-use rgbp::{ContractInfo, Owner};
+use rgbp::resolvers::NoResolver;
+use rgbp::{ContractInfo, FileOwner, Resolver};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -100,7 +101,8 @@ impl Args {
                          `--tapret-key-only` or `--wpkh`"
                     ),
                 };
-                Owner::create(provider, descr, self.network, true)
+                let path = self.data_dir().join(name);
+                FileOwner::create(path, self.network, descr, NoResolver)
                     .expect("Unable to create wallet");
             }
 
@@ -545,6 +547,8 @@ impl Args {
                 };
 
                 if *broadcast {
+                    // TODO: Implement new finalization workflow
+                    //runtime.finalize(psbt);
                     self.resolver(&wallet.resolver).broadcast(&extracted)?;
                 }
             }

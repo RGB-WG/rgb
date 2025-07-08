@@ -239,7 +239,6 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     )
 )]
 pub struct RgbDescr<K: DeriveSet = XpubDerivable> {
-    #[cfg_attr(feature = "serde", serde(with = "serde_yaml::with::singleton_map_recursive"))]
     deriver: RgbDeriver<K>,
     seals: SealDescr,
     noise: Bytes32,
@@ -363,21 +362,10 @@ mod test {
         let xpub = XpubDerivable::from_str(s).unwrap();
         let descr = RgbDescr::<XpubDerivable>::new_unfunded(Wpkh::from(xpub), [0u8; 32]);
 
-        let yaml = serde_yaml::to_string(&descr).unwrap();
         let toml = toml::to_string(&descr).unwrap();
-        let descr2: RgbDescr<XpubDerivable> = serde_yaml::from_str(&yaml).unwrap();
-        let descr3: RgbDescr<XpubDerivable> = toml::from_str(&toml).unwrap();
+        let descr2: RgbDescr<XpubDerivable> = toml::from_str(&toml).unwrap();
 
         assert_eq!(descr.to_string(), descr2.to_string());
-        assert_eq!(descr.to_string(), descr3.to_string());
-        assert_eq!(yaml, "\
-deriver:
-  opretOnly:
-    wpkh: '[643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1;9;10>/*'
-seals: []
-noise: '0000000000000000000000000000000000000000000000000000000000000000'
-nonce: 0
-");
         assert_eq!(
             toml,
             r#"seals = []
