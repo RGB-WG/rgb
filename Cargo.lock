@@ -1368,6 +1368,8 @@ name = "rgb-runtime"
 version = "0.12.0-rc.2"
 dependencies = [
  "amplify",
+ "bp-electrum",
+ "bp-esplora",
  "bp-std",
  "chrono",
  "commit_verify",

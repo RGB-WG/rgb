@@ -37,6 +37,11 @@ jobs:
           - fs
           - log
           - serde
+          - resolvers-all
+          - electrum
+          - esplora
+          - mempool
+          - bitcoinrpc
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

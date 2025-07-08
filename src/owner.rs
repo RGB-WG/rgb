@@ -34,6 +34,7 @@ use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 
 use crate::descriptor::RgbDescr;
+use crate::resolvers::ResolverError;
 use crate::Resolver;
 
 #[allow(clippy::len_without_is_empty)]
@@ -42,11 +43,9 @@ pub trait UtxoSet {
     fn has(&self, outpoint: Outpoint) -> bool;
     fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
+    fn clear(&mut self);
     fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
-
-    fn clear(&mut self);
-    fn extend(&mut self, set: impl IntoIterator<Item = Utxo>);
 
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
 }
@@ -80,13 +79,6 @@ impl UtxoSet for MemUtxos {
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
 
     fn clear(&mut self) { self.set.clear() }
-
-    fn extend(&mut self, set: impl IntoIterator<Item = Utxo>) {
-        let iter = set
-            .into_iter()
-            .map(|utxo| (utxo.outpoint, (utxo.value, utxo.terminal)));
-        self.set.extend(iter)
-    }
 
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
         let index = self.next_index.entry(keychain.into()).or_default();
@@ -144,7 +136,7 @@ where
     R: Resolver,
     U: UtxoSet,
 {
-    type Error = R::Error;
+    type Error = ResolverError;
 
     fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.has(outpoint) }
 
@@ -172,9 +164,12 @@ where
                     }
                 }
 
-                let set = self.resolver.resolve_utxos(range)?;
+                let set = self.resolver.resolve_utxos(range);
                 let prev_len = self.utxos.len();
-                self.utxos.extend(set);
+                for utxo in set {
+                    let utxo = utxo?;
+                    self.utxos.insert(utxo.outpoint, utxo.value, utxo.terminal);
+                }
                 let next_len = self.utxos.len();
                 if prev_len == next_len && index > last_index {
                     break;
@@ -250,7 +245,9 @@ where
 
     fn descriptor(&self) -> &Self::Descr { &self.descriptor }
 
-    fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.resolver.resolve_tx(txid).ok() }
+    fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> {
+        self.resolver.resolve_tx(txid).ok().flatten()
+    }
 
     fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
         let (value, terminal) = self.utxos.get(outpoint)?;
@@ -366,7 +363,7 @@ pub mod file {
     }
 
     impl<R: Resolver> WalletProvider for FileOwner<R> {
-        type Error = R::Error;
+        type Error = ResolverError;
         #[inline]
         fn has_utxo(&self, outpoint: Outpoint) -> bool { self.owner.has_utxo(outpoint) }
         #[inline]

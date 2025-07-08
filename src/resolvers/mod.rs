@@ -22,38 +22,55 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use core::convert::Infallible;
+#[cfg(feature = "resolver-electrum")]
+mod electrum;
+#[cfg(any(feature = "resolver-esplora", feature = "resolver-mempool"))]
+mod esplora;
+#[cfg(feature = "resolver-bitcoinrpc")]
+mod bitcoinrpc;
+
 use core::iter;
+#[cfg(feature = "std")]
 use std::process::exit;
 
+use amplify::IoError;
 use bpstd::psbt::Utxo;
 use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
+#[cfg(feature = "resolver-electrum")]
+pub use electrum::ElectrumResolver;
+#[cfg(feature = "resolver-esplora")]
+pub use esplora::EsploraResolver;
+#[cfg(feature = "resolver-mempool")]
+pub use esplora::EsploraResolver as MempoolResolver;
 use rgb::WitnessStatus;
 
 pub trait Resolver {
-    type Error: core::error::Error;
-
-    fn resolve_tx(&self, txid: Txid) -> Result<UnsignedTx, Self::Error>;
-    fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, Self::Error>;
+    fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError>;
+    fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError>;
 
     fn resolve_utxos(
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
-    ) -> Result<impl Iterator<Item = Utxo>, Self::Error>;
+    ) -> impl Iterator<Item = Result<Utxo, ResolverError>>;
 
-    fn broadcast(&self, tx: &Tx) -> Result<(), Self::Error>;
+    fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError>;
 }
 
-pub type MultiResolver = NoResolver;
+#[derive(Default)]
+pub struct MultiResolver {
+    #[cfg(feature = "resolver-electrum")]
+    electrum: Option<ElectrumResolver>,
+    #[cfg(feature = "resolver-esplora")]
+    esplora: Option<EsploraResolver>,
+    #[cfg(feature = "resolver-mempool")]
+    mempool: Option<MempoolResolver>,
+    #[cfg(feature = "resolver-bitcoinrpc")]
+    // TODO: Implement Bitcoin RPC resolver
+    bitcoinrpc: Option<NoResolver>,
+}
 
+#[derive(Copy, Clone)]
 pub struct NoResolver;
-
-impl MultiResolver {
-    pub fn new_electrum(_url: &str) -> Self { todo!() }
-    pub fn new_esplora(_url: &str) -> Self { todo!() }
-    pub fn new_mempool(_url: &str) -> Self { todo!() }
-    pub fn new_absent() -> Self { Self }
-}
 
 impl NoResolver {
     fn call(&self) -> ! {
@@ -61,25 +78,142 @@ impl NoResolver {
             "Error: no blockchain indexer specified; use either --esplora --mempool or --electrum \
              argument"
         );
+        #[cfg(feature = "std")]
         exit(1);
     }
 }
 
 impl Resolver for NoResolver {
-    type Error = Infallible;
+    fn resolve_tx(&self, _txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> { self.call() }
 
-    fn resolve_tx(&self, _txid: Txid) -> Result<UnsignedTx, Self::Error> { self.call() }
-
-    fn resolve_tx_status(&self, _txid: Txid) -> Result<WitnessStatus, Self::Error> { self.call() }
+    fn resolve_tx_status(&self, _txid: Txid) -> Result<WitnessStatus, ResolverError> { self.call() }
 
     fn resolve_utxos(
         &self,
         _iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
-    ) -> Result<impl Iterator<Item = Utxo>, Self::Error> {
+    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
         self.call();
         #[allow(unreachable_code)]
-        Ok(iter::empty())
+        iter::empty()
     }
 
-    fn broadcast(&self, _tx: &Tx) -> Result<(), Self::Error> { self.call() }
+    fn broadcast(&self, _tx: &Tx) -> Result<(), ResolverError> { self.call() }
+}
+
+impl MultiResolver {
+    #[cfg(feature = "resolver-electrum")]
+    pub fn new_electrum(_url: &str) -> Self { todo!() }
+    #[cfg(feature = "resolver-esplora")]
+    pub fn new_esplora(_url: &str) -> Self { todo!() }
+    #[cfg(feature = "resolver-mempool")]
+    pub fn new_mempool(_url: &str) -> Self { todo!() }
+    #[cfg(feature = "resolver-bitcoinrpc")]
+    pub fn new_bitcoinrpc(_url: &str) -> Self { todo!() }
+    pub fn new_absent() -> Self { Self::default() }
+}
+
+impl Resolver for MultiResolver {
+    fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
+        #[cfg(feature = "resolver-mempool")]
+        if let Some(resolver) = &self.mempool {
+            return resolver.resolve_tx(txid);
+        }
+        #[cfg(feature = "resolver-esplora")]
+        if let Some(resolver) = &self.esplora {
+            return resolver.resolve_tx(txid);
+        }
+        #[cfg(feature = "resolver-electrum")]
+        if let Some(resolver) = &self.electrum {
+            return resolver.resolve_tx(txid);
+        }
+        #[cfg(feature = "resolver-bitcoinrpc")]
+        if let Some(resolver) = &self.bitcoinrpc {
+            return resolver.resolve_tx(txid);
+        }
+        NoResolver.call()
+    }
+
+    fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
+        #[cfg(feature = "resolver-mempool")]
+        if let Some(resolver) = &self.mempool {
+            return resolver.resolve_tx_status(txid);
+        }
+        #[cfg(feature = "resolver-esplora")]
+        if let Some(resolver) = &self.esplora {
+            return resolver.resolve_tx_status(txid);
+        }
+        #[cfg(feature = "resolver-electrum")]
+        if let Some(resolver) = &self.electrum {
+            return resolver.resolve_tx_status(txid);
+        }
+        #[cfg(feature = "resolver-bitcoinrpc")]
+        if let Some(resolver) = &self.bitcoinrpc {
+            return resolver.resolve_tx_status(txid);
+        }
+        NoResolver.call()
+    }
+
+    fn resolve_utxos(
+        &self,
+        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
+    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
+        #[cfg(feature = "resolver-mempool")]
+        if let Some(resolver) = &self.mempool {
+            return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
+        }
+        #[cfg(feature = "resolver-esplora")]
+        if let Some(resolver) = &self.esplora {
+            return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
+        }
+        #[cfg(feature = "resolver-electrum")]
+        if let Some(resolver) = &self.electrum {
+            return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
+        }
+        #[cfg(feature = "resolver-bitcoinrpc")]
+        if let Some(resolver) = &self.bitcoinrpc {
+            return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
+        }
+        NoResolver.call()
+    }
+
+    fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
+        #[cfg(feature = "resolver-mempool")]
+        if let Some(resolver) = &self.mempool {
+            return resolver.broadcast(tx);
+        }
+        #[cfg(feature = "resolver-esplora")]
+        if let Some(resolver) = &self.esplora {
+            return resolver.broadcast(tx);
+        }
+        #[cfg(feature = "resolver-electrum")]
+        if let Some(resolver) = &self.electrum {
+            return resolver.broadcast(tx);
+        }
+        #[cfg(feature = "resolver-bitcoinrpc")]
+        if let Some(resolver) = &self.bitcoinrpc {
+            return resolver.broadcast(tx);
+        }
+        NoResolver.call()
+    }
+}
+
+#[derive(Debug, Display, Error, From)]
+#[display(inner)]
+pub enum ResolverError {
+    Io(IoError),
+
+    /// cannot connect to the indexer server.
+    Connectivity,
+
+    /// internal resolver error on the client side.
+    Local,
+
+    /// indexer uses invalid protocol.
+    Protocol,
+
+    /// invalid caller business logic.
+    Logic,
+
+    /// the indexer server has returned an error "{0}"
+    ServerSide(String),
 }

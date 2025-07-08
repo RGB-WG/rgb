@@ -20,7 +20,7 @@ strict_types = "2.9.0"
 commit_verify = "0.12.0-rc.1"
 bp-core = "0.12.0-rc.2"
 bp-std = { version = "0.12.0-rc.2", features = ["client-side-validation"] }
-bp-electrum = "0.12.0-rc.1"
+bp-electrum = { version = "0.12.0-rc.1" }
 bp-esplora = { version = "0.12.0-rc.1", default-features = false, features = ["blocking-https"] }
 rgb-std = { version = "0.12.0-rc.2" }
 rgb-runtime = { version = "0.12.0-rc.2", path = "." }
@@ -56,6 +56,8 @@ amplify = { workspace = true }
 commit_verify = { workspace = true }
 strict_types = { workspace = true }
 bp-std = { workspace = true }
+bp-electrum = { workspace = true, optional = true }
+bp-esplora = { workspace = true, optional = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
 rgb-persist-fs = { workspace = true, optional = true }
@@ -82,6 +84,7 @@ default = ["std"]
 all = [
     "std",
     "serde", "log", "fs",
+    "resolvers-all",
 ]
 std = []
 fs = [
@@ -91,6 +94,13 @@ fs = [
     "dep:rgb-persist-fs",
 ]
 log = ["dep:log"]
+
+resolvers-all = ["resolver-electrum", "resolver-esplora", "resolver-mempool", "resolver-bitcoinrpc"]
+resolver-electrum = ["dep:bp-electrum"]
+resolver-esplora = ["dep:bp-esplora"]
+resolver-mempool = ["dep:bp-esplora"]
+resolver-bitcoinrpc = [] # TODO
+
 serde = [
     "dep:serde", "toml",
     "bp-std/serde", "rgb-std/serde"
