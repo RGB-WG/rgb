@@ -23,7 +23,6 @@
 // the License.
 
 use std::path::PathBuf;
-use std::process::exit;
 use std::{fs, io};
 
 use bpstd::seals::TxoSeal;
@@ -146,10 +145,10 @@ impl Args {
 
     pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<MultiResolver> {
         let resolver = self.resolver(&opts.resolver);
-        let path = self.data_dir().join(opts.wallet_path());
-        let wallet = FileOwner::load(path, self.network, resolver).unwrap_or_else(|_| {
+        let path = self.wallet_dir(opts.wallet.as_deref());
+        let wallet = FileOwner::load(path, self.network, resolver).unwrap_or_else(|err| {
             panic!(
-                "Error: unable to load wallet from path `{}`",
+                "unable to load wallet from path `{}`\nDetails: {err}",
                 self.wallet_dir(opts.wallet.as_deref()).display()
             )
         });
@@ -173,13 +172,7 @@ impl Args {
             (None, None, Some(url)) => {
                 MultiResolver::new_mempool(&url.replace("{network}", &network))
             }
-            _ => {
-                eprintln!(
-                    "Error: no blockchain indexer specified; use either --esplora --mempool or \
-                     --electrum argument"
-                );
-                exit(1);
-            }
+            _ => MultiResolver::new_absent(),
         }
     }
 }

@@ -51,7 +51,7 @@ pub trait UtxoSet {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
 pub struct MemUtxos {
     set: IndexMap<Outpoint, (Sats, Terminal)>,
     next_index: IndexMap<Keychain, NormalIndex>,
@@ -469,7 +469,7 @@ mod test {
             "[set]
 \"0000000000000000000000000000000000000000000000000000000000000000:0\" = [200000000, \"&0/0\"]
 
-[next_index]
+[nextIndex]
 0 = 1
 "
         );

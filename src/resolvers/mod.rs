@@ -24,6 +24,7 @@
 
 use core::convert::Infallible;
 use core::iter;
+use std::process::exit;
 
 use bpstd::psbt::Utxo;
 use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
@@ -51,23 +52,34 @@ impl MultiResolver {
     pub fn new_electrum(_url: &str) -> Self { todo!() }
     pub fn new_esplora(_url: &str) -> Self { todo!() }
     pub fn new_mempool(_url: &str) -> Self { todo!() }
+    pub fn new_absent() -> Self { Self }
+}
+
+impl NoResolver {
+    fn call(&self) -> ! {
+        eprintln!(
+            "Error: no blockchain indexer specified; use either --esplora --mempool or --electrum \
+             argument"
+        );
+        exit(1);
+    }
 }
 
 impl Resolver for NoResolver {
     type Error = Infallible;
 
-    fn resolve_tx(&self, _txid: Txid) -> Result<UnsignedTx, Self::Error> { unimplemented!() }
+    fn resolve_tx(&self, _txid: Txid) -> Result<UnsignedTx, Self::Error> { self.call() }
 
-    fn resolve_tx_status(&self, _txid: Txid) -> Result<WitnessStatus, Self::Error> {
-        unimplemented!()
-    }
+    fn resolve_tx_status(&self, _txid: Txid) -> Result<WitnessStatus, Self::Error> { self.call() }
 
     fn resolve_utxos(
         &self,
         _iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> Result<impl Iterator<Item = Utxo>, Self::Error> {
+        self.call();
+        #[allow(unreachable_code)]
         Ok(iter::empty())
     }
 
-    fn broadcast(&self, _tx: &Tx) -> Result<(), Self::Error> { unimplemented!() }
+    fn broadcast(&self, _tx: &Tx) -> Result<(), Self::Error> { self.call() }
 }

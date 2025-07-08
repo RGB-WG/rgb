@@ -107,8 +107,7 @@ impl Args {
             }
 
             Cmd::Sync { wallet, resolver } => {
-                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let indexer = self.resolver(resolver);
+                let mut runtime = self.runtime(&WalletOpts::with(wallet, resolver));
                 runtime.sync()?;
                 println!();
             }
@@ -254,7 +253,6 @@ impl Args {
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet);
                 if wallet.sync {
-                    let indexer = self.resolver(&wallet.resolver);
                     runtime.sync()?;
                     println!();
                 }
