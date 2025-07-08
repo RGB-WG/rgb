@@ -284,6 +284,11 @@ where
 
         Ok(psbt)
     }
+
+    pub fn finalize(&mut self, mut psbt: Psbt) -> Result<(), ()> {
+        psbt.finalize(self.wallet.descriptor());
+        let tx = psbt.extract()?;
+    }
 }
 
 #[derive(Debug, Display, Error, From)]
