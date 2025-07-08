@@ -23,8 +23,9 @@
 // the License.
 
 use core::ops::{Deref, DerefMut};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
+use amplify::confinement::KeyedCollection;
 use amplify::MultiError;
 use bpstd::psbt::{
     Beneficiary, ConstructionError, DbcPsbtError, PsbtConstructor, PsbtMeta, TxParams,
@@ -37,7 +38,10 @@ use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
     RgbWallet, WalletProvider,
 };
-use rgb::{AuthToken, ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile};
+use rgb::{
+    AuthToken, CodexId, Contract, ContractId, Contracts, EitherSeal, Issuer, Pile, RgbSealDef,
+    Stock, Stockpile,
+};
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
 use crate::CoinselectStrategy;
@@ -61,58 +65,74 @@ pub struct Payment {
 /// - low-level methods for working with PSBTs using `bp-std` library (these methods utilize
 ///   [`rgb-psbt`] crate) - like [`Self::compose_psbt`] and [`Self::color_psbt`];
 /// - high-level payment methods ([`Self::pay`], [`Self::rbf`]) relaying on the above.
-// TODO: Support Sp generics
-pub struct RgbRuntime<W, Sp>(RgbWallet<W, Sp>)
-where
-    W: WalletProvider,
-    Sp: Stockpile,
-    Sp::Pile: Pile<Seal = TxoSeal>;
-
-impl<W, Sp> From<RgbWallet<W, Sp>> for RgbRuntime<W, Sp>
+pub struct RgbRuntime<
+    W,
+    Sp,
+    S = HashMap<CodexId, Issuer>,
+    C = HashMap<ContractId, Contract<<Sp as Stockpile>::Stock, <Sp as Stockpile>::Pile>>,
+>(RgbWallet<W, Sp, S, C>)
 where
     W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>;
+
+impl<W, Sp, S, C> From<RgbWallet<W, Sp, S, C>> for RgbRuntime<W, Sp, S, C>
+where
+    W: WalletProvider,
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
-    fn from(wallet: RgbWallet<W, Sp>) -> Self { Self(wallet) }
+    fn from(wallet: RgbWallet<W, Sp, S, C>) -> Self { Self(wallet) }
 }
 
-impl<W, Sp> Deref for RgbRuntime<W, Sp>
+impl<W, Sp, S, C> Deref for RgbRuntime<W, Sp, S, C>
 where
     W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
-    type Target = RgbWallet<W, Sp>;
+    type Target = RgbWallet<W, Sp, S, C>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<W, Sp> DerefMut for RgbRuntime<W, Sp>
+impl<W, Sp, S, C> DerefMut for RgbRuntime<W, Sp, S, C>
 where
     W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<W, Sp> RgbRuntime<W, Sp>
+impl<W, Sp, S, C> RgbRuntime<W, Sp, S, C>
 where
     W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
-    pub fn with_components(wallet: W, contracts: Contracts<Sp>) -> Self {
+    pub fn with_components(wallet: W, contracts: Contracts<Sp, S, C>) -> Self {
         Self(RgbWallet::with_components(wallet, contracts))
     }
-    pub fn into_rgb_wallet(self) -> RgbWallet<W, Sp> { self.0 }
-    pub fn into_components(self) -> (W, Contracts<Sp>) { self.0.into_components() }
+    pub fn into_rgb_wallet(self) -> RgbWallet<W, Sp, S, C> { self.0 }
+    pub fn into_components(self) -> (W, Contracts<Sp, S, C>) { self.0.into_components() }
 }
 
-impl<W, Sp> RgbRuntime<W, Sp>
+impl<W, Sp, S, C> RgbRuntime<W, Sp, S, C>
 where
     W: PsbtConstructor + WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
     /// Pay an invoice producing PSBT ready to be signed.
     ///
