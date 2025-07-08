@@ -41,18 +41,18 @@ jobs:
           - resolvers-all
           - resolver-electrum
           - resolver-esplora
-          - resolver-bitcoinrpc
+          # - resolver-bitcoinrpc
           - resolvers-all-async
           # - resolver-electrum-async
           - resolver-esplora-async
-          - resolver-bitcoinrpc-async
+          # - resolver-bitcoinrpc-async
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Feature ${{matrix.feature}}
-        run: cargo check --workspace --no-default-features --features=${{matrix.feature}}
+        run: cargo check --no-default-features --features=${{matrix.feature}}
       - name: Feature ${{matrix.feature}}
-        run: cargo check --workspace --features=${{matrix.feature}}
+        run: cargo check --features=${{matrix.feature}}
   platforms:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -64,7 +64,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Platform ${{matrix.os}}
-        run: cargo check --workspace --all-features # we skip test targets here to be sure that the main library can be built
+        run: cargo check --workspace --features=all # we skip test targets here to be sure that the main library can be built
+      - name: Platform ${{matrix.os}} async
+        run: cargo check --features=all-async # we skip test targets here to be sure that the main library can be built
   toolchains:
     runs-on: ubuntu-latest
     strategy:

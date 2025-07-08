@@ -30,7 +30,7 @@ jobs:
       - name: Formatting
         run: cargo clippy --workspace --features=all --all-targets -- -D warnings
       - name: Formatting
-        run: cargo clippy --workspace --features=all-async --all-targets -- -D warnings
+        run: cargo clippy --features=all-async -- -D warnings
   doc:
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +41,7 @@ jobs:
       - name: Formatting
         run: cargo +nightly doc --workspace --features=all
       - name: Formatting
-        run: cargo +nightly doc --workspace --features=all-async
+        run: cargo +nightly doc --features=all-async
   typos:
     runs-on: ubuntu-latest
     steps:

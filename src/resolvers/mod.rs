@@ -100,11 +100,19 @@ pub struct NoResolver;
 
 impl NoResolver {
     fn call(&self) -> ! {
-        eprintln!(
-            "Error: no blockchain indexer specified; use either --esplora or --electrum argument"
-        );
         #[cfg(feature = "std")]
-        exit(1);
+        {
+            eprintln!(
+                "Error: no blockchain indexer specified; use either --esplora or --electrum \
+                 argument"
+            );
+            exit(1);
+        }
+        #[cfg(not(feature = "std"))]
+        panic!(
+            "Error: no blockchain indexer, you need to use one of resolver-* features during the \
+             compilation"
+        );
     }
 }
 

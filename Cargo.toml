@@ -117,9 +117,9 @@ resolvers-all-async = [
     "resolver-esplora-async",
     #"resolver-bitcoinrpc-async"
 ]
-#resolver-electrum-async = ["dep:bp-electrum"] # TODO: ["bp-electrum/async"]
-resolver-esplora-async = ["bp-esplora/async", "bp-esplora/async-https", "bp-esplora/tokio"]
-#resolver-bitcoinrpc-async = [] # TODO
+#resolver-electrum-async = ["async", "dep:bp-electrum"] # TODO: ["bp-electrum/async"]
+resolver-esplora-async = ["async", "bp-esplora/async", "bp-esplora/async-https", "bp-esplora/tokio"]
+#resolver-bitcoinrpc-async = ["async"] # TODO
 
 serde = [
     "dep:serde", "toml",
