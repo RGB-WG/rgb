@@ -87,6 +87,10 @@ pub struct Args {
     #[arg(long, global = true, env = RGB_NO_NETWORK_PREFIX_ENV)]
     pub no_network_prefix: bool,
 
+    /// Minimal number of confirmations to consider an operation final
+    #[arg(long, global = true, default_value = "32")]
+    pub min_confirmations: u32,
+
     /// Command to execute
     #[clap(subcommand)]
     pub command: Cmd,
@@ -156,7 +160,9 @@ impl Args {
             RgbpRuntimeDir::from(RgbWallet::with_components(wallet, self.contracts()));
         if opts.sync {
             eprint!("Synchronizing wallet:");
-            runtime.sync().expect("Unable to synchronize wallet");
+            runtime
+                .update(self.min_confirmations)
+                .expect("Unable to synchronize wallet");
             eprintln!(" done");
         }
         runtime

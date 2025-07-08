@@ -51,8 +51,8 @@ impl Resolver for ElectrumResolver {
         if verbose.time.is_none() {
             return Ok(WitnessStatus::Tentative);
         };
-        let last_header = self.0.block_headers_subscribe()?;
-        let height = last_header.height as u64 - verbose.confirmations as u64;
+        let last_height = self.last_block_height()?;
+        let height = last_height as u64 - verbose.confirmations as u64;
         let Some(height) = NonZeroU64::new(height) else {
             return Ok(WitnessStatus::Genesis);
         };
@@ -77,6 +77,10 @@ impl Resolver for ElectrumResolver {
                     })
                     .collect::<Vec<_>>(),
             })
+    }
+
+    fn last_block_height(&self) -> Result<u64, ResolverError> {
+        Ok(self.0.block_headers_subscribe()?.height as u64)
     }
 
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {

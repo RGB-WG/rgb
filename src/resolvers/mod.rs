@@ -53,6 +53,8 @@ pub trait Resolver {
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>>;
 
+    fn last_block_height(&self) -> Result<u64, ResolverError>;
+
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError>;
 }
 
@@ -96,6 +98,8 @@ impl Resolver for NoResolver {
         #[allow(unreachable_code)]
         iter::empty()
     }
+
+    fn last_block_height(&self) -> Result<u64, ResolverError> { self.call() }
 
     fn broadcast(&self, _tx: &Tx) -> Result<(), ResolverError> { self.call() }
 }
@@ -172,6 +176,26 @@ impl Resolver for MultiResolver {
         #[cfg(feature = "resolver-bitcoinrpc")]
         if let Some(resolver) = &self.bitcoinrpc {
             return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
+        }
+        NoResolver.call()
+    }
+
+    fn last_block_height(&self) -> Result<u64, ResolverError> {
+        #[cfg(feature = "resolver-mempool")]
+        if let Some(resolver) = &self.mempool {
+            return resolver.last_block_height();
+        }
+        #[cfg(feature = "resolver-esplora")]
+        if let Some(resolver) = &self.esplora {
+            return resolver.last_block_height();
+        }
+        #[cfg(feature = "resolver-electrum")]
+        if let Some(resolver) = &self.electrum {
+            return resolver.last_block_height();
+        }
+        #[cfg(feature = "resolver-bitcoinrpc")]
+        if let Some(resolver) = &self.bitcoinrpc {
+            return resolver.last_block_height();
         }
         NoResolver.call()
     }

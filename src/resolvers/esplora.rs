@@ -103,6 +103,8 @@ impl Resolver for EsploraResolver {
         iter::empty()
     }
 
+    fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.inner.height()? as u64) }
+
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
         self.inner.broadcast(tx)?;
         Ok(())

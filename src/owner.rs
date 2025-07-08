@@ -142,7 +142,7 @@ where
 
     fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
 
-    fn sync_utxos(&mut self) -> Result<(), Self::Error> {
+    fn update_utxos(&mut self) -> Result<(), Self::Error> {
         self.utxos.clear();
         for keychain in self.descriptor.keychains() {
             let mut index = NormalIndex::ZERO;
@@ -212,6 +212,8 @@ where
     fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
         |txid: Txid| self.resolver.resolve_tx_status(txid)
     }
+
+    fn last_block_height(&self) -> Result<u64, Self::Error> { self.resolver.last_block_height() }
 
     fn broadcast(&mut self, tx: &Tx, change: Option<(Vout, u32, u32)>) -> Result<(), Self::Error> {
         self.resolver.broadcast(tx)?;
@@ -369,7 +371,7 @@ pub mod file {
         #[inline]
         fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.owner.utxos() }
         #[inline]
-        fn sync_utxos(&mut self) -> Result<(), Self::Error> { self.owner.sync_utxos() }
+        fn update_utxos(&mut self) -> Result<(), Self::Error> { self.owner.update_utxos() }
         #[inline]
         fn register_seal(&mut self, seal: WTxoSeal) { self.owner.register_seal(seal) }
         #[inline]
@@ -389,6 +391,9 @@ pub mod file {
         fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
             self.owner.txid_resolver()
         }
+        #[inline]
+        fn last_block_height(&self) -> Result<u64, Self::Error> { self.owner.last_block_height() }
+
         #[inline]
         fn broadcast(
             &mut self,
