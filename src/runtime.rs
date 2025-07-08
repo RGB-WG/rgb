@@ -309,6 +309,7 @@ where
         Ok(psbt)
     }
 
+    #[allow(clippy::type_complexity)]
     fn finalize_inner(
         &mut self,
         mut psbt: Psbt,

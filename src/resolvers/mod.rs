@@ -24,15 +24,10 @@
 
 #[cfg(feature = "resolver-electrum")]
 mod electrum;
-#[cfg(any(
-    feature = "resolver-esplora",
-    feature = "resolver-mempool",
-    feature = "resolver-esplora-async",
-    feature = "resolver-mempool-async"
-))]
+#[cfg(any(feature = "resolver-esplora", feature = "resolver-esplora-async",))]
 mod esplora;
-#[cfg(any(feature = "resolver-bitcoinrpc", feature = "resolver-bitcoinrpc-async"))]
-mod bitcoinrpc;
+// #[cfg(any(feature = "resolver-bitcoinrpc", feature = "resolver-bitcoinrpc-async"))]
+// mod bitcoinrpc;
 
 use core::iter;
 #[cfg(feature = "std")]
@@ -49,12 +44,8 @@ use rgb::WitnessStatus;
 pub use self::electrum::ElectrumResolver;
 #[cfg(feature = "resolver-esplora-async")]
 pub use self::esplora::EsploraAsyncResolver;
-#[cfg(feature = "resolver-mempool-async")]
-pub use self::esplora::EsploraAsyncResolver as MempoolAsyncResolver;
 #[cfg(feature = "resolver-esplora")]
 pub use self::esplora::EsploraResolver;
-#[cfg(feature = "resolver-mempool")]
-pub use self::esplora::EsploraResolver as MempoolResolver;
 
 #[cfg(not(feature = "async"))]
 pub trait Resolver {
@@ -92,20 +83,16 @@ pub struct MultiResolver {
     electrum: Option<ElectrumResolver>,
     #[cfg(feature = "resolver-esplora")]
     esplora: Option<EsploraResolver>,
-    #[cfg(feature = "resolver-mempool")]
-    mempool: Option<MempoolResolver>,
-    #[cfg(feature = "resolver-bitcoinrpc")]
     // TODO: Implement Bitcoin RPC resolver
-    bitcoinrpc: Option<NoResolver>,
+    // #[cfg(feature = "resolver-bitcoinrpc")]
+    // bitcoinrpc: Option<NoResolver>,
 
     //#[cfg(feature = "resolver-electrum-async")]
     //electrum: Option<ElectrumAsyncResolver>,
     #[cfg(feature = "resolver-esplora-async")]
     esplora: Option<EsploraAsyncResolver>,
-    #[cfg(feature = "resolver-mempool-async")]
-    mempool: Option<MempoolAsyncResolver>,
-    #[cfg(feature = "resolver-bitcoinrpc-async")]
-    bitcoinrpc: Option<NoResolver>,
+    // #[cfg(feature = "resolver-bitcoinrpc-async")]
+    // bitcoinrpc: Option<NoResolver>,
 }
 
 #[derive(Copy, Clone)]
@@ -114,8 +101,7 @@ pub struct NoResolver;
 impl NoResolver {
     fn call(&self) -> ! {
         eprintln!(
-            "Error: no blockchain indexer specified; use either --esplora --mempool or --electrum \
-             argument"
+            "Error: no blockchain indexer specified; use either --esplora or --electrum argument"
         );
         #[cfg(feature = "std")]
         exit(1);
@@ -160,23 +146,25 @@ impl Resolver for NoResolver {
 
 impl MultiResolver {
     #[cfg(feature = "resolver-electrum")]
-    pub fn new_electrum(_url: &str) -> Self { todo!() }
+    pub fn new_electrum(url: &str) -> Result<Self, ResolverError> {
+        Ok(Self { electrum: Some(ElectrumResolver::new(url)?), ..default!() })
+    }
     #[cfg(feature = "resolver-esplora")]
-    pub fn new_esplora(_url: &str) -> Self { todo!() }
-    #[cfg(feature = "resolver-mempool")]
-    pub fn new_mempool(_url: &str) -> Self { todo!() }
-    #[cfg(feature = "resolver-bitcoinrpc")]
-    pub fn new_bitcoinrpc(_url: &str) -> Self { todo!() }
-    pub fn new_absent() -> Self { Self::default() }
+    pub fn new_esplora(url: &str) -> Result<Self, ResolverError> {
+        Ok(Self { esplora: Some(EsploraResolver::new(url)?), ..default!() })
+    }
+    #[cfg(feature = "resolver-esplora-async")]
+    pub fn new_esplora(url: &str) -> Result<Self, ResolverError> {
+        Ok(Self { esplora: Some(EsploraAsyncResolver::new(url)?), ..default!() })
+    }
+    // #[cfg(feature = "resolver-bitcoinrpc")]
+    // pub fn new_bitcoinrpc(_url: &str) -> Result<Self, ResolverError> { todo!() }
+    pub fn new_absent() -> Result<Self, ResolverError> { Ok(Self::default()) }
 }
 
 #[cfg(not(feature = "async"))]
 impl Resolver for MultiResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        #[cfg(feature = "resolver-mempool")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.resolve_tx(txid);
-        }
         #[cfg(feature = "resolver-esplora")]
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_tx(txid);
@@ -185,18 +173,14 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.electrum {
             return resolver.resolve_tx(txid);
         }
-        #[cfg(feature = "resolver-bitcoinrpc")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.resolve_tx(txid);
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.resolve_tx(txid);
+        // }
         NoResolver.call()
     }
 
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        #[cfg(feature = "resolver-mempool")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.resolve_tx_status(txid);
-        }
         #[cfg(feature = "resolver-esplora")]
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_tx_status(txid);
@@ -205,10 +189,10 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.electrum {
             return resolver.resolve_tx_status(txid);
         }
-        #[cfg(feature = "resolver-bitcoinrpc")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.resolve_tx_status(txid);
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.resolve_tx_status(txid);
+        // }
         NoResolver.call()
     }
 
@@ -216,10 +200,6 @@ impl Resolver for MultiResolver {
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        #[cfg(feature = "resolver-mempool")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
-        }
         #[cfg(feature = "resolver-esplora")]
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
@@ -228,18 +208,14 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.electrum {
             return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
         }
-        #[cfg(feature = "resolver-bitcoinrpc")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
+        // }
         NoResolver.call()
     }
 
     fn last_block_height(&self) -> Result<u64, ResolverError> {
-        #[cfg(feature = "resolver-mempool")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.last_block_height();
-        }
         #[cfg(feature = "resolver-esplora")]
         if let Some(resolver) = &self.esplora {
             return resolver.last_block_height();
@@ -248,18 +224,14 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.electrum {
             return resolver.last_block_height();
         }
-        #[cfg(feature = "resolver-bitcoinrpc")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.last_block_height();
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.last_block_height();
+        // }
         NoResolver.call()
     }
 
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
-        #[cfg(feature = "resolver-mempool")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.broadcast(tx);
-        }
         #[cfg(feature = "resolver-esplora")]
         if let Some(resolver) = &self.esplora {
             return resolver.broadcast(tx);
@@ -268,10 +240,10 @@ impl Resolver for MultiResolver {
         if let Some(resolver) = &self.electrum {
             return resolver.broadcast(tx);
         }
-        #[cfg(feature = "resolver-bitcoinrpc")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.broadcast(tx);
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.broadcast(tx);
+        // }
         NoResolver.call()
     }
 }
@@ -279,10 +251,6 @@ impl Resolver for MultiResolver {
 #[cfg(feature = "async")]
 impl Resolver for MultiResolver {
     async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        #[cfg(feature = "resolver-mempool-async")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.resolve_tx_async(txid).await;
-        }
         #[cfg(feature = "resolver-esplora-async")]
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_tx_async(txid).await;
@@ -291,18 +259,14 @@ impl Resolver for MultiResolver {
         // if let Some(resolver) = &self.electrum {
         //     return resolver.resolve_tx_async(txid).await;
         // }
-        #[cfg(feature = "resolver-bitcoinrpc-async")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.resolve_tx_async(txid).await;
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc-async")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.resolve_tx_async(txid).await;
+        // }
         NoResolver.call()
     }
 
     async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        #[cfg(feature = "resolver-mempool-async")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.resolve_tx_status_async(txid).await;
-        }
         #[cfg(feature = "resolver-esplora-async")]
         if let Some(resolver) = &self.esplora {
             return resolver.resolve_tx_status_async(txid).await;
@@ -311,10 +275,10 @@ impl Resolver for MultiResolver {
         // if let Some(resolver) = &self.electrum {
         //     return resolver.resolve_tx_status_async(txid).await;
         // }
-        #[cfg(feature = "resolver-bitcoinrpc-async")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.resolve_tx_status_async(txid).await;
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc-async")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.resolve_tx_status_async(txid).await;
+        // }
         NoResolver.call()
     }
 
@@ -322,14 +286,6 @@ impl Resolver for MultiResolver {
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        #[cfg(feature = "resolver-mempool-async")]
-        if let Some(resolver) = &self.mempool {
-            return resolver
-                .resolve_utxos_async(iter)
-                .await
-                .collect::<Vec<_>>()
-                .into_iter();
-        }
         #[cfg(feature = "resolver-esplora-async")]
         if let Some(resolver) = &self.esplora {
             return resolver
@@ -346,22 +302,18 @@ impl Resolver for MultiResolver {
         //         .collect::<Vec<_>>()
         //         .into_iter();
         // }
-        #[cfg(feature = "resolver-bitcoinrpc-async")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver
-                .resolve_utxos_async(iter)
-                .await
-                .collect::<Vec<_>>()
-                .into_iter();
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc-async")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver
+        //         .resolve_utxos_async(iter)
+        //         .await
+        //         .collect::<Vec<_>>()
+        //         .into_iter();
+        // }
         NoResolver.call()
     }
 
     async fn last_block_height_async(&self) -> Result<u64, ResolverError> {
-        #[cfg(feature = "resolver-mempool-async")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.last_block_height_async().await;
-        }
         #[cfg(feature = "resolver-esplora-async")]
         if let Some(resolver) = &self.esplora {
             return resolver.last_block_height_async().await;
@@ -370,18 +322,14 @@ impl Resolver for MultiResolver {
         // if let Some(resolver) = &self.electrum {
         //     return resolver.last_block_height_async().await;
         // }
-        #[cfg(feature = "resolver-bitcoinrpc-async")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.last_block_height_async().await;
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc-async")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.last_block_height_async().await;
+        // }
         NoResolver.call()
     }
 
     async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> {
-        #[cfg(feature = "resolver-mempool-async")]
-        if let Some(resolver) = &self.mempool {
-            return resolver.broadcast_async(tx).await;
-        }
         #[cfg(feature = "resolver-esplora-async")]
         if let Some(resolver) = &self.esplora {
             return resolver.broadcast_async(tx).await;
@@ -390,10 +338,10 @@ impl Resolver for MultiResolver {
         // if let Some(resolver) = &self.electrum {
         //     return resolver.broadcast_async(tx).await;
         // }
-        #[cfg(feature = "resolver-bitcoinrpc-async")]
-        if let Some(resolver) = &self.bitcoinrpc {
-            return resolver.broadcast_async(tx).await;
-        }
+        // #[cfg(feature = "resolver-bitcoinrpc-async")]
+        // if let Some(resolver) = &self.bitcoinrpc {
+        //     return resolver.broadcast_async(tx).await;
+        // }
         NoResolver.call()
     }
 }

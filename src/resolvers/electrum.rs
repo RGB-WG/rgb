@@ -34,6 +34,10 @@ use super::{Resolver, ResolverError};
 
 pub struct ElectrumResolver(ElectrumClient);
 
+impl ElectrumResolver {
+    pub fn new(url: &str) -> Result<Self, ResolverError> { Ok(Self(ElectrumClient::new(url)?)) }
+}
+
 impl Resolver for ElectrumResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
         let tx = self.0.transaction_get(&txid)?;
@@ -51,7 +55,7 @@ impl Resolver for ElectrumResolver {
             return Ok(WitnessStatus::Tentative);
         };
         let last_height = self.last_block_height()?;
-        let height = last_height as u64 - verbose.confirmations as u64;
+        let height = last_height - verbose.confirmations as u64;
         let Some(height) = NonZeroU64::new(height) else {
             return Ok(WitnessStatus::Genesis);
         };

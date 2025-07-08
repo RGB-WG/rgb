@@ -41,12 +41,10 @@ jobs:
           - resolvers-all
           - resolver-electrum
           - resolver-esplora
-          - resolver-mempool
           - resolver-bitcoinrpc
           - resolvers-all-async
           # - resolver-electrum-async
           - resolver-esplora-async
-          - resolver-mempool-async
           - resolver-bitcoinrpc-async
     steps:
       - uses: actions/checkout@v4

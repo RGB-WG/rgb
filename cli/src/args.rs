@@ -170,15 +170,11 @@ impl Args {
 
     pub fn resolver(&self, resolver: &ResolverOpt) -> MultiResolver {
         let network = self.network.to_string();
-        match (&resolver.esplora, &resolver.electrum, &resolver.mempool) {
-            (None, Some(url), None) => MultiResolver::new_electrum(url),
-            (Some(url), None, None) => {
-                MultiResolver::new_esplora(&url.replace("{network}", &network))
-            }
-            (None, None, Some(url)) => {
-                MultiResolver::new_mempool(&url.replace("{network}", &network))
-            }
+        match (&resolver.esplora, &resolver.electrum) {
+            (None, Some(url)) => MultiResolver::new_electrum(url),
+            (Some(url), None) => MultiResolver::new_esplora(&url.replace("{network}", &network)),
             _ => MultiResolver::new_absent(),
         }
+        .expect("Unable to connect to the indexing server")
     }
 }

@@ -103,20 +103,23 @@ fs = [
 ]
 log = ["dep:log"]
 
-resolvers-all = ["resolver-electrum", "resolver-esplora", "resolver-mempool", "resolver-bitcoinrpc"]
+resolvers-all = [
+    "resolver-electrum",
+    "resolver-esplora",
+    #"resolver-bitcoinrpc"
+]
 resolver-electrum = ["dep:bp-electrum"]
 resolver-esplora = ["bp-esplora/blocking-https"]
-resolver-mempool = ["resolver-esplora"]
-resolver-bitcoinrpc = [] # TODO
+#resolver-bitcoinrpc = [] # TODO
 
 resolvers-all-async = [
     #"resolver-electrum-async",
-    "resolver-esplora-async", "resolver-mempool-async", "resolver-bitcoinrpc-async"
+    "resolver-esplora-async",
+    #"resolver-bitcoinrpc-async"
 ]
 #resolver-electrum-async = ["dep:bp-electrum"] # TODO: ["bp-electrum/async"]
 resolver-esplora-async = ["bp-esplora/async", "bp-esplora/async-https", "bp-esplora/tokio"]
-resolver-mempool-async = ["resolver-esplora-async"]
-resolver-bitcoinrpc-async = [] # TODO
+#resolver-bitcoinrpc-async = [] # TODO
 
 serde = [
     "dep:serde", "toml",

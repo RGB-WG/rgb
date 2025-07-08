@@ -35,28 +35,49 @@ use rgb::{Outpoint, WitnessStatus};
 
 use super::{Resolver, ResolverError};
 
-/// Represents the kind of client used for interacting with the Esplora indexer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-enum ClientKind {
-    #[default]
-    Esplora,
-    #[cfg(any(feature = "resolver-mempool", feature = "resolver-mempool-async"))]
-    Mempool,
-}
+#[cfg(not(feature = "async"))]
+pub struct EsploraResolver(EsploraClient);
+
+#[cfg(feature = "async")]
+pub struct EsploraAsyncResolver(EsploraAsyncClient);
 
 #[cfg(not(feature = "async"))]
-pub struct EsploraResolver {
-    inner: EsploraClient,
-    kind: ClientKind,
+impl EsploraResolver {
+    /// Creates a new Esplora client with the specified URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL of the Esplora server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the client fails to connect to the Esplora server.
+    pub fn new(url: &str) -> Result<Self, ResolverError> {
+        let inner = esplora::Builder::new(url).build_blocking()?;
+        let client = Self(inner);
+        Ok(client)
+    }
 }
 
 #[cfg(feature = "async")]
-pub struct EsploraAsyncResolver {
-    inner: EsploraAsyncClient,
-    kind: ClientKind,
+impl EsploraAsyncResolver {
+    /// Creates a new Esplora client with the specified URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL of the Esplora server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the client fails to connect to the Esplora server.
+    pub fn new(url: &str) -> Result<Self, ResolverError> {
+        let inner = esplora::Builder::new(url).build_async()?;
+        let client = Self(inner);
+        Ok(client)
+    }
 }
 
-fn convert_esplora_status(status: TxStatus) -> WitnessStatus {
+fn convert_status(status: TxStatus) -> WitnessStatus {
     if !status.confirmed {
         return WitnessStatus::Tentative;
     }
@@ -73,13 +94,13 @@ fn convert_esplora_status(status: TxStatus) -> WitnessStatus {
 #[cfg(not(feature = "async"))]
 impl Resolver for EsploraResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        let tx = self.inner.tx(&txid)?;
+        let tx = self.0.tx(&txid)?;
         Ok(tx.map(UnsignedTx::with_sigs_removed))
     }
 
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        let status = self.inner.tx_status(&txid)?;
-        Ok(convert_esplora_status(status))
+        let status = self.0.tx_status(&txid)?;
+        Ok(convert_status(status))
     }
 
     fn resolve_utxos(
@@ -87,7 +108,7 @@ impl Resolver for EsploraResolver {
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
         iter.into_iter()
-            .flat_map(|(terminal, spk)| match self.inner.scripthash_utxo(&spk) {
+            .flat_map(|(terminal, spk)| match self.0.scripthash_utxo(&spk) {
                 Err(err) => vec![Err(ResolverError::from(err))],
                 Ok(list) => list
                     .into_iter()
@@ -105,10 +126,10 @@ impl Resolver for EsploraResolver {
             })
     }
 
-    fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.inner.height()? as u64) }
+    fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.0.height()? as u64) }
 
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
-        self.inner.broadcast(tx)?;
+        self.0.broadcast(tx)?;
         Ok(())
     }
 }
@@ -116,13 +137,13 @@ impl Resolver for EsploraResolver {
 #[cfg(feature = "async")]
 impl Resolver for EsploraAsyncResolver {
     async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        let tx = self.inner.tx(&txid).await?;
+        let tx = self.0.tx(&txid).await?;
         Ok(tx.map(UnsignedTx::with_sigs_removed))
     }
 
     async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        let status = self.inner.tx_status(&txid).await?;
-        Ok(convert_esplora_status(status))
+        let status = self.0.tx_status(&txid).await?;
+        Ok(convert_status(status))
     }
 
     async fn resolve_utxos_async(
@@ -131,7 +152,7 @@ impl Resolver for EsploraAsyncResolver {
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
         let mut utxos = Vec::new();
         for (terminal, spk) in iter {
-            match self.inner.scripthash_utxo(&spk).await {
+            match self.0.scripthash_utxo(&spk).await {
                 Err(err) => utxos.push(Err(ResolverError::from(err))),
                 Ok(list) => utxos.extend(list.into_iter().map(|utxo| {
                     Ok(Utxo {
@@ -146,11 +167,11 @@ impl Resolver for EsploraAsyncResolver {
     }
 
     async fn last_block_height_async(&self) -> Result<u64, ResolverError> {
-        Ok(self.inner.height().await? as u64)
+        Ok(self.0.height().await? as u64)
     }
 
     async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> {
-        self.inner.broadcast(tx).await?;
+        self.0.broadcast(tx).await?;
         Ok(())
     }
 }
