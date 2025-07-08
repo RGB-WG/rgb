@@ -24,15 +24,14 @@
 
 use std::path::PathBuf;
 
-use bpwallet::cli::ResolverOpt;
-use bpwallet::Sats;
+use bpstd::Sats;
 use clap::ValueHint;
 use rgb::invoice::RgbInvoice;
 use rgb::{AuthToken, CodexId, ContractId, ContractRef, MethodName, StateName};
 use rgbp::CoinselectStrategy;
 use strict_encoding::TypeName;
 
-use crate::opts::WalletOpts;
+use crate::opts::{ResolverOpt, WalletOpts};
 
 pub const RGB_COINSELECT_STRATEGY_ENV: &str = "RGB_COINSELECT_STRATEGY";
 pub const RGB_WALLET_ENV: &str = "RGB_WALLET";

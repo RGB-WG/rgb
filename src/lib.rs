@@ -37,13 +37,15 @@ pub mod descriptor;
 mod owner;
 mod coinselect;
 mod runtime;
-mod payment;
 mod info;
+pub mod resolvers;
 
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
-pub use owner::Owner;
-pub use payment::Payment;
+#[cfg(feature = "fs")]
+pub use owner::file::FileOwner;
+pub use owner::{MemUtxos, Owner, UtxoSet};
+pub use resolvers::Resolver;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
-pub use runtime::{PayError, RgbRuntime, SyncError, TransferError, WalletUpdater};
+pub use runtime::{FinalizeError, PayError, Payment, RgbRuntime, TransferError};

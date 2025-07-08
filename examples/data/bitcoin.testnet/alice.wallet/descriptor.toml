@@ -1,11 +1,6 @@
-network = "testnet4"
-
-[generator]
 seals = []
 noise = "84ddd1f3abf251b47c878b454c94733a7408ff8938c891ee04760b42ff5aff01"
 nonce = 0
 
-[generator.deriver.opretOnly]
+[deriver.opretOnly]
 wpkh = "[cf05f8ea/84h/1h/0h]tpubDCpZeo9QAvMetovHqqqMgzRnWU2Wy5cgZUG9g3v6SJLihmARTw2sSNga8xfZTqqAFJpoTgEnVjwLjUEmf36GZ2gzba5w3GbjDbxLitzDGZA/<0;1>/*"
-
-[layer2]
