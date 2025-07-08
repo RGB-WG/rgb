@@ -50,7 +50,7 @@ pub trait UtxoSet {
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MemUtxos {
     set: IndexMap<Outpoint, (Sats, Terminal)>,
@@ -88,11 +88,12 @@ impl UtxoSet for MemUtxos {
     }
 
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        let next = self.next_index.entry(keychain.into()).or_default();
+        let index = self.next_index.entry(keychain.into()).or_default();
+        let next = *index;
         if shift {
-            next.saturating_inc_assign();
+            index.saturating_inc_assign();
         }
-        *next
+        next
     }
 }
 
@@ -270,9 +271,10 @@ where
 
 #[cfg(feature = "fs")]
 pub mod file {
-    use std::io;
+    use std::io::{Read, Write};
     use std::ops::{Deref, DerefMut};
     use std::path::{Path, PathBuf};
+    use std::{fs, io};
 
     use super::*;
 
@@ -292,9 +294,65 @@ pub mod file {
     }
 
     impl<R: Resolver> FileOwner<R> {
-        pub fn create(path: PathBuf) -> io::Result<Self> { todo!() }
-        pub fn load(path: PathBuf) -> io::Result<Self> { todo!() }
-        pub fn save(&self) -> io::Result<()> { todo!() }
+        const DESCRIPTOR_FILENAME: &'static str = "descriptor.toml";
+        const UTXO_FILENAME: &'static str = "utxo.toml";
+
+        pub fn create(
+            path: PathBuf,
+            network: Network,
+            descriptor: RgbDescr,
+            resolver: R,
+        ) -> io::Result<Self> {
+            fs::create_dir_all(&path)?;
+
+            let mut file = fs::File::create_new(&path.join(Self::DESCRIPTOR_FILENAME))?;
+            let ser = toml::to_string(&descriptor)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+            file.write_all(ser.as_bytes())?;
+
+            let mut file = fs::File::create_new(&path.join(Self::UTXO_FILENAME))?;
+            let utxos = MemUtxos::default();
+            let ser = toml::to_string(&utxos)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+            file.write_all(ser.as_bytes())?;
+
+            let owner = Owner::with_components(network, descriptor, resolver, utxos);
+            Ok(Self { owner, path })
+        }
+
+        pub fn load(path: PathBuf, network: Network, resolver: R) -> io::Result<Self> {
+            let mut file = fs::File::open(&path.join(Self::DESCRIPTOR_FILENAME))?;
+            let mut deser = String::new();
+            file.read_to_string(&mut deser)?;
+            let descriptor: RgbDescr = toml::from_str(&deser)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+
+            let mut file = fs::File::open(&path.join(Self::UTXO_FILENAME))?;
+            let mut deser = String::new();
+            file.read_to_string(&mut deser)?;
+            let utxos: MemUtxos = toml::from_str(&deser)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+
+            let owner = Owner::with_components(network, descriptor, resolver, utxos);
+            Ok(Self { owner, path })
+        }
+
+        pub fn save(&self) -> io::Result<()> {
+            fs::create_dir_all(&self.path)?;
+
+            let mut file = fs::File::create(&self.path.join(Self::DESCRIPTOR_FILENAME))?;
+            let ser = toml::to_string(&self.descriptor)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+            file.write_all(ser.as_bytes())?;
+
+            let mut file = fs::File::create(&self.path.join(Self::UTXO_FILENAME))?;
+            let ser = toml::to_string(&self.utxos)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+            file.write_all(ser.as_bytes())?;
+
+            Ok(())
+        }
+
         pub fn path(&self) -> &Path { &self.path }
     }
 
@@ -304,5 +362,119 @@ pub mod file {
                 eprintln!("Error: unable to save wallet data. Details: {err}");
             }
         }
+    }
+
+    impl<R: Resolver> WalletProvider for FileOwner<R> {
+        type Error = R::Error;
+        #[inline]
+        fn has_utxo(&self, outpoint: Outpoint) -> bool { self.owner.has_utxo(outpoint) }
+        #[inline]
+        fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.owner.utxos() }
+        #[inline]
+        fn sync_utxos(&mut self) -> Result<(), Self::Error> { self.owner.sync_utxos() }
+        #[inline]
+        fn register_seal(&mut self, seal: WTxoSeal) { self.owner.register_seal(seal) }
+        #[inline]
+        fn resolve_seals(
+            &self,
+            seals: impl Iterator<Item = AuthToken>,
+        ) -> impl Iterator<Item = WTxoSeal> {
+            self.owner.resolve_seals(seals)
+        }
+        #[inline]
+        fn noise_seed(&self) -> Bytes32 { self.owner.noise_seed() }
+        #[inline]
+        fn next_address(&mut self) -> Address { self.owner.next_address() }
+        #[inline]
+        fn next_nonce(&mut self) -> u64 { self.owner.next_nonce() }
+        #[inline]
+        fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
+            self.owner.txid_resolver()
+        }
+        #[inline]
+        fn broadcast(
+            &mut self,
+            tx: &Tx,
+            change: Option<(Vout, u32, u32)>,
+        ) -> Result<(), Self::Error> {
+            self.owner.broadcast(tx, change)
+        }
+    }
+
+    impl<R: Resolver> PsbtConstructor for FileOwner<R> {
+        type Key = XpubDerivable;
+        type Descr = RgbDescr<XpubDerivable>;
+
+        #[inline]
+        fn descriptor(&self) -> &Self::Descr { self.owner.descriptor() }
+        #[inline]
+        fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.owner.prev_tx(txid) }
+        #[inline]
+        fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
+            self.owner.utxo(outpoint)
+        }
+        #[inline]
+        fn network(&self) -> Network { self.owner.network }
+        #[inline]
+        fn next_derivation_index(
+            &mut self,
+            keychain: impl Into<Keychain>,
+            shift: bool,
+        ) -> NormalIndex {
+            self.owner.next_derivation_index(keychain, shift)
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn setup() -> MemUtxos {
+        let mut utxo = MemUtxos::default();
+        let next = utxo.next_index(Keychain::OUTER, true);
+        utxo.insert(Outpoint::coinbase(), Sats::from_btc(2), Terminal::new(Keychain::OUTER, next));
+        utxo
+    }
+
+    #[test]
+    fn mem_utxo_next_index() {
+        let mut utxo = MemUtxos::default();
+        let next = utxo.next_index(Keychain::OUTER, true);
+        assert_eq!(next, NormalIndex::ZERO);
+
+        let next = utxo.next_index(Keychain::OUTER, false);
+        assert_eq!(next, NormalIndex::ONE);
+
+        let next = utxo.next_index(Keychain::OUTER, false);
+        assert_eq!(next, NormalIndex::ONE);
+    }
+
+    #[test]
+    fn mem_utxo_insert() {
+        let utxo = setup();
+        assert!(utxo.has(Outpoint::coinbase()));
+        assert_eq!(
+            utxo.get(Outpoint::coinbase()),
+            Some((Sats::from_btc(2), Terminal::new(Keychain::OUTER, NormalIndex::ZERO)))
+        );
+    }
+
+    #[test]
+    fn mem_utxo_serde() {
+        let utxo = setup();
+        let s = toml::to_string(&utxo).unwrap();
+        assert_eq!(
+            s,
+            "[set]
+\"0000000000000000000000000000000000000000000000000000000000000000:0\" = [200000000, \"&0/0\"]
+
+[next_index]
+0 = 1
+"
+        );
+
+        let utxo2 = toml::from_str(&s).unwrap();
+        assert_eq!(utxo, utxo2);
     }
 }
