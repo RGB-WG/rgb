@@ -96,6 +96,10 @@ impl UtxoSet for MemUtxos {
     }
 }
 
+/// Owner structure represents a holder of an RGB wallet, which keeps information of the wallet
+/// descriptor and UTXO set. It doesn't know anything about RGB contracts, though (and that's why
+/// it is not a full wallet) and is used as a component implementing [`WalletProvider`] inside
+/// [`rgbstd::RgbWallet`] and [`crate::RgbRuntime`].
 #[derive(Clone)]
 pub struct Owner<R, K = XpubDerivable, U = MemUtxos>
 where

@@ -46,6 +46,9 @@ use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
 
 use crate::CoinselectStrategy;
 
+/// Payment structure is used in the process of RBF (replace by fee). It is returned by
+/// [`RgbRuntime::pay_invoice`] method when the original transaction is created, and then must be
+/// provided to [`RgbRuntime::rbf`] to do the RBF transaction.
 #[derive(Clone, Eq, PartialEq, Debug)]
 // TODO: Add Deserialize once implemented in Psbt
 //#[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
@@ -306,6 +309,8 @@ where
         Ok(psbt)
     }
 
+    /// Finalizes PSBT, extracts the signed transaction, broadcasts it and updates wallet UTXO set
+    /// accordingly.
     pub fn finalize(
         &mut self,
         mut psbt: Psbt,
