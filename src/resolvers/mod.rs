@@ -161,6 +161,7 @@ impl MultiResolver {
     pub fn new_esplora(url: &str) -> Result<Self, ResolverError> {
         Ok(Self { esplora: Some(EsploraResolver::new(url)?), ..default!() })
     }
+    #[allow(clippy::needless_update)]
     #[cfg(feature = "resolver-esplora-async")]
     pub fn new_esplora(url: &str) -> Result<Self, ResolverError> {
         Ok(Self { esplora: Some(EsploraAsyncResolver::new(url)?), ..default!() })
@@ -204,6 +205,7 @@ impl Resolver for MultiResolver {
         NoResolver.call()
     }
 
+    #[allow(unreachable_code)]
     fn resolve_utxos(
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
@@ -220,7 +222,8 @@ impl Resolver for MultiResolver {
         // if let Some(resolver) = &self.bitcoinrpc {
         //     return resolver.resolve_utxos(iter).collect::<Vec<_>>().into_iter();
         // }
-        NoResolver.call()
+        NoResolver.call();
+        vec![].into_iter()
     }
 
     fn last_block_height(&self) -> Result<u64, ResolverError> {
@@ -290,6 +293,7 @@ impl Resolver for MultiResolver {
         NoResolver.call()
     }
 
+    #[allow(unreachable_code)]
     async fn resolve_utxos_async(
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
@@ -318,7 +322,8 @@ impl Resolver for MultiResolver {
         //         .collect::<Vec<_>>()
         //         .into_iter();
         // }
-        NoResolver.call()
+        NoResolver.call();
+        vec![].into_iter()
     }
 
     async fn last_block_height_async(&self) -> Result<u64, ResolverError> {

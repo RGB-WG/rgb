@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Test ${{matrix.os}}
-        run: cargo test --workspace --all-features --no-fail-fast
+        run: cargo test --workspace --features=all --no-fail-fast
   wasm-testing:
     runs-on: ubuntu-latest
     steps:
@@ -39,5 +39,5 @@ jobs:
       - name: Add wasm32 target
         run: rustup target add wasm32-unknown-unknown
       - name: Test in headless Chrome
-        run: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack test --headless --chrome --all-features
+        run: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack test --headless --chrome --features=all-async
  
