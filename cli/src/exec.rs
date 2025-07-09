@@ -34,8 +34,8 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
 use rgbp::descriptor::RgbDescr;
-use rgbp::resolvers::NoResolver;
-use rgbp::{ContractInfo, FileOwner, Resolver};
+use rgbp::resolvers::{NoResolver, Resolver};
+use rgbp::{ContractInfo, FileOwner};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -108,7 +108,7 @@ impl Args {
 
             Cmd::Sync { wallet, resolver } => {
                 let mut runtime = self.runtime(&WalletOpts::with(wallet, resolver));
-                runtime.sync()?;
+                runtime.update(self.min_confirmations)?;
                 println!();
             }
 
@@ -253,7 +253,7 @@ impl Args {
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet);
                 if wallet.sync {
-                    runtime.sync()?;
+                    runtime.update(self.min_confirmations)?;
                     println!();
                 }
                 let contract_id = contract
