@@ -58,7 +58,7 @@ pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
 #[cfg(feature = "fs")]
 pub use owner::file::FileOwner;
-pub use owner::{Holder, Owner, OwnerProvider};
+pub use owner::{Holder, MultiHolder, Owner, OwnerProvider};
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
 pub use runtime::{FinalizeError, PayError, Payment, RgbRuntime, TransferError};

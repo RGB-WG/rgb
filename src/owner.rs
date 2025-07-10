@@ -22,14 +22,16 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::collections::HashMap;
 use std::marker::PhantomData;
 
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
 use bpstd::{
-    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
-    NormalIndex, Outpoint, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout, XpubDerivable,
+    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, DescrId, Idx, Keychain,
+    Network, NormalIndex, Outpoint, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout,
+    XpubDerivable,
 };
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
@@ -44,9 +46,6 @@ pub trait OwnerProvider {
         + DeriveCompr
         + DeriveXOnly;
     type UtxoSet: UtxoSet;
-
-    fn from_components(descriptor: RgbDescr<Self::Key>, utxos: Self::UtxoSet) -> Self;
-    fn into_components(self) -> (RgbDescr<Self::Key>, Self::UtxoSet);
 
     fn descriptor(&self) -> &RgbDescr<Self::Key>;
     fn utxos(&self) -> &Self::UtxoSet;
@@ -64,6 +63,17 @@ where
     utxos: U,
 }
 
+impl<K, U> Holder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    #[inline]
+    pub fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
+    #[inline]
+    pub fn into_components(self) -> (RgbDescr<K>, U) { (self.descriptor, self.utxos) }
+}
+
 impl<K, U> OwnerProvider for Holder<K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
@@ -73,10 +83,6 @@ where
     type UtxoSet = U;
 
     #[inline]
-    fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
-    #[inline]
-    fn into_components(self) -> (RgbDescr<K>, U) { (self.descriptor, self.utxos) }
-    #[inline]
     fn descriptor(&self) -> &RgbDescr<K> { &self.descriptor }
     #[inline]
     fn utxos(&self) -> &U { &self.utxos }
@@ -84,6 +90,74 @@ where
     fn descriptor_mut(&mut self) -> &mut RgbDescr<K> { &mut self.descriptor }
     #[inline]
     fn utxos_mut(&mut self) -> &mut U { &mut self.utxos }
+}
+
+#[derive(Clone, Default)]
+pub struct MultiHolder<K = XpubDerivable, U = MemUtxos>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    current: Option<DescrId>,
+    holders: HashMap<DescrId, Holder<K, U>>,
+}
+
+impl<K, U> MultiHolder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    pub fn upsert(&mut self, id: DescrId, holder: Holder<K, U>) {
+        self.holders.insert(id, holder);
+        if self.current.is_none() {
+            self.current = Some(id);
+        }
+    }
+
+    pub fn remove(&mut self, id: DescrId) -> Option<Holder<K, U>> {
+        if self.current == Some(id) {
+            self.current = None;
+        }
+        self.holders.remove(&id)
+    }
+
+    pub fn switch(&mut self, new: DescrId) {
+        self.current = Some(new);
+        debug_assert!(self.holders.get(&new).is_some());
+    }
+
+    pub fn current(&self) -> &Holder<K, U> {
+        &self.holders[&self
+            .current
+            .expect("current holder must be selected first with `MultiHolder::switch`")]
+    }
+
+    pub fn current_mut(&mut self) -> &mut Holder<K, U> {
+        let current = self
+            .current
+            .expect("current holder must be selected first with `MultiHolder::switch`");
+        self.holders
+            .get_mut(&current)
+            .expect("internal multiholder inconsistency")
+    }
+}
+
+impl<K, U> OwnerProvider for MultiHolder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    type Key = K;
+    type UtxoSet = U;
+
+    #[inline]
+    fn descriptor(&self) -> &RgbDescr<K> { self.current().descriptor() }
+    #[inline]
+    fn utxos(&self) -> &U { self.current().utxos() }
+    #[inline]
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<K> { self.current_mut().descriptor_mut() }
+    #[inline]
+    fn utxos_mut(&mut self) -> &mut U { self.current_mut().utxos_mut() }
 }
 
 /// Owner structure represents a holder of an RGB wallet, which keeps information of the wallet
@@ -111,24 +185,11 @@ where
     R: Resolver,
     U: UtxoSet,
 {
-    pub fn with_components(
-        network: Network,
-        descriptor: RgbDescr<K>,
-        resolver: R,
-        utxos: U,
-    ) -> Self {
-        Self {
-            network,
-            provider: O::from_components(descriptor, utxos),
-            resolver,
-            _phantom: PhantomData,
-        }
+    pub fn with_components(network: Network, provider: O, resolver: R) -> Self {
+        Self { network, provider, resolver, _phantom: PhantomData }
     }
 
-    pub fn into_components(self) -> (RgbDescr<K>, R, U) {
-        let (descriptor, utxos) = self.provider.into_components();
-        (descriptor, self.resolver, utxos)
-    }
+    pub fn into_components(self) -> (O, R) { (self.provider, self.resolver) }
 
     #[inline]
     pub fn network(&self) -> Network { self.network }
@@ -434,7 +495,8 @@ pub mod file {
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
-            let owner = Owner::with_components(network, descriptor, resolver, utxos);
+            let holder = Holder::from_components(descriptor, utxos);
+            let owner = Owner::with_components(network, holder, resolver);
             Ok(Self { owner, path })
         }
 
@@ -451,7 +513,8 @@ pub mod file {
             let utxos: MemUtxos = toml::from_str(&deser)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
 
-            let owner = Owner::with_components(network, descriptor, resolver, utxos);
+            let holder = Holder::from_components(descriptor, utxos);
+            let owner = Owner::with_components(network, holder, resolver);
             Ok(Self { owner, path })
         }
 
