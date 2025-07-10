@@ -38,18 +38,20 @@ use rgbdescr::RgbDescr;
 use crate::resolvers::{Resolver, ResolverError};
 use crate::{MemUtxos, UtxoSet};
 
-pub trait OwnerProvider<K, U>
-where
-    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-    U: UtxoSet,
-{
-    fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self;
-    fn into_components(self) -> (RgbDescr<K>, U);
+pub trait OwnerProvider {
+    type Key: DeriveSet<Legacy = Self::Key, Compr = Self::Key, XOnly = Self::Key>
+        + DeriveLegacy
+        + DeriveCompr
+        + DeriveXOnly;
+    type UtxoSet: UtxoSet;
 
-    fn descriptor(&self) -> &RgbDescr<K>;
-    fn utxos(&self) -> &U;
-    fn descriptor_mut(&mut self) -> &mut RgbDescr<K>;
-    fn utxos_mut(&mut self) -> &mut U;
+    fn from_components(descriptor: RgbDescr<Self::Key>, utxos: Self::UtxoSet) -> Self;
+    fn into_components(self) -> (RgbDescr<Self::Key>, Self::UtxoSet);
+
+    fn descriptor(&self) -> &RgbDescr<Self::Key>;
+    fn utxos(&self) -> &Self::UtxoSet;
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<Self::Key>;
+    fn utxos_mut(&mut self) -> &mut Self::UtxoSet;
 }
 
 #[derive(Clone)]
@@ -62,11 +64,14 @@ where
     utxos: U,
 }
 
-impl<K, U> OwnerProvider<K, U> for Holder<K, U>
+impl<K, U> OwnerProvider for Holder<K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     U: UtxoSet,
 {
+    type Key = K;
+    type UtxoSet = U;
+
     #[inline]
     fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
     #[inline]
@@ -89,7 +94,7 @@ where
 pub struct Owner<R, O, K = XpubDerivable, U = MemUtxos>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-    O: OwnerProvider<K, U>,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
@@ -102,7 +107,7 @@ where
 impl<R, O, K, U> Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-    O: OwnerProvider<K, U>,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
@@ -132,7 +137,7 @@ where
 impl<R, O, K, U> WalletProvider for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-    O: OwnerProvider<K, U>,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
@@ -335,7 +340,7 @@ where
 impl<R, O, K, U> PsbtConstructor for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
-    O: OwnerProvider<K, U>,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
