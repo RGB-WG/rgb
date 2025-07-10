@@ -22,6 +22,8 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::marker::PhantomData;
+
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
@@ -36,26 +38,71 @@ use rgbdescr::RgbDescr;
 use crate::resolvers::{Resolver, ResolverError};
 use crate::{MemUtxos, UtxoSet};
 
+pub trait OwnerProvider<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self;
+    fn into_components(self) -> (RgbDescr<K>, U);
+
+    fn descriptor(&self) -> &RgbDescr<K>;
+    fn utxos(&self) -> &U;
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<K>;
+    fn utxos_mut(&mut self) -> &mut U;
+}
+
+#[derive(Clone)]
+pub struct Holder<K = XpubDerivable, U = MemUtxos>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    descriptor: RgbDescr<K>,
+    utxos: U,
+}
+
+impl<K, U> OwnerProvider<K, U> for Holder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    #[inline]
+    fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
+    #[inline]
+    fn into_components(self) -> (RgbDescr<K>, U) { (self.descriptor, self.utxos) }
+    #[inline]
+    fn descriptor(&self) -> &RgbDescr<K> { &self.descriptor }
+    #[inline]
+    fn utxos(&self) -> &U { &self.utxos }
+    #[inline]
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<K> { &mut self.descriptor }
+    #[inline]
+    fn utxos_mut(&mut self) -> &mut U { &mut self.utxos }
+}
+
 /// Owner structure represents a holder of an RGB wallet, which keeps information of the wallet
 /// descriptor and UTXO set. It doesn't know anything about RGB contracts, though (and that's why
 /// it is not a full wallet) and is used as a component implementing [`WalletProvider`] inside
 /// [`rgbstd::RgbWallet`] and [`crate::RgbRuntime`].
 #[derive(Clone)]
-pub struct Owner<R, K = XpubDerivable, U = MemUtxos>
+pub struct Owner<R, O, K = XpubDerivable, U = MemUtxos>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<K, U>,
     R: Resolver,
     U: UtxoSet,
 {
     network: Network,
-    descriptor: RgbDescr<K>,
-    utxos: U,
+    provider: O,
     resolver: R,
+    _phantom: PhantomData<(K, U)>,
 }
 
-impl<R, K, U> Owner<R, K, U>
+impl<R, O, K, U> Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<K, U>,
     R: Resolver,
     U: UtxoSet,
 {
@@ -65,35 +112,42 @@ where
         resolver: R,
         utxos: U,
     ) -> Self {
-        Self { network, descriptor, utxos, resolver }
+        Self {
+            network,
+            provider: O::from_components(descriptor, utxos),
+            resolver,
+            _phantom: PhantomData,
+        }
     }
 
     pub fn into_components(self) -> (RgbDescr<K>, R, U) {
-        (self.descriptor, self.resolver, self.utxos)
+        let (descriptor, utxos) = self.provider.into_components();
+        (descriptor, self.resolver, utxos)
     }
 
     #[inline]
     pub fn network(&self) -> Network { self.network }
 }
 
-impl<R, K, U> WalletProvider for Owner<R, K, U>
+impl<R, O, K, U> WalletProvider for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<K, U>,
     R: Resolver,
     U: UtxoSet,
 {
     type Error = ResolverError;
 
-    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.has(outpoint) }
+    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.provider.utxos().has(outpoint) }
 
-    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.provider.utxos().outpoints() }
 
     #[cfg(not(feature = "async"))]
     fn update_utxos(&mut self) -> Result<(), Self::Error> {
-        self.utxos.clear();
-        for keychain in self.descriptor.keychains() {
+        self.provider.utxos_mut().clear();
+        for keychain in self.provider.descriptor().keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self.utxos.next_index(keychain, false);
+            let last_index = self.provider.utxos_mut().next_index(keychain, false);
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -102,7 +156,7 @@ where
                 let mut range = Vec::with_capacity(20);
                 while index < to {
                     let terminal = Terminal::new(keychain, index);
-                    let iter = self.descriptor.derive(keychain, index);
+                    let iter = self.provider.descriptor().derive(keychain, index);
 
                     range.extend(iter.map(|d| (terminal, d.to_script_pubkey())));
 
@@ -112,12 +166,14 @@ where
                 }
 
                 let set = self.resolver.resolve_utxos(range);
-                let prev_len = self.utxos.len();
+                let prev_len = self.provider.utxos().len();
                 for utxo in set {
                     let utxo = utxo?;
-                    self.utxos.insert(utxo.outpoint, utxo.value, utxo.terminal);
+                    self.provider
+                        .utxos_mut()
+                        .insert(utxo.outpoint, utxo.value, utxo.terminal);
                 }
-                let next_len = self.utxos.len();
+                let next_len = self.provider.utxos().len();
                 if prev_len == next_len && index > last_index {
                     break;
                 }
@@ -130,10 +186,14 @@ where
 
     #[cfg(feature = "async")]
     async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
-        self.utxos.clear_async().await;
-        for keychain in self.descriptor.keychains() {
+        self.provider.utxos_mut().clear_async().await;
+        for keychain in self.provider.descriptor().keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self.utxos.next_index_async(keychain, false).await;
+            let last_index = self
+                .provider
+                .utxos_mut()
+                .next_index_async(keychain, false)
+                .await;
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -142,7 +202,7 @@ where
                 let mut range = Vec::with_capacity(20);
                 while index < to {
                     let terminal = Terminal::new(keychain, index);
-                    let iter = self.descriptor.derive(keychain, index);
+                    let iter = self.provider.descriptor().derive(keychain, index);
 
                     range.extend(iter.map(|d| (terminal, d.to_script_pubkey())));
 
@@ -152,14 +212,15 @@ where
                 }
 
                 let set = self.resolver.resolve_utxos_async(range).await;
-                let prev_len = self.utxos.len();
+                let prev_len = self.provider.utxos().len();
                 for utxo in set {
                     let utxo = utxo?;
-                    self.utxos
+                    self.provider
+                        .utxos_mut()
                         .insert_async(utxo.outpoint, utxo.value, utxo.terminal)
                         .await;
                 }
-                let next_len = self.utxos.len();
+                let next_len = self.provider.utxos().len();
                 if prev_len == next_len && index > last_index {
                     break;
                 }
@@ -170,25 +231,27 @@ where
         Ok(())
     }
 
-    fn register_seal(&mut self, seal: WTxoSeal) { self.descriptor.add_seal(seal); }
+    fn register_seal(&mut self, seal: WTxoSeal) { self.provider.descriptor_mut().add_seal(seal); }
 
     fn resolve_seals(
         &self,
         seals: impl Iterator<Item = AuthToken>,
     ) -> impl Iterator<Item = WTxoSeal> {
         seals.flat_map(|auth| {
-            self.descriptor
+            self.provider
+                .descriptor()
                 .seals()
                 .filter(move |seal| seal.auth_token() == auth)
         })
     }
 
-    fn noise_seed(&self) -> Bytes32 { self.descriptor.noise() }
+    fn noise_seed(&self) -> Bytes32 { self.provider.descriptor().noise() }
 
     fn next_address(&mut self) -> Address {
         let next = self.next_derivation_index(Keychain::OUTER, true);
         let spk = self
-            .descriptor
+            .provider
+            .descriptor()
             .derive(Keychain::OUTER, next)
             .next()
             .expect("at least one address must be derivable")
@@ -196,7 +259,7 @@ where
         Address::with(&spk, self.network).expect("invalid scriptpubkey derivation")
     }
 
-    fn next_nonce(&mut self) -> u64 { self.descriptor.next_nonce() }
+    fn next_nonce(&mut self) -> u64 { self.provider.descriptor_mut().next_nonce() }
 
     #[cfg(not(feature = "async"))]
     fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
@@ -221,7 +284,7 @@ where
         self.resolver.broadcast(tx)?;
 
         for inp in &tx.inputs {
-            self.utxos.remove(inp.prev_output);
+            self.provider.utxos_mut().remove(inp.prev_output);
         }
         if let Some((vout, keychain, index)) = change {
             let txid = tx.txid();
@@ -230,7 +293,8 @@ where
                 Keychain::with(keychain as u8),
                 NormalIndex::try_from_index(index).expect("invalid derivation index"),
             );
-            self.utxos
+            self.provider
+                .utxos_mut()
                 .insert(Outpoint::new(txid, vout), out.value, terminal);
         }
 
@@ -246,7 +310,10 @@ where
         self.resolver.broadcast_async(tx).await?;
 
         for inp in &tx.inputs {
-            self.utxos.remove_async(inp.prev_output).await;
+            self.provider
+                .utxos_mut()
+                .remove_async(inp.prev_output)
+                .await;
         }
         if let Some((vout, keychain, index)) = change {
             let txid = tx.txid();
@@ -255,7 +322,8 @@ where
                 Keychain::with(keychain as u8),
                 NormalIndex::try_from_index(index).expect("invalid derivation index"),
             );
-            self.utxos
+            self.provider
+                .utxos_mut()
                 .insert_async(Outpoint::new(txid, vout), out.value, terminal)
                 .await;
         }
@@ -264,16 +332,17 @@ where
     }
 }
 
-impl<R, K, U> PsbtConstructor for Owner<R, K, U>
+impl<R, O, K, U> PsbtConstructor for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<K, U>,
     R: Resolver,
     U: UtxoSet,
 {
     type Key = K;
     type Descr = RgbDescr<K>;
 
-    fn descriptor(&self) -> &Self::Descr { &self.descriptor }
+    fn descriptor(&self) -> &Self::Descr { &self.provider.descriptor() }
 
     #[cfg(not(feature = "async"))]
     fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> {
@@ -289,10 +358,11 @@ where
     }
 
     fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
-        let (value, terminal) = self.utxos.get(outpoint)?;
+        let (value, terminal) = self.provider.utxos().get(outpoint)?;
         let utxo = Utxo { outpoint, value, terminal };
         let script = self
-            .descriptor
+            .provider
+            .descriptor()
             .derive(terminal.keychain, terminal.index)
             .next()
             .expect("unable to derive");
@@ -303,12 +373,12 @@ where
 
     #[cfg(not(feature = "async"))]
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        self.utxos.next_index(keychain, shift)
+        self.provider.utxos_mut().next_index(keychain, shift)
     }
     #[cfg(feature = "async")]
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
         use futures::executor::block_on;
-        block_on(self.utxos.next_index_async(keychain, shift))
+        block_on(self.provider.utxos_mut().next_index_async(keychain, shift))
     }
 }
 
@@ -322,12 +392,12 @@ pub mod file {
     use super::*;
 
     pub struct FileOwner<R: Resolver> {
-        owner: Owner<R>,
+        owner: Owner<R, Holder>,
         path: PathBuf,
     }
 
     impl<R: Resolver> Deref for FileOwner<R> {
-        type Target = Owner<R>;
+        type Target = Owner<R, Holder>;
 
         fn deref(&self) -> &Self::Target { &self.owner }
     }
@@ -384,12 +454,12 @@ pub mod file {
             fs::create_dir_all(&self.path)?;
 
             let mut file = fs::File::create(self.path.join(Self::DESCRIPTOR_FILENAME))?;
-            let ser = toml::to_string(&self.descriptor)
+            let ser = toml::to_string(&self.provider.descriptor())
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
             let mut file = fs::File::create(self.path.join(Self::UTXO_FILENAME))?;
-            let ser = toml::to_string(&self.utxos)
+            let ser = toml::to_string(&self.provider.utxos())
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
