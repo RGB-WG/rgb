@@ -88,7 +88,7 @@ impl Display for TapretWeaks {
     }
 }
 
-#[derive(Clone, Display, From)]
+#[derive(Clone, Debug, Display, From)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -102,7 +102,6 @@ impl Display for TapretWeaks {
         )
     )
 )]
-// TODO: Remove DeriveSet bound
 enum RgbDeriver<K: DeriveSet = XpubDerivable> {
     #[from]
     #[display(inner)]
@@ -223,7 +222,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     }
 }
 
-#[derive(Clone, Display)]
+#[derive(Clone, Debug, Display)]
 #[display("rgb({deriver},{seals},noise({noise:x}))")]
 #[cfg_attr(
     feature = "serde",
