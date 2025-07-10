@@ -33,7 +33,7 @@ use bpstd::{ConsensusEncode, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
-use rgbp::descriptor::RgbDescr;
+use rgbp::descriptors::RgbDescr;
 use rgbp::resolvers::{NoResolver, Resolver};
 use rgbp::{ContractInfo, FileOwner};
 use strict_types::StrictVal;

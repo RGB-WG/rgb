@@ -32,8 +32,8 @@ use bpstd::{
 use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
+use rgbdescr::RgbDescr;
 
-use crate::descriptor::RgbDescr;
 use crate::resolvers::{Resolver, ResolverError};
 
 #[allow(clippy::len_without_is_empty)]

@@ -1,6 +1,6 @@
 [workspace]
-members = [".", "psbt", "cli"]
-default-members = [".", "psbt"]
+members = [".", "psbt", "descriptors", "cli"]
+default-members = [".", "psbt", "descriptors"]
 
 [workspace.package]
 version = "0.12.0-rc.2"
@@ -25,6 +25,7 @@ bp-esplora = { version = "0.12.0-rc.1", default-features = false }
 rgb-std = { version = "0.12.0-rc.2" }
 rgb-runtime = { version = "0.12.0-rc.2", path = "." }
 rgb-psbt = { version = "0.12.0-rc.2", path = "psbt" }
+rgb-descriptors = { version = "0.12.0-rc.2", path = "descriptors" }
 rgb-persist-fs = { version = "0.12.0-rc.2" }
 indexmap = "2.9.0"
 futures = "0.3.31"
@@ -61,6 +62,7 @@ bp-electrum = { workspace = true, optional = true }
 bp-esplora = { workspace = true, optional = true }
 rgb-std = { workspace = true, features = ["bitcoin"] }
 rgb-psbt = { workspace = true, features = ["bp"] }
+rgb-descriptors = { workspace = true }
 rgb-persist-fs = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 indexmap = { workspace = true }
@@ -123,7 +125,7 @@ resolver-esplora-async = ["async", "bp-esplora/async", "bp-esplora/async-https",
 
 serde = [
     "dep:serde", "toml",
-    "bp-std/serde", "rgb-std/serde"
+    "bp-std/serde", "rgb-std/serde", "rgb-descriptors/serde"
 ]
 
 [package.metadata.docs.rs]

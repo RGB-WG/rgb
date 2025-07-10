@@ -22,6 +22,17 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+// #![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
+#[macro_use]
+extern crate amplify;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
+extern crate core;
+
 use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
 

@@ -45,8 +45,8 @@ extern crate amplify;
 #[macro_use]
 extern crate serde;
 extern crate core;
+pub extern crate rgbdescr as descriptors;
 
-pub mod descriptor;
 mod owner;
 mod coinselect;
 mod runtime;

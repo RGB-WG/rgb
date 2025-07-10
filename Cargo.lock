@@ -1908,6 +1908,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rgb-descriptors"
+version = "0.12.0-rc.2"
+dependencies = [
+ "amplify",
+ "bp-std",
+ "commit_verify",
+ "indexmap 2.10.0",
+ "rgb-std",
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.2"
 source = "git+https://github.com/RGB-WG/rgb-std?branch=async#dce6cf94950a1279b7569039ea71561ce9ddd2eb"
@@ -1962,6 +1975,7 @@ dependencies = [
  "indexmap 2.10.0",
  "log",
  "rand 0.9.1",
+ "rgb-descriptors",
  "rgb-persist-fs",
  "rgb-psbt",
  "rgb-std",
@@ -2009,7 +2023,6 @@ dependencies = [
  "bp-std",
  "clap",
  "rgb-persist-fs",
- "rgb-psbt",
  "rgb-runtime",
  "rgb-std",
  "serde",
