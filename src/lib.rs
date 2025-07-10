@@ -47,6 +47,7 @@ extern crate serde;
 extern crate core;
 pub extern crate rgbdescr as descriptors;
 
+mod utxoset;
 mod owner;
 mod coinselect;
 mod runtime;
@@ -57,7 +58,8 @@ pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
 #[cfg(feature = "fs")]
 pub use owner::file::FileOwner;
-pub use owner::{MemUtxos, Owner, UtxoSet};
+pub use owner::Owner;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
 pub use runtime::{FinalizeError, PayError, Payment, RgbRuntime, TransferError};
+pub use utxoset::{MemUtxos, UtxoSet};

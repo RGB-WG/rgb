@@ -27,118 +27,14 @@ use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
 use bpstd::{
     Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
-    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout, XpubDerivable,
+    NormalIndex, Outpoint, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout, XpubDerivable,
 };
-use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
 use rgbdescr::RgbDescr;
 
 use crate::resolvers::{Resolver, ResolverError};
-
-#[allow(clippy::len_without_is_empty)]
-pub trait UtxoSet {
-    fn len(&self) -> usize;
-    fn has(&self, outpoint: Outpoint) -> bool;
-    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
-
-    #[cfg(not(feature = "async"))]
-    fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
-    #[cfg(feature = "async")]
-    async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
-
-    #[cfg(not(feature = "async"))]
-    fn clear(&mut self);
-    #[cfg(feature = "async")]
-    async fn clear_async(&mut self);
-
-    #[cfg(not(feature = "async"))]
-    fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
-    #[cfg(feature = "async")]
-    async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
-
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
-
-    #[cfg(not(feature = "async"))]
-    fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
-    #[cfg(feature = "async")]
-    async fn next_index_async(&mut self, keychain: impl Into<Keychain>, shift: bool)
-        -> NormalIndex;
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
-pub struct MemUtxos {
-    set: IndexMap<Outpoint, (Sats, Terminal)>,
-    next_index: IndexMap<Keychain, NormalIndex>,
-}
-
-impl UtxoSet for MemUtxos {
-    #[inline]
-    fn len(&self) -> usize { self.set.len() }
-    #[inline]
-    fn has(&self, outpoint: Outpoint) -> bool { self.set.contains_key(&outpoint) }
-    #[inline]
-    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
-        self.set.get(&outpoint).copied()
-    }
-
-    #[inline]
-    #[cfg(not(feature = "async"))]
-    fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
-        self.set.insert(outpoint, (value, terminal));
-    }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
-        self.set.insert(outpoint, (value, terminal));
-    }
-
-    #[inline]
-    #[cfg(not(feature = "async"))]
-    fn clear(&mut self) { self.set.clear() }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn clear_async(&mut self) { self.set.clear() }
-
-    #[inline]
-    #[cfg(not(feature = "async"))]
-    fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
-        self.set.shift_remove(&outpoint)
-    }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
-        self.set.shift_remove(&outpoint)
-    }
-
-    #[inline]
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
-
-    #[cfg(not(feature = "async"))]
-    fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        let index = self.next_index.entry(keychain.into()).or_default();
-        let next = *index;
-        if shift {
-            index.saturating_inc_assign();
-        }
-        next
-    }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn next_index_async(
-        &mut self,
-        keychain: impl Into<Keychain>,
-        shift: bool,
-    ) -> NormalIndex {
-        let index = self.next_index.entry(keychain.into()).or_default();
-        let next = *index;
-        if shift {
-            index.saturating_inc_assign();
-        }
-        next
-    }
-}
+use crate::{MemUtxos, UtxoSet};
 
 /// Owner structure represents a holder of an RGB wallet, which keeps information of the wallet
 /// descriptor and UTXO set. It doesn't know anything about RGB contracts, though (and that's why
@@ -604,6 +500,8 @@ pub mod file {
 
 #[cfg(all(test, not(feature = "async")))]
 mod test {
+    use bpstd::Sats;
+
     use super::*;
 
     fn setup() -> MemUtxos {
