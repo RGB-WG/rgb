@@ -57,7 +57,7 @@ pub mod resolvers;
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
 #[cfg(feature = "fs")]
-pub use owner::file::FileOwner;
+pub use owner::file::FileHolder;
 pub use owner::{Holder, MultiHolder, Owner, OwnerProvider};
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};

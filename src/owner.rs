@@ -69,7 +69,7 @@ where
     U: UtxoSet,
 {
     #[inline]
-    pub fn from_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
+    pub fn with_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
     #[inline]
     pub fn into_components(self) -> (RgbDescr<K>, U) { (self.descriptor, self.utxos) }
 }
@@ -456,37 +456,21 @@ where
 #[cfg(feature = "fs")]
 pub mod file {
     use std::io::{Read, Write};
-    use std::ops::{Deref, DerefMut};
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
     use super::*;
 
-    pub struct FileOwner<R: Resolver> {
-        owner: Owner<R, Holder>,
+    pub struct FileHolder {
+        inner: Holder,
         path: PathBuf,
     }
 
-    impl<R: Resolver> Deref for FileOwner<R> {
-        type Target = Owner<R, Holder>;
-
-        fn deref(&self) -> &Self::Target { &self.owner }
-    }
-
-    impl<R: Resolver> DerefMut for FileOwner<R> {
-        fn deref_mut(&mut self) -> &mut Self::Target { &mut self.owner }
-    }
-
-    impl<R: Resolver> FileOwner<R> {
+    impl FileHolder {
         const DESCRIPTOR_FILENAME: &'static str = "descriptor.toml";
         const UTXO_FILENAME: &'static str = "utxo.toml";
 
-        pub fn create(
-            path: PathBuf,
-            network: Network,
-            descriptor: RgbDescr,
-            resolver: R,
-        ) -> io::Result<Self> {
+        pub fn create(path: PathBuf, descriptor: RgbDescr) -> io::Result<Self> {
             fs::create_dir_all(&path)?;
 
             let mut file = fs::File::create_new(path.join(Self::DESCRIPTOR_FILENAME))?;
@@ -500,12 +484,11 @@ pub mod file {
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
-            let holder = Holder::from_components(descriptor, utxos);
-            let owner = Owner::with_components(network, holder, resolver);
-            Ok(Self { owner, path })
+            let inner = Holder::with_components(descriptor, utxos);
+            Ok(Self { inner, path })
         }
 
-        pub fn load(path: PathBuf, network: Network, resolver: R) -> io::Result<Self> {
+        pub fn load(path: PathBuf) -> io::Result<Self> {
             let mut file = fs::File::open(path.join(Self::DESCRIPTOR_FILENAME))?;
             let mut deser = String::new();
             file.read_to_string(&mut deser)?;
@@ -518,21 +501,20 @@ pub mod file {
             let utxos: MemUtxos = toml::from_str(&deser)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
 
-            let holder = Holder::from_components(descriptor, utxos);
-            let owner = Owner::with_components(network, holder, resolver);
-            Ok(Self { owner, path })
+            let inner = Holder::with_components(descriptor, utxos);
+            Ok(Self { inner, path })
         }
 
         pub fn save(&self) -> io::Result<()> {
             fs::create_dir_all(&self.path)?;
 
             let mut file = fs::File::create(self.path.join(Self::DESCRIPTOR_FILENAME))?;
-            let ser = toml::to_string(&self.provider.descriptor())
+            let ser = toml::to_string(&self.inner.descriptor())
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
             let mut file = fs::File::create(self.path.join(Self::UTXO_FILENAME))?;
-            let ser = toml::to_string(&self.provider.utxos())
+            let ser = toml::to_string(&self.inner.utxos())
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
@@ -542,7 +524,7 @@ pub mod file {
         pub fn path(&self) -> &Path { &self.path }
     }
 
-    impl<R: Resolver> Drop for FileOwner<R> {
+    impl Drop for FileHolder {
         fn drop(&mut self) {
             if let Err(err) = self.save() {
                 eprintln!("Error: unable to save wallet data. Details: {err}");
@@ -550,94 +532,17 @@ pub mod file {
         }
     }
 
-    impl<R: Resolver> WalletProvider for FileOwner<R> {
-        type Error = ResolverError;
-        #[inline]
-        fn has_utxo(&self, outpoint: Outpoint) -> bool { self.owner.has_utxo(outpoint) }
-        #[inline]
-        fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.owner.utxos() }
-        #[inline]
-        fn update_utxos(&mut self) -> Result<(), Self::Error> { self.owner.update_utxos() }
-        #[inline]
-        #[cfg(feature = "async")]
-        async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
-            self.owner.update_utxos_async().await
-        }
-
-        #[inline]
-        fn register_seal(&mut self, seal: WTxoSeal) { self.owner.register_seal(seal) }
-        #[inline]
-        fn resolve_seals(
-            &self,
-            seals: impl Iterator<Item = AuthToken>,
-        ) -> impl Iterator<Item = WTxoSeal> {
-            self.owner.resolve_seals(seals)
-        }
-        #[inline]
-        fn noise_seed(&self) -> Bytes32 { self.owner.noise_seed() }
-        #[inline]
-        fn next_address(&mut self) -> Address { self.owner.next_address() }
-        #[inline]
-        fn next_nonce(&mut self) -> u64 { self.owner.next_nonce() }
-        #[inline]
-        fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
-            self.owner.txid_resolver()
-        }
-        #[inline]
-        #[cfg(feature = "async")]
-        fn txid_resolver_async(&self) -> impl AsyncFn(Txid) -> Result<WitnessStatus, Self::Error> {
-            self.owner.txid_resolver_async()
-        }
-
-        #[inline]
-        fn last_block_height(&self) -> Result<u64, Self::Error> { self.owner.last_block_height() }
-        #[inline]
-        #[cfg(feature = "async")]
-        async fn last_block_height_async(&self) -> Result<u64, Self::Error> {
-            self.owner.last_block_height_async().await
-        }
-
-        #[inline]
-        fn broadcast(
-            &mut self,
-            tx: &Tx,
-            change: Option<(Vout, u32, u32)>,
-        ) -> Result<(), Self::Error> {
-            self.owner.broadcast(tx, change)
-        }
-        #[inline]
-        #[cfg(feature = "async")]
-        async fn broadcast_async(
-            &mut self,
-            tx: &Tx,
-            change: Option<(Vout, u32, u32)>,
-        ) -> Result<(), Self::Error> {
-            self.owner.broadcast_async(tx, change).await
-        }
-    }
-
-    impl<R: Resolver> PsbtConstructor for FileOwner<R> {
+    impl OwnerProvider for FileHolder {
         type Key = XpubDerivable;
-        type Descr = RgbDescr<XpubDerivable>;
-
+        type UtxoSet = MemUtxos;
         #[inline]
-        fn descriptor(&self) -> &Self::Descr { self.owner.descriptor() }
+        fn descriptor(&self) -> &RgbDescr<Self::Key> { self.inner.descriptor() }
         #[inline]
-        fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.owner.prev_tx(txid) }
+        fn utxos(&self) -> &Self::UtxoSet { self.inner.utxos() }
         #[inline]
-        fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
-            self.owner.utxo(outpoint)
-        }
+        fn descriptor_mut(&mut self) -> &mut RgbDescr<Self::Key> { self.inner.descriptor_mut() }
         #[inline]
-        fn network(&self) -> Network { self.owner.network }
-        #[inline]
-        fn next_derivation_index(
-            &mut self,
-            keychain: impl Into<Keychain>,
-            shift: bool,
-        ) -> NormalIndex {
-            self.owner.next_derivation_index(keychain, shift)
-        }
+        fn utxos_mut(&mut self) -> &mut Self::UtxoSet { self.inner.utxos_mut() }
     }
 }
 

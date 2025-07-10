@@ -34,8 +34,8 @@ use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
 use rgbp::descriptors::RgbDescr;
-use rgbp::resolvers::{NoResolver, Resolver};
-use rgbp::{ContractInfo, FileOwner};
+use rgbp::resolvers::Resolver;
+use rgbp::{ContractInfo, FileHolder};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -102,8 +102,7 @@ impl Args {
                     ),
                 };
                 let path = self.data_dir().join(name);
-                FileOwner::create(path, self.network, descr, NoResolver)
-                    .expect("Unable to create wallet");
+                FileHolder::create(path, descr).expect("Unable to create wallet");
             }
 
             Cmd::Sync { wallet, resolver } => {
