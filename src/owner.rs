@@ -22,7 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 
 use amplify::Bytes32;
@@ -210,10 +210,11 @@ where
 
     #[cfg(not(feature = "async"))]
     fn update_utxos(&mut self) -> Result<(), Self::Error> {
-        self.provider.utxos_mut().clear();
+        let mut new = set![];
+        let mut not_found = self.provider.utxos().outpoints().collect::<HashSet<_>>();
         for keychain in self.provider.descriptor().keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self.provider.utxos_mut().next_index(keychain, false);
+            let last_index = self.provider.utxos().next_index_noshift(keychain);
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -235,9 +236,11 @@ where
                 let prev_len = self.provider.utxos().len();
                 for utxo in set {
                     let utxo = utxo?;
-                    self.provider
-                        .utxos_mut()
-                        .insert(utxo.outpoint, utxo.value, utxo.terminal);
+                    not_found.remove(&utxo.outpoint);
+                    if self.provider.utxos().has(utxo.outpoint) {
+                        continue;
+                    }
+                    new.insert(utxo);
                 }
                 let next_len = self.provider.utxos().len();
                 if prev_len == next_len && index > last_index {
@@ -247,19 +250,18 @@ where
                 index = to;
             }
         }
+        self.provider.utxos_mut().remove_all(not_found);
+        self.provider.utxos_mut().insert_all(new);
         Ok(())
     }
 
     #[cfg(feature = "async")]
     async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
-        self.provider.utxos_mut().clear_async().await;
+        let mut new = set![];
+        let mut not_found = self.provider.utxos().outpoints().collect::<HashSet<_>>();
         for keychain in self.provider.descriptor().keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self
-                .provider
-                .utxos_mut()
-                .next_index_async(keychain, false)
-                .await;
+            let last_index = self.provider.utxos().next_index_noshift(keychain);
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -281,10 +283,11 @@ where
                 let prev_len = self.provider.utxos().len();
                 for utxo in set {
                     let utxo = utxo?;
-                    self.provider
-                        .utxos_mut()
-                        .insert_async(utxo.outpoint, utxo.value, utxo.terminal)
-                        .await;
+                    not_found.remove(&utxo.outpoint);
+                    if self.provider.utxos().has(utxo.outpoint) {
+                        continue;
+                    }
+                    new.insert(utxo);
                 }
                 let next_len = self.provider.utxos().len();
                 if prev_len == next_len && index > last_index {
@@ -294,6 +297,8 @@ where
                 index = to;
             }
         }
+        self.provider.utxos_mut().remove_all_async(not_found).await;
+        self.provider.utxos_mut().insert_all_async(new).await;
         Ok(())
     }
 

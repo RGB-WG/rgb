@@ -22,6 +22,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use bpstd::psbt::Utxo;
 use bpstd::{Idx, Keychain, NormalIndex, Outpoint, Sats, Terminal};
 use indexmap::IndexMap;
 
@@ -37,6 +38,11 @@ pub trait UtxoSet {
     async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
 
     #[cfg(not(feature = "async"))]
+    fn insert_all(&mut self, utxos: impl IntoIterator<Item = Utxo>);
+    #[cfg(feature = "async")]
+    async fn insert_all_async(&mut self, utxos: impl IntoIterator<Item = Utxo>);
+
+    #[cfg(not(feature = "async"))]
     fn clear(&mut self);
     #[cfg(feature = "async")]
     async fn clear_async(&mut self);
@@ -46,7 +52,14 @@ pub trait UtxoSet {
     #[cfg(feature = "async")]
     async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
 
+    #[cfg(not(feature = "async"))]
+    fn remove_all(&mut self, outpoints: impl IntoIterator<Item = Outpoint>);
+    #[cfg(feature = "async")]
+    async fn remove_all_async(&mut self, outpoints: impl IntoIterator<Item = Outpoint>);
+
     fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
+
+    fn next_index_noshift(&self, keychain: impl Into<Keychain>) -> NormalIndex;
 
     #[cfg(not(feature = "async"))]
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
@@ -85,6 +98,21 @@ impl UtxoSet for MemUtxos {
 
     #[inline]
     #[cfg(not(feature = "async"))]
+    fn insert_all(&mut self, utxos: impl IntoIterator<Item = Utxo>) {
+        for utxo in utxos {
+            self.set.insert(utxo.outpoint, (utxo.value, utxo.terminal));
+        }
+    }
+    #[inline]
+    #[cfg(feature = "async")]
+    async fn insert_all_async(&mut self, utxos: impl IntoIterator<Item = Utxo>) {
+        for utxo in utxos {
+            self.set.insert(utxo.outpoint, (utxo.value, utxo.terminal));
+        }
+    }
+
+    #[inline]
+    #[cfg(not(feature = "async"))]
     fn clear(&mut self) { self.set.clear() }
     #[inline]
     #[cfg(feature = "async")]
@@ -102,7 +130,29 @@ impl UtxoSet for MemUtxos {
     }
 
     #[inline]
+    #[cfg(not(feature = "async"))]
+    fn remove_all(&mut self, outpoints: impl IntoIterator<Item = Outpoint>) {
+        for outpoint in outpoints {
+            self.set.shift_remove(&outpoint);
+        }
+    }
+    #[inline]
+    #[cfg(feature = "async")]
+    async fn remove_all_async(&mut self, outpoints: impl IntoIterator<Item = Outpoint>) {
+        for outpoint in outpoints {
+            self.set.shift_remove(&outpoint);
+        }
+    }
+
+    #[inline]
     fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
+
+    fn next_index_noshift(&self, keychain: impl Into<Keychain>) -> NormalIndex {
+        self.next_index
+            .get(&keychain.into())
+            .copied()
+            .unwrap_or_default()
+    }
 
     #[cfg(not(feature = "async"))]
     fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
