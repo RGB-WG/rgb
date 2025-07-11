@@ -108,6 +108,10 @@ where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     U: UtxoSet,
 {
+    pub fn wallet_ids(&self) -> impl Iterator<Item = DescrId> + use<'_, K, U> {
+        self.holders.keys().copied()
+    }
+
     pub fn upsert(&mut self, id: DescrId, holder: Holder<K, U>) {
         self.holders.insert(id, holder);
         if self.current.is_none() {
