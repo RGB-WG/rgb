@@ -108,6 +108,12 @@ where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
     U: UtxoSet,
 {
+    pub fn new() -> Self { Self { current: None, holders: none!() } }
+
+    pub fn with(id: DescrId, holder: Holder<K, U>) -> Self {
+        Self { current: Some(id), holders: map! { id => holder } }
+    }
+
     pub fn wallet_ids(&self) -> impl Iterator<Item = DescrId> + use<'_, K, U> {
         self.holders.keys().copied()
     }
