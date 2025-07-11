@@ -24,6 +24,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
@@ -176,6 +177,28 @@ where
     provider: O,
     resolver: R,
     _phantom: PhantomData<(K, U)>,
+}
+
+impl<R, O, K, U> Deref for Owner<R, O, K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
+    R: Resolver,
+    U: UtxoSet,
+{
+    type Target = O;
+
+    fn deref(&self) -> &Self::Target { &self.provider }
+}
+
+impl<R, O, K, U> DerefMut for Owner<R, O, K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
+    R: Resolver,
+    U: UtxoSet,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.provider }
 }
 
 impl<R, O, K, U> Owner<R, O, K, U>
