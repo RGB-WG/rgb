@@ -22,18 +22,21 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::num::NonZeroU64;
+use core::num::NonZeroU64;
 
 use bpstd::psbt::Utxo;
 use bpstd::{Outpoint, Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
 use electrum::client::Client as ElectrumClient;
-use electrum::{ElectrumApi, Error as ElectrumError, Error};
+use electrum::{ElectrumApi, Error as ElectrumError};
 use rgb::WitnessStatus;
 
-use crate::resolvers::ResolverError;
-use crate::Resolver;
+use super::{Resolver, ResolverError};
 
 pub struct ElectrumResolver(ElectrumClient);
+
+impl ElectrumResolver {
+    pub fn new(url: &str) -> Result<Self, ResolverError> { Ok(Self(ElectrumClient::new(url)?)) }
+}
 
 impl Resolver for ElectrumResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
@@ -51,8 +54,8 @@ impl Resolver for ElectrumResolver {
         if verbose.time.is_none() {
             return Ok(WitnessStatus::Tentative);
         };
-        let last_header = self.0.block_headers_subscribe()?;
-        let height = last_header.height as u64 - verbose.confirmations as u64;
+        let last_height = self.last_block_height()?;
+        let height = last_height - verbose.confirmations as u64;
         let Some(height) = NonZeroU64::new(height) else {
             return Ok(WitnessStatus::Genesis);
         };
@@ -79,6 +82,10 @@ impl Resolver for ElectrumResolver {
             })
     }
 
+    fn last_block_height(&self) -> Result<u64, ResolverError> {
+        Ok(self.0.block_headers_subscribe()?.height as u64)
+    }
+
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
         self.0.transaction_broadcast(tx)?;
         Ok(())
@@ -88,26 +95,30 @@ impl Resolver for ElectrumResolver {
 impl From<ElectrumError> for ResolverError {
     fn from(err: ElectrumError) -> Self {
         match err {
-            Error::IOError(err) => ResolverError::Io(err.into()),
-            Error::SharedIOError(err) => ResolverError::Io(err.kind().into()),
+            ElectrumError::IOError(err) => ResolverError::Io(err.into()),
+            ElectrumError::SharedIOError(err) => ResolverError::Io(err.kind().into()),
 
-            Error::InvalidDNSNameError(_) | Error::MissingDomain => ResolverError::Connectivity,
-
-            Error::CouldNotCreateConnection(_) | Error::CouldntLockReader | Error::Mpsc => {
-                ResolverError::Local
+            ElectrumError::InvalidDNSNameError(_) | ElectrumError::MissingDomain => {
+                ResolverError::Connectivity
             }
 
-            Error::InvalidResponse(_)
-            | Error::JSON(_)
-            | Error::Hex(_)
-            | Error::JSONRpc(_)
-            | Error::Bitcoin(_) => ResolverError::Protocol,
+            ElectrumError::CouldNotCreateConnection(_)
+            | ElectrumError::CouldntLockReader
+            | ElectrumError::Mpsc => ResolverError::Local,
 
-            Error::Protocol(err) => ResolverError::ServerSide(err.message),
+            ElectrumError::InvalidResponse(_)
+            | ElectrumError::JSON(_)
+            | ElectrumError::Hex(_)
+            | ElectrumError::JSONRpc(_)
+            | ElectrumError::Bitcoin(_) => ResolverError::Protocol,
 
-            Error::AlreadySubscribed(_) | Error::NotSubscribed(_) => ResolverError::Logic,
+            ElectrumError::Protocol(err) => ResolverError::ServerSide(err.message),
 
-            Error::AllAttemptsErrored(list) => list
+            ElectrumError::AlreadySubscribed(_) | ElectrumError::NotSubscribed(_) => {
+                ResolverError::Logic
+            }
+
+            ElectrumError::AllAttemptsErrored(list) => list
                 .into_iter()
                 .next()
                 .map(ResolverError::from)

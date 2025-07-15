@@ -22,89 +22,156 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::iter;
-use std::num::NonZeroU64;
+use core::num::NonZeroU64;
 
 use bpstd::psbt::Utxo;
-use bpstd::{ScriptPubkey, Terminal, Tx, Txid, UnsignedTx};
-use esplora::{BlockingClient as EsploraClient, Error, Error as EsploraError};
-use rgb::WitnessStatus;
+use bpstd::{Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout};
+#[cfg(feature = "async")]
+use esplora::AsyncClient as EsploraAsyncClient;
+#[cfg(not(feature = "async"))]
+use esplora::BlockingClient as EsploraClient;
+use esplora::{Error as EsploraError, TxStatus};
+use rgb::{Outpoint, WitnessStatus};
 
-use crate::resolvers::ResolverError;
-use crate::Resolver;
+use super::{Resolver, ResolverError};
 
-/// Represents the kind of client used for interacting with the Esplora indexer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-enum ClientKind {
-    #[default]
-    Esplora,
-    #[cfg(feature = "resolver-mempool")]
-    Mempool,
+#[cfg(not(feature = "async"))]
+pub struct EsploraResolver(EsploraClient);
+
+#[cfg(feature = "async")]
+pub struct EsploraAsyncResolver(EsploraAsyncClient);
+
+#[cfg(not(feature = "async"))]
+impl EsploraResolver {
+    /// Creates a new Esplora client with the specified URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL of the Esplora server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the client fails to connect to the Esplora server.
+    pub fn new(url: &str) -> Result<Self, ResolverError> {
+        let inner = esplora::Builder::new(url).build_blocking()?;
+        let client = Self(inner);
+        Ok(client)
+    }
 }
 
-pub struct EsploraResolver {
-    inner: EsploraClient,
-    kind: ClientKind,
+#[cfg(feature = "async")]
+impl EsploraAsyncResolver {
+    /// Creates a new Esplora client with the specified URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL of the Esplora server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the client fails to connect to the Esplora server.
+    pub fn new(url: &str) -> Result<Self, ResolverError> {
+        let inner = esplora::Builder::new(url).build_async()?;
+        let client = Self(inner);
+        Ok(client)
+    }
 }
 
+fn convert_status(status: TxStatus) -> WitnessStatus {
+    if !status.confirmed {
+        return WitnessStatus::Tentative;
+    }
+    if let Some(height) = status.block_height {
+        match NonZeroU64::new(height as u64) {
+            Some(height) => WitnessStatus::Mined(height),
+            None => WitnessStatus::Genesis,
+        }
+    } else {
+        WitnessStatus::Archived
+    }
+}
+
+#[cfg(not(feature = "async"))]
 impl Resolver for EsploraResolver {
     fn resolve_tx(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
-        let tx = self.inner.tx(&txid)?;
+        let tx = self.0.tx(&txid)?;
         Ok(tx.map(UnsignedTx::with_sigs_removed))
     }
 
     fn resolve_tx_status(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
-        let status = self.inner.tx_status(&txid)?;
-        if !status.confirmed {
-            return Ok(WitnessStatus::Tentative);
-        }
-        if let Some(height) = status.block_height {
-            Ok(match NonZeroU64::new(height as u64) {
-                Some(height) => WitnessStatus::Mined(height),
-                None => WitnessStatus::Genesis,
-            })
-        } else {
-            Ok(WitnessStatus::Archived)
-        }
+        let status = self.0.tx_status(&txid)?;
+        Ok(convert_status(status))
     }
 
     fn resolve_utxos(
         &self,
         iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
     ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
-        todo!();
-        /*
-        const PAGE_SIZE: usize = 25;
-
-        let mut res = Vec::new();
-        let mut last_seen = None;
-        let script = derive.addr.script_pubkey();
-
-        loop {
-            let r = match self.kind {
-                ClientKind::Esplora => self.inner.scripthash_txs(&script, last_seen)?,
-                #[cfg(feature = "resolver-mempool")]
-                ClientKind::Mempool => self.inner.address_txs(&derive.addr, last_seen)?,
-            };
-            match &r[..] {
-                [a @ .., esplora::Tx { txid, .. }] if a.len() >= PAGE_SIZE - 1 => {
-                    last_seen = Some(*txid);
-                    res.extend(r);
-                }
-                _ => {
-                    res.extend(r);
-                    break;
-                }
-            }
-        }
-
-        Ok(res)
-         */
-        iter::empty()
+        iter.into_iter()
+            .flat_map(|(terminal, spk)| match self.0.scripthash_utxo(&spk) {
+                Err(err) => vec![Err(ResolverError::from(err))],
+                Ok(list) => list
+                    .into_iter()
+                    .map(|utxo| {
+                        Ok(Utxo {
+                            outpoint: Outpoint::new(
+                                utxo.txid,
+                                Vout::from_u32(utxo.vout.value as u32),
+                            ),
+                            value: Sats::from_sats(utxo.value),
+                            terminal,
+                        })
+                    })
+                    .collect::<Vec<_>>(),
+            })
     }
 
+    fn last_block_height(&self) -> Result<u64, ResolverError> { Ok(self.0.height()? as u64) }
+
     fn broadcast(&self, tx: &Tx) -> Result<(), ResolverError> {
-        self.inner.broadcast(tx)?;
+        self.0.broadcast(tx)?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "async")]
+impl Resolver for EsploraAsyncResolver {
+    async fn resolve_tx_async(&self, txid: Txid) -> Result<Option<UnsignedTx>, ResolverError> {
+        let tx = self.0.tx(&txid).await?;
+        Ok(tx.map(UnsignedTx::with_sigs_removed))
+    }
+
+    async fn resolve_tx_status_async(&self, txid: Txid) -> Result<WitnessStatus, ResolverError> {
+        let status = self.0.tx_status(&txid).await?;
+        Ok(convert_status(status))
+    }
+
+    async fn resolve_utxos_async(
+        &self,
+        iter: impl IntoIterator<Item = (Terminal, ScriptPubkey)>,
+    ) -> impl Iterator<Item = Result<Utxo, ResolverError>> {
+        let mut utxos = Vec::new();
+        for (terminal, spk) in iter {
+            match self.0.scripthash_utxo(&spk).await {
+                Err(err) => utxos.push(Err(ResolverError::from(err))),
+                Ok(list) => utxos.extend(list.into_iter().map(|utxo| {
+                    Ok(Utxo {
+                        outpoint: Outpoint::new(utxo.txid, Vout::from_u32(utxo.vout.value as u32)),
+                        value: Sats::from_sats(utxo.value),
+                        terminal,
+                    })
+                })),
+            }
+        }
+        utxos.into_iter()
+    }
+
+    async fn last_block_height_async(&self) -> Result<u64, ResolverError> {
+        Ok(self.0.height().await? as u64)
+    }
+
+    async fn broadcast_async(&self, tx: &Tx) -> Result<(), ResolverError> {
+        self.0.broadcast(tx).await?;
         Ok(())
     }
 }
@@ -112,18 +179,24 @@ impl Resolver for EsploraResolver {
 impl From<EsploraError> for ResolverError {
     fn from(err: EsploraError) -> Self {
         match err {
-            Error::Minreq(_)
-            | Error::InvalidHttpHeaderName(_)
-            | Error::InvalidHttpHeaderValue(_) => ResolverError::Connectivity,
+            #[cfg(feature = "async")]
+            EsploraError::Reqwest(_) => ResolverError::Connectivity,
 
-            Error::StatusCode(_)
-            | Error::HttpResponse { .. }
-            | Error::InvalidServerData
-            | Error::Parsing(_)
-            | Error::BitcoinEncoding
-            | Error::Hex(_) => ResolverError::Protocol,
+            #[cfg(not(feature = "async"))]
+            EsploraError::Minreq(_) => ResolverError::Connectivity,
 
-            Error::TransactionNotFound(_) => ResolverError::Logic,
+            EsploraError::InvalidHttpHeaderName(_) | EsploraError::InvalidHttpHeaderValue(_) => {
+                ResolverError::Connectivity
+            }
+
+            EsploraError::StatusCode(_)
+            | EsploraError::HttpResponse { .. }
+            | EsploraError::InvalidServerData
+            | EsploraError::Parsing(_)
+            | EsploraError::BitcoinEncoding
+            | EsploraError::Hex(_) => ResolverError::Protocol,
+
+            EsploraError::TransactionNotFound(_) => ResolverError::Logic,
         }
     }
 }

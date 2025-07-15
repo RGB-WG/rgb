@@ -24,6 +24,19 @@
 
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 // #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(feature = "async", allow(async_fn_in_trait))]
+
+#[cfg(all(
+    feature = "async",
+    any(
+        feature = "resolver-esplora",
+        feature = "resolver-electrum",
+        /*feature = "resolver-bitcoinrpc"*/
+    )
+))]
+compile_error!("async feature must not be used with non-async resolvers");
+#[cfg(all(feature = "async", feature = "fs"))]
+compile_error!("async feature must not be used with fs feature");
 
 extern crate alloc;
 #[macro_use]
@@ -45,7 +58,6 @@ pub use info::{CodexInfo, ContractInfo};
 #[cfg(feature = "fs")]
 pub use owner::file::FileOwner;
 pub use owner::{MemUtxos, Owner, UtxoSet};
-pub use resolvers::Resolver;
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
 pub use runtime::{FinalizeError, PayError, Payment, RgbRuntime, TransferError};

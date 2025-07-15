@@ -27,8 +27,8 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - name: Collect coverage data (including doctests)
         run: |
-          cargo +nightly llvm-cov --no-report nextest --workspace --all-features
-          cargo +nightly llvm-cov --no-report --doc --workspace --all-features
+          cargo +nightly llvm-cov --no-report nextest --workspace --features=all
+          cargo +nightly llvm-cov --no-report --doc --workspace --features=all
           cargo +nightly llvm-cov report --doctests --lcov --output-path lcov.info
       - name: Upload coverage data to codecov
         uses: codecov/codecov-action@v4
