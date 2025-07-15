@@ -3,7 +3,7 @@ members = [".", "psbt", "descriptors", "cli"]
 default-members = [".", "psbt", "descriptors"]
 
 [workspace.package]
-version = "0.12.0-rc.2"
+version = "0.12.0-rc.3"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
@@ -17,16 +17,16 @@ license = "Apache-2.0"
 amplify = "4.9.0"
 strict_encoding = "2.9.1"
 strict_types = "2.9.0"
-commit_verify = "0.12.0-rc.1"
-bp-core = "0.12.0-rc.2"
-bp-std = { version = "0.12.0-rc.2", features = ["client-side-validation"] }
+commit_verify = "0.12.0"
+bp-core = "0.12.0"
+bp-std = { version = "0.12.0-rc.3", features = ["client-side-validation"] }
 bp-electrum = { version = "0.12.0-rc.1" }
-bp-esplora = { version = "0.12.0-rc.1", default-features = false }
-rgb-std = { version = "0.12.0-rc.2" }
-rgb-runtime = { version = "0.12.0-rc.2", path = "." }
-rgb-psbt = { version = "0.12.0-rc.2", path = "psbt" }
-rgb-descriptors = { version = "0.12.0-rc.2", path = "descriptors" }
-rgb-persist-fs = { version = "0.12.0-rc.2" }
+bp-esplora = { version = "0.12.0-rc.3", default-features = false }
+rgb-std = { version = "0.12.0-rc.3" }
+rgb-runtime = { version = "0.12.0-rc.3", path = "." }
+rgb-psbt = { version = "0.12.0-rc.3", path = "psbt" }
+rgb-descriptors = { version = "0.12.0-rc.3", path = "descriptors" }
+rgb-persist-fs = { version = "0.12.0-rc.3" }
 indexmap = "2.9.0"
 futures = "0.3.31"
 chrono = { version = "0.4.41", features = ["serde"] }
@@ -130,15 +130,3 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-bp-consensus = { git = "https://github.com/BP-WG/bp-core" }
-bp-core = { git = "https://github.com/BP-WG/bp-core" }
-bp-invoice = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
-bp-derive = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
-descriptors = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
-psbt = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
-bp-std = { git = "https://github.com/BP-WG/bp-std", branch = "feat/descriptors" }
-bp-esplora = { git = "https://github.com/BP-WG/bp-esplora-client", branch = "master" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-std", branch = "async" }
-rgb-persist-fs = { git = "https://github.com/RGB-WG/rgb-std", branch = "async" }
