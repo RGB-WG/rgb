@@ -134,7 +134,7 @@ where
 
     pub fn switch(&mut self, new: DescrId) {
         self.current = Some(new);
-        debug_assert!(self.holders.get(&new).is_some());
+        debug_assert!(self.holders.contains_key(&new));
     }
 
     pub fn current(&self) -> &Holder<K, U> {
@@ -446,7 +446,7 @@ where
     type Key = K;
     type Descr = RgbDescr<K>;
 
-    fn descriptor(&self) -> &Self::Descr { &self.provider.descriptor() }
+    fn descriptor(&self) -> &Self::Descr { self.provider.descriptor() }
 
     #[cfg(not(feature = "async"))]
     fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> {
