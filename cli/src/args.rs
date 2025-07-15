@@ -23,21 +23,19 @@
 // the License.
 
 use std::path::PathBuf;
-use std::process::exit;
 use std::{fs, io};
 
-use bpwallet::cli::ResolverOpt;
-use bpwallet::fs::FsTextStore;
-use bpwallet::seals::TxoSeal;
-use bpwallet::{AnyIndexer, Network};
+use bpstd::seals::TxoSeal;
+use bpstd::Network;
 use clap::ValueHint;
 use rgb::popls::bp::RgbWallet;
 use rgb::{Consensus, Contracts};
 use rgb_persist_fs::StockpileDir;
-use rgbp::{Owner, RgbpRuntimeDir};
+use rgbp::resolvers::MultiResolver;
+use rgbp::{FileOwner, RgbpRuntimeDir};
 
 use crate::cmd::Cmd;
-use crate::opts::WalletOpts;
+use crate::opts::{ResolverOpt, WalletOpts};
 
 pub const RGB_NETWORK_ENV: &str = "RGB_NETWORK";
 pub const RGB_NO_NETWORK_PREFIX_ENV: &str = "RGB_NO_NETWORK_PREFIX";
@@ -88,6 +86,10 @@ pub struct Args {
     /// Do not add network name as a prefix to the data directory
     #[arg(long, global = true, env = RGB_NO_NETWORK_PREFIX_ENV)]
     pub no_network_prefix: bool,
+
+    /// Minimal number of confirmations to consider an operation final
+    #[arg(long, global = true, default_value = "32")]
+    pub min_confirmations: u32,
 
     /// Command to execute
     #[clap(subcommand)]
@@ -145,56 +147,34 @@ impl Args {
             .with_extension("wallet")
     }
 
-    pub fn wallet_provider(&self, name: Option<&str>) -> FsTextStore {
-        FsTextStore::new(self.wallet_dir(name)).expect("Broken directory structure")
-    }
-
-    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<Owner> {
-        let provider = self.wallet_provider(opts.wallet.as_deref());
-        let wallet = Owner::load(provider, true).unwrap_or_else(|_| {
+    pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<MultiResolver> {
+        let resolver = self.resolver(&opts.resolver);
+        let path = self.wallet_dir(opts.wallet.as_deref());
+        let wallet = FileOwner::load(path, self.network, resolver).unwrap_or_else(|err| {
             panic!(
-                "Error: unable to load wallet from path `{}`",
+                "unable to load wallet from path `{}`\nDetails: {err}",
                 self.wallet_dir(opts.wallet.as_deref()).display()
             )
         });
-        let mut runtime = RgbpRuntimeDir::from(RgbWallet::with(wallet, self.contracts()));
+        let mut runtime =
+            RgbpRuntimeDir::from(RgbWallet::with_components(wallet, self.contracts()));
         if opts.sync {
             eprint!("Synchronizing wallet:");
-            let indexer = self.indexer(&opts.resolver);
             runtime
-                .sync(&indexer)
+                .update(self.min_confirmations)
                 .expect("Unable to synchronize wallet");
             eprintln!(" done");
         }
         runtime
     }
 
-    pub fn indexer(&self, resolver: &ResolverOpt) -> AnyIndexer {
+    pub fn resolver(&self, resolver: &ResolverOpt) -> MultiResolver {
         let network = self.network.to_string();
-        match (&resolver.esplora, &resolver.electrum, &resolver.mempool) {
-            (None, Some(url), None) => AnyIndexer::Electrum(Box::new(
-                // TODO: Check network match
-                electrum::Client::new(url).expect("Unable to initialize indexer"),
-            )),
-            (Some(url), None, None) => AnyIndexer::Esplora(Box::new(
-                bpwallet::indexers::esplora::Client::new_esplora(
-                    &url.replace("{network}", &network),
-                )
-                .expect("Unable to initialize indexer"),
-            )),
-            (None, None, Some(url)) => AnyIndexer::Mempool(Box::new(
-                bpwallet::indexers::esplora::Client::new_mempool(
-                    &url.replace("{network}", &network),
-                )
-                .expect("Unable to initialize indexer"),
-            )),
-            _ => {
-                eprintln!(
-                    "Error: no blockchain indexer specified; use either --esplora --mempool or \
-                     --electrum argument"
-                );
-                exit(1);
-            }
+        match (&resolver.esplora, &resolver.electrum) {
+            (None, Some(url)) => MultiResolver::new_electrum(url),
+            (Some(url), None) => MultiResolver::new_esplora(&url.replace("{network}", &network)),
+            _ => MultiResolver::new_absent(),
         }
+        .expect("Unable to connect to the indexing server")
     }
 }

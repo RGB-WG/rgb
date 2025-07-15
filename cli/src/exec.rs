@@ -28,13 +28,14 @@ use std::fs::File;
 use std::str::FromStr;
 
 use anyhow::Context;
-use bpwallet::psbt::{PsbtConstructor, TxParams};
-use bpwallet::{ConsensusEncode, Indexer, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
+use bpstd::psbt::{PsbtConstructor, TxParams};
+use bpstd::{ConsensusEncode, Outpoint, Psbt, PsbtVer, Wpkh, XpubDerivable};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{PaymentScript, PrefabBundle, WalletProvider};
 use rgb::{CallScope, Consensus, CreateParams, Issuer};
 use rgbp::descriptor::RgbDescr;
-use rgbp::{ContractInfo, Owner};
+use rgbp::resolvers::{NoResolver, Resolver};
+use rgbp::{ContractInfo, FileOwner};
 use strict_types::StrictVal;
 
 use crate::args::Args;
@@ -89,7 +90,6 @@ impl Args {
             }
 
             Cmd::Create { tapret_key_only, wpkh, name, descriptor } => {
-                let provider = self.wallet_provider(Some(name));
                 let xpub = XpubDerivable::from_str(descriptor)?;
                 let noise = xpub.xpub().chain_code().to_byte_array();
                 let descr = match (tapret_key_only, wpkh) {
@@ -101,14 +101,14 @@ impl Args {
                          `--tapret-key-only` or `--wpkh`"
                     ),
                 };
-                Owner::create(provider, descr, self.network, true)
+                let path = self.data_dir().join(name);
+                FileOwner::create(path, self.network, descr, NoResolver)
                     .expect("Unable to create wallet");
             }
 
             Cmd::Sync { wallet, resolver } => {
-                let mut runtime = self.runtime(&WalletOpts::default_with_name(wallet));
-                let indexer = self.indexer(resolver);
-                runtime.sync(&indexer)?;
+                let mut runtime = self.runtime(&WalletOpts::with(wallet, resolver));
+                runtime.update(self.min_confirmations)?;
                 println!();
             }
 
@@ -253,8 +253,7 @@ impl Args {
             Cmd::State { wallet, all, global, owned, contract } => {
                 let mut runtime = self.runtime(wallet);
                 if wallet.sync {
-                    let indexer = self.indexer(&wallet.resolver);
-                    runtime.sync(&indexer)?;
+                    runtime.update(self.min_confirmations)?;
                     println!();
                 }
                 let contract_id = contract
@@ -546,7 +545,9 @@ impl Args {
                 };
 
                 if *broadcast {
-                    self.indexer(&wallet.resolver).broadcast(&extracted)?;
+                    // TODO: Implement new finalization workflow
+                    //runtime.finalize(psbt);
+                    self.resolver(&wallet.resolver).broadcast(&extracted)?;
                 }
             }
 

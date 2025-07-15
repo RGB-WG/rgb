@@ -22,45 +22,41 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use std::collections::{HashMap, HashSet};
-use std::error::Error;
-use std::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
+use std::collections::{BTreeSet, HashMap};
 
+use amplify::confinement::KeyedCollection;
 use amplify::MultiError;
 use bpstd::psbt::{
     Beneficiary, ConstructionError, DbcPsbtError, PsbtConstructor, PsbtMeta, TxParams,
+    UnfinalizedInputs,
 };
 use bpstd::seals::TxoSeal;
-use bpstd::{Address, Psbt, Sats};
-use bpwallet::{Indexer, MayError, TxStatus};
+use bpstd::{Address, IdxBase, Psbt, Sats, Tx, Vout};
 use rgb::invoice::{RgbBeneficiary, RgbInvoice};
 use rgb::popls::bp::{
     BundleError, Coinselect, FulfillError, IncludeError, OpRequestSet, PaymentScript, PrefabBundle,
     RgbWallet, WalletProvider,
 };
 use rgb::{
-    AcceptError, ContractId, Contracts, EitherSeal, Pile, RgbSealDef, Stock, Stockpile,
-    WitnessStatus,
+    AuthToken, CodexId, Contract, ContractId, Contracts, EitherSeal, Issuer, Pile, RgbSealDef,
+    Stock, Stockpile,
 };
 use rgpsbt::{RgbPsbt, RgbPsbtCsvError, RgbPsbtPrepareError, ScriptResolver};
-use strict_types::SerializeError;
 
-use crate::{CoinselectStrategy, Payment};
+use crate::CoinselectStrategy;
 
-#[derive(Debug, Display, Error, From)]
-#[display(inner)]
-pub enum SyncError<E: Error> {
-    #[display("unable to retrieve wallet updates: {_0:?}")]
-    Update(Vec<E>),
-    Status(E),
-    #[from]
-    Rollback(SerializeError),
-    #[from]
-    Forward(AcceptError),
-}
-
-pub trait WalletUpdater {
-    fn update<I: Indexer>(&mut self, indexer: &I) -> MayError<(), Vec<I::Error>>;
+/// Payment structure is used in the process of RBF (replace by fee). It is returned by
+/// [`RgbRuntime::pay_invoice`] method when the original transaction is created, and then must be
+/// provided to [`RgbRuntime::rbf`] to do the RBF transaction.
+#[derive(Clone, Eq, PartialEq, Debug)]
+// TODO: Add Deserialize once implemented in Psbt
+//#[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
+pub struct Payment {
+    pub uncomit_psbt: Psbt,
+    pub psbt_meta: PsbtMeta,
+    pub bundle: PrefabBundle,
+    pub terminals: BTreeSet<AuthToken>,
 }
 
 /// RGB Runtime is a lightweight stateless layer integrating some wallet provider (`Wallet` generic
@@ -72,82 +68,75 @@ pub trait WalletUpdater {
 /// - low-level methods for working with PSBTs using `bp-std` library (these methods utilize
 ///   [`rgb-psbt`] crate) - like [`Self::compose_psbt`] and [`Self::color_psbt`];
 /// - high-level payment methods ([`Self::pay`], [`Self::rbf`]) relaying on the above.
-pub struct RgbRuntime<Wallet, Sp>(RgbWallet<Wallet, Sp>)
+pub struct RgbRuntime<
+    W,
+    Sp,
+    S = HashMap<CodexId, Issuer>,
+    C = HashMap<ContractId, Contract<<Sp as Stockpile>::Stock, <Sp as Stockpile>::Pile>>,
+>(RgbWallet<W, Sp, S, C>)
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
-    Sp: Stockpile,
-    Sp::Pile: Pile<Seal = TxoSeal>;
-
-impl<Wallet, Sp> From<RgbWallet<Wallet, Sp>> for RgbRuntime<Wallet, Sp>
-where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>;
+
+impl<W, Sp, S, C> From<RgbWallet<W, Sp, S, C>> for RgbRuntime<W, Sp, S, C>
+where
+    W: WalletProvider,
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
-    fn from(wallet: RgbWallet<Wallet, Sp>) -> Self { Self(wallet) }
+    fn from(wallet: RgbWallet<W, Sp, S, C>) -> Self { Self(wallet) }
 }
 
-impl<Wallet, Sp> Deref for RgbRuntime<Wallet, Sp>
+impl<W, Sp, S, C> Deref for RgbRuntime<W, Sp, S, C>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
-    type Target = RgbWallet<Wallet, Sp>;
+    type Target = RgbWallet<W, Sp, S, C>;
     fn deref(&self) -> &Self::Target { &self.0 }
 }
-impl<Wallet, Sp> DerefMut for RgbRuntime<Wallet, Sp>
+impl<W, Sp, S, C> DerefMut for RgbRuntime<W, Sp, S, C>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-impl<Wallet, Sp> RgbRuntime<Wallet, Sp>
+impl<W, Sp, S, C> RgbRuntime<W, Sp, S, C>
 where
-    Wallet: PsbtConstructor + WalletProvider + WalletUpdater,
+    W: WalletProvider,
     Sp: Stockpile,
     Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
 {
-    pub fn into_rgb_wallet(self) -> RgbWallet<Wallet, Sp> { self.0 }
-    pub fn unbind(self) -> (Wallet, Contracts<Sp>) { self.0.unbind() }
-
-    #[allow(clippy::type_complexity)]
-    pub fn sync<I>(
-        &mut self,
-        indexer: &I,
-    ) -> Result<(), MultiError<SyncError<I::Error>, <Sp::Stock as Stock>::Error>>
-    where
-        I: Indexer,
-        I::Error: Error,
-    {
-        if let Some(err) = self.wallet.update(indexer).err {
-            return Err(MultiError::A(SyncError::Update(err)));
-        }
-
-        let txids = self.contracts.witness_ids().collect::<HashSet<_>>();
-        let mut changed = HashMap::new();
-        for txid in txids {
-            let status = indexer
-                .status(txid)
-                .map_err(|e| MultiError::A(SyncError::Status(e)))?;
-            let status = match status {
-                TxStatus::Unknown => WitnessStatus::Archived,
-                TxStatus::Mempool => WitnessStatus::Tentative,
-                TxStatus::Channel => WitnessStatus::Offchain,
-                TxStatus::Mined(status) => WitnessStatus::Mined(status.height.into()),
-            };
-            changed.insert(txid, status);
-        }
-        self.contracts
-            .sync(&changed)
-            .map_err(MultiError::from_other_a)?;
-
-        Ok(())
+    pub fn with_components(wallet: W, contracts: Contracts<Sp, S, C>) -> Self {
+        Self(RgbWallet::with_components(wallet, contracts))
     }
+    pub fn into_rgb_wallet(self) -> RgbWallet<W, Sp, S, C> { self.0 }
+    pub fn into_components(self) -> (W, Contracts<Sp, S, C>) { self.0.into_components() }
+}
 
+impl<W, Sp, S, C> RgbRuntime<W, Sp, S, C>
+where
+    W: PsbtConstructor + WalletProvider,
+    Sp: Stockpile,
+    Sp::Pile: Pile<Seal = TxoSeal>,
+    S: KeyedCollection<Key = CodexId, Value = Issuer>,
+    C: KeyedCollection<Key = ContractId, Value = Contract<Sp::Stock, Sp::Pile>>,
+{
     /// Pay an invoice producing PSBT ready to be signed.
     ///
     /// Should not be used in multi-party protocols like coinjoins, when a PSBT may need to be
@@ -319,6 +308,47 @@ where
 
         Ok(psbt)
     }
+
+    #[allow(clippy::type_complexity)]
+    fn finalize_inner(
+        &mut self,
+        mut psbt: Psbt,
+        meta: PsbtMeta,
+    ) -> Result<(Tx, Option<(Vout, u32, u32)>), FinalizeError<W::Error>> {
+        psbt.finalize(self.wallet.descriptor());
+        let tx = psbt.extract()?;
+        let change = meta.change.map(|change| {
+            (change.vout, change.terminal.keychain.index(), change.terminal.index.index())
+        });
+        Ok((tx, change))
+    }
+
+    #[cfg(not(feature = "async"))]
+    /// Finalizes PSBT, extracts the signed transaction, broadcasts it and updates wallet UTXO set
+    /// accordingly.
+    pub fn finalize(&mut self, psbt: Psbt, meta: PsbtMeta) -> Result<(), FinalizeError<W::Error>> {
+        let (tx, change) = self.finalize_inner(psbt, meta)?;
+        self.wallet
+            .broadcast(&tx, change)
+            .map_err(FinalizeError::Broadcast)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "async")]
+    /// Finalizes PSBT, extracts the signed transaction, broadcasts it and updates wallet UTXO set
+    /// accordingly.
+    pub async fn finalize_async(
+        &mut self,
+        psbt: Psbt,
+        meta: PsbtMeta,
+    ) -> Result<(), FinalizeError<W::Error>> {
+        let (tx, change) = self.finalize_inner(psbt, meta)?;
+        self.wallet
+            .broadcast_async(&tx, change)
+            .await
+            .map_err(FinalizeError::Broadcast)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Display, Error, From)]
@@ -352,6 +382,14 @@ pub enum TransferError {
     Include(IncludeError),
 }
 
+#[derive(Debug, Display, Error, From)]
+#[display(inner)]
+pub enum FinalizeError<E: core::error::Error> {
+    #[from]
+    UnfinalizedPsbt(UnfinalizedInputs),
+    Broadcast(E),
+}
+
 #[cfg(feature = "fs")]
 pub mod file {
     use std::io;
@@ -359,8 +397,9 @@ pub mod file {
     use rgb_persist_fs::StockpileDir;
 
     use super::*;
+    use crate::FileOwner;
 
-    pub type RgbpRuntimeDir<Wallet> = RgbRuntime<Wallet, StockpileDir<TxoSeal>>;
+    pub type RgbpRuntimeDir<R> = RgbRuntime<FileOwner<R>, StockpileDir<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;
