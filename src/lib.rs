@@ -45,8 +45,9 @@ extern crate amplify;
 #[macro_use]
 extern crate serde;
 extern crate core;
+pub extern crate rgbdescr as descriptors;
 
-pub mod descriptor;
+mod utxoset;
 mod owner;
 mod coinselect;
 mod runtime;
@@ -56,8 +57,9 @@ pub mod resolvers;
 pub use coinselect::CoinselectStrategy;
 pub use info::{CodexInfo, ContractInfo};
 #[cfg(feature = "fs")]
-pub use owner::file::FileOwner;
-pub use owner::{MemUtxos, Owner, UtxoSet};
+pub use owner::file::FileHolder;
+pub use owner::{Holder, MultiHolder, Owner, OwnerProvider};
 #[cfg(feature = "fs")]
 pub use runtime::file::{ConsignmentStream, RgbpRuntimeDir, Transfer};
 pub use runtime::{FinalizeError, PayError, Payment, RgbRuntime, TransferError};
+pub use utxoset::{MemUtxos, UtxoSet};

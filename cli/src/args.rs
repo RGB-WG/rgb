@@ -32,7 +32,7 @@ use rgb::popls::bp::RgbWallet;
 use rgb::{Consensus, Contracts};
 use rgb_persist_fs::StockpileDir;
 use rgbp::resolvers::MultiResolver;
-use rgbp::{FileOwner, RgbpRuntimeDir};
+use rgbp::{FileHolder, Owner, RgbpRuntimeDir};
 
 use crate::cmd::Cmd;
 use crate::opts::{ResolverOpt, WalletOpts};
@@ -150,12 +150,13 @@ impl Args {
     pub fn runtime(&self, opts: &WalletOpts) -> RgbpRuntimeDir<MultiResolver> {
         let resolver = self.resolver(&opts.resolver);
         let path = self.wallet_dir(opts.wallet.as_deref());
-        let wallet = FileOwner::load(path, self.network, resolver).unwrap_or_else(|err| {
+        let hodler = FileHolder::load(path).unwrap_or_else(|err| {
             panic!(
                 "unable to load wallet from path `{}`\nDetails: {err}",
                 self.wallet_dir(opts.wallet.as_deref()).display()
             )
         });
+        let wallet = Owner::with_components(self.network, hodler, resolver);
         let mut runtime =
             RgbpRuntimeDir::from(RgbWallet::with_components(wallet, self.contracts()));
         if opts.sync {

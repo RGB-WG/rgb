@@ -391,7 +391,7 @@ dependencies = [
 [[package]]
 name = "bp-derive"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3e609f479be810d924c3ec56719a8738e3584fcb"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -442,7 +442,7 @@ dependencies = [
 [[package]]
 name = "bp-invoice"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3e609f479be810d924c3ec56719a8738e3584fcb"
 dependencies = [
  "amplify",
  "bech32",
@@ -472,7 +472,7 @@ dependencies = [
 [[package]]
 name = "bp-std"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3e609f479be810d924c3ec56719a8738e3584fcb"
 dependencies = [
  "amplify",
  "bp-consensus",
@@ -560,9 +560,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.40"
+version = "4.5.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40b6887a1d8685cebccf115538db5c0efe625ccac9696ad45c409d96566e910f"
+checksum = "be92d32e80243a54711e5d7ce823c35c41c9d929dc4ab58e1276f625841aadf9"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -570,9 +570,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.40"
+version = "4.5.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0c66c08ce9f0c698cbce5c0279d0bb6ac936d8674174fe48f736533b964f59e"
+checksum = "707eab41e9622f9139419d573eca0900137718000c517d47da73045f54331c3d"
 dependencies = [
  "anstream",
  "anstyle",
@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.5.40"
+version = "4.5.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c7947ae4cc3d851207c1adb5b5e260ff0cca11446b1d6d1423788e442257ce"
+checksum = "ef4f52386a59ca4c860f7393bcf8abd8dfd91ecccc0f774635ff68e92eeef491"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -764,10 +764,11 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3e609f479be810d924c3ec56719a8738e3584fcb"
 dependencies = [
  "amplify",
  "bp-derive",
+ "commit_verify",
  "indexmap 2.10.0",
  "serde",
 ]
@@ -1715,10 +1716,11 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.12.0-rc.2"
-source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3fa4777afbbc2592a8c41cfa0b26dd287cbf5754"
+source = "git+https://github.com/BP-WG/bp-std?branch=feat%2Fdescriptors#3e609f479be810d924c3ec56719a8738e3584fcb"
 dependencies = [
  "amplify",
  "base64",
+ "bp-consensus",
  "bp-core",
  "bp-derive",
  "commit_verify",
@@ -1906,6 +1908,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rgb-descriptors"
+version = "0.12.0-rc.2"
+dependencies = [
+ "amplify",
+ "bp-std",
+ "commit_verify",
+ "indexmap 2.10.0",
+ "rgb-std",
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "rgb-invoice"
 version = "0.12.0-rc.2"
 source = "git+https://github.com/RGB-WG/rgb-std?branch=async#dce6cf94950a1279b7569039ea71561ce9ddd2eb"
@@ -1960,6 +1975,7 @@ dependencies = [
  "indexmap 2.10.0",
  "log",
  "rand 0.9.1",
+ "rgb-descriptors",
  "rgb-persist-fs",
  "rgb-psbt",
  "rgb-std",
@@ -2007,7 +2023,6 @@ dependencies = [
  "bp-std",
  "clap",
  "rgb-persist-fs",
- "rgb-psbt",
  "rgb-runtime",
  "rgb-std",
  "serde",

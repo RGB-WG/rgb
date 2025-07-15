@@ -1,0 +1,33 @@
+[package]
+name = "rgb-descriptors"
+description = "Bitcoin wallet descriptors for RGB protocol"
+version.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "rgbdescr"
+
+[dependencies]
+amplify = { workspace = true }
+commit_verify = { workspace = true }
+bp-std = { workspace = true }
+rgb-std = { workspace = true, features = ["bitcoin"] }
+indexmap = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde = { workspace = true }
+toml = { workspace = true }
+
+[features]
+default = []
+all = ["serde"]
+
+serde = ["dep:serde", "indexmap/serde", "bp-std/serde", "rgb-std/serde"]

@@ -22,122 +22,153 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use std::collections::{HashMap, HashSet};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
+
 use amplify::Bytes32;
 use bpstd::psbt::{PsbtConstructor, Utxo};
 use bpstd::seals::WTxoSeal;
 use bpstd::{
-    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, Idx, Keychain, Network,
-    NormalIndex, Outpoint, Sats, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout, XpubDerivable,
+    Address, Derive, DeriveCompr, DeriveLegacy, DeriveSet, DeriveXOnly, DescrId, Idx, Keychain,
+    Network, NormalIndex, Outpoint, ScriptPubkey, Terminal, Tx, Txid, UnsignedTx, Vout,
+    XpubDerivable,
 };
-use indexmap::IndexMap;
 use rgb::popls::bp::WalletProvider;
 use rgb::{AuthToken, RgbSealDef, WitnessStatus};
+use rgbdescr::RgbDescr;
 
-use crate::descriptor::RgbDescr;
 use crate::resolvers::{Resolver, ResolverError};
+use crate::{MemUtxos, UtxoSet};
 
-#[allow(clippy::len_without_is_empty)]
-pub trait UtxoSet {
-    fn len(&self) -> usize;
-    fn has(&self, outpoint: Outpoint) -> bool;
-    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
+pub trait OwnerProvider {
+    type Key: DeriveSet<Legacy = Self::Key, Compr = Self::Key, XOnly = Self::Key>
+        + DeriveLegacy
+        + DeriveCompr
+        + DeriveXOnly;
+    type UtxoSet: UtxoSet;
 
-    #[cfg(not(feature = "async"))]
-    fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
-    #[cfg(feature = "async")]
-    async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal);
-
-    #[cfg(not(feature = "async"))]
-    fn clear(&mut self);
-    #[cfg(feature = "async")]
-    async fn clear_async(&mut self);
-
-    #[cfg(not(feature = "async"))]
-    fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
-    #[cfg(feature = "async")]
-    async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)>;
-
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint>;
-
-    #[cfg(not(feature = "async"))]
-    fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex;
-    #[cfg(feature = "async")]
-    async fn next_index_async(&mut self, keychain: impl Into<Keychain>, shift: bool)
-        -> NormalIndex;
+    fn descriptor(&self) -> &RgbDescr<Self::Key>;
+    fn utxos(&self) -> &Self::UtxoSet;
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<Self::Key>;
+    fn utxos_mut(&mut self) -> &mut Self::UtxoSet;
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "camelCase"))]
-pub struct MemUtxos {
-    set: IndexMap<Outpoint, (Sats, Terminal)>,
-    next_index: IndexMap<Keychain, NormalIndex>,
+#[derive(Clone)]
+pub struct Holder<K = XpubDerivable, U = MemUtxos>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    descriptor: RgbDescr<K>,
+    utxos: U,
 }
 
-impl UtxoSet for MemUtxos {
+impl<K, U> Holder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
     #[inline]
-    fn len(&self) -> usize { self.set.len() }
+    pub fn with_components(descriptor: RgbDescr<K>, utxos: U) -> Self { Self { descriptor, utxos } }
     #[inline]
-    fn has(&self, outpoint: Outpoint) -> bool { self.set.contains_key(&outpoint) }
-    #[inline]
-    fn get(&self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
-        self.set.get(&outpoint).copied()
-    }
+    pub fn into_components(self) -> (RgbDescr<K>, U) { (self.descriptor, self.utxos) }
+}
+
+impl<K, U> OwnerProvider for Holder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    type Key = K;
+    type UtxoSet = U;
 
     #[inline]
-    #[cfg(not(feature = "async"))]
-    fn insert(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
-        self.set.insert(outpoint, (value, terminal));
-    }
+    fn descriptor(&self) -> &RgbDescr<K> { &self.descriptor }
     #[inline]
-    #[cfg(feature = "async")]
-    async fn insert_async(&mut self, outpoint: Outpoint, value: Sats, terminal: Terminal) {
-        self.set.insert(outpoint, (value, terminal));
+    fn utxos(&self) -> &U { &self.utxos }
+    #[inline]
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<K> { &mut self.descriptor }
+    #[inline]
+    fn utxos_mut(&mut self) -> &mut U { &mut self.utxos }
+}
+
+#[derive(Clone, Default)]
+pub struct MultiHolder<K = XpubDerivable, U = MemUtxos>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    current: Option<DescrId>,
+    holders: HashMap<DescrId, Holder<K, U>>,
+}
+
+impl<K, U> MultiHolder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    pub fn new() -> Self { Self { current: None, holders: none!() } }
+
+    pub fn with(id: DescrId, holder: Holder<K, U>) -> Self {
+        Self { current: Some(id), holders: map! { id => holder } }
     }
 
-    #[inline]
-    #[cfg(not(feature = "async"))]
-    fn clear(&mut self) { self.set.clear() }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn clear_async(&mut self) { self.set.clear() }
-
-    #[inline]
-    #[cfg(not(feature = "async"))]
-    fn remove(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
-        self.set.shift_remove(&outpoint)
-    }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn remove_async(&mut self, outpoint: Outpoint) -> Option<(Sats, Terminal)> {
-        self.set.shift_remove(&outpoint)
+    pub fn wallet_ids(&self) -> impl Iterator<Item = DescrId> + use<'_, K, U> {
+        self.holders.keys().copied()
     }
 
-    #[inline]
-    fn outpoints(&self) -> impl Iterator<Item = Outpoint> { self.set.keys().copied() }
-
-    #[cfg(not(feature = "async"))]
-    fn next_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        let index = self.next_index.entry(keychain.into()).or_default();
-        let next = *index;
-        if shift {
-            index.saturating_inc_assign();
+    pub fn upsert(&mut self, id: DescrId, holder: Holder<K, U>) {
+        self.holders.insert(id, holder);
+        if self.current.is_none() {
+            self.current = Some(id);
         }
-        next
     }
-    #[inline]
-    #[cfg(feature = "async")]
-    async fn next_index_async(
-        &mut self,
-        keychain: impl Into<Keychain>,
-        shift: bool,
-    ) -> NormalIndex {
-        let index = self.next_index.entry(keychain.into()).or_default();
-        let next = *index;
-        if shift {
-            index.saturating_inc_assign();
+
+    pub fn remove(&mut self, id: DescrId) -> Option<Holder<K, U>> {
+        if self.current == Some(id) {
+            self.current = None;
         }
-        next
+        self.holders.remove(&id)
     }
+
+    pub fn switch(&mut self, new: DescrId) {
+        self.current = Some(new);
+        debug_assert!(self.holders.contains_key(&new));
+    }
+
+    pub fn current(&self) -> &Holder<K, U> {
+        &self.holders[&self
+            .current
+            .expect("current holder must be selected first with `MultiHolder::switch`")]
+    }
+
+    pub fn current_mut(&mut self) -> &mut Holder<K, U> {
+        let current = self
+            .current
+            .expect("current holder must be selected first with `MultiHolder::switch`");
+        self.holders
+            .get_mut(&current)
+            .expect("internal multiholder inconsistency")
+    }
+}
+
+impl<K, U> OwnerProvider for MultiHolder<K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    U: UtxoSet,
+{
+    type Key = K;
+    type UtxoSet = U;
+
+    #[inline]
+    fn descriptor(&self) -> &RgbDescr<K> { self.current().descriptor() }
+    #[inline]
+    fn utxos(&self) -> &U { self.current().utxos() }
+    #[inline]
+    fn descriptor_mut(&mut self) -> &mut RgbDescr<K> { self.current_mut().descriptor_mut() }
+    #[inline]
+    fn utxos_mut(&mut self) -> &mut U { self.current_mut().utxos_mut() }
 }
 
 /// Owner structure represents a holder of an RGB wallet, which keeps information of the wallet
@@ -145,59 +176,78 @@ impl UtxoSet for MemUtxos {
 /// it is not a full wallet) and is used as a component implementing [`WalletProvider`] inside
 /// [`rgbstd::RgbWallet`] and [`crate::RgbRuntime`].
 #[derive(Clone)]
-pub struct Owner<R, K = XpubDerivable, U = MemUtxos>
+pub struct Owner<R, O, K = XpubDerivable, U = MemUtxos>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
     network: Network,
-    descriptor: RgbDescr<K>,
-    utxos: U,
+    provider: O,
     resolver: R,
+    _phantom: PhantomData<(K, U)>,
 }
 
-impl<R, K, U> Owner<R, K, U>
+impl<R, O, K, U> Deref for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
-    pub fn with_components(
-        network: Network,
-        descriptor: RgbDescr<K>,
-        resolver: R,
-        utxos: U,
-    ) -> Self {
-        Self { network, descriptor, utxos, resolver }
+    type Target = O;
+
+    fn deref(&self) -> &Self::Target { &self.provider }
+}
+
+impl<R, O, K, U> DerefMut for Owner<R, O, K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
+    R: Resolver,
+    U: UtxoSet,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.provider }
+}
+
+impl<R, O, K, U> Owner<R, O, K, U>
+where
+    K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
+    R: Resolver,
+    U: UtxoSet,
+{
+    pub fn with_components(network: Network, provider: O, resolver: R) -> Self {
+        Self { network, provider, resolver, _phantom: PhantomData }
     }
 
-    pub fn into_components(self) -> (RgbDescr<K>, R, U) {
-        (self.descriptor, self.resolver, self.utxos)
-    }
+    pub fn into_components(self) -> (O, R) { (self.provider, self.resolver) }
 
     #[inline]
     pub fn network(&self) -> Network { self.network }
 }
 
-impl<R, K, U> WalletProvider for Owner<R, K, U>
+impl<R, O, K, U> WalletProvider for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
     type Error = ResolverError;
 
-    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.utxos.has(outpoint) }
+    fn has_utxo(&self, outpoint: Outpoint) -> bool { self.provider.utxos().has(outpoint) }
 
-    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.utxos.outpoints() }
+    fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.provider.utxos().outpoints() }
 
     #[cfg(not(feature = "async"))]
     fn update_utxos(&mut self) -> Result<(), Self::Error> {
-        self.utxos.clear();
-        for keychain in self.descriptor.keychains() {
+        let mut new = set![];
+        let mut not_found = self.provider.utxos().outpoints().collect::<HashSet<_>>();
+        for keychain in self.provider.descriptor().keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self.utxos.next_index(keychain, false);
+            let last_index = self.provider.utxos().next_index_noshift(keychain);
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -206,7 +256,7 @@ where
                 let mut range = Vec::with_capacity(20);
                 while index < to {
                     let terminal = Terminal::new(keychain, index);
-                    let iter = self.descriptor.derive(keychain, index);
+                    let iter = self.provider.descriptor().derive(keychain, index);
 
                     range.extend(iter.map(|d| (terminal, d.to_script_pubkey())));
 
@@ -216,12 +266,16 @@ where
                 }
 
                 let set = self.resolver.resolve_utxos(range);
-                let prev_len = self.utxos.len();
+                let prev_len = self.provider.utxos().len();
                 for utxo in set {
                     let utxo = utxo?;
-                    self.utxos.insert(utxo.outpoint, utxo.value, utxo.terminal);
+                    not_found.remove(&utxo.outpoint);
+                    if self.provider.utxos().has(utxo.outpoint) {
+                        continue;
+                    }
+                    new.insert(utxo);
                 }
-                let next_len = self.utxos.len();
+                let next_len = self.provider.utxos().len();
                 if prev_len == next_len && index > last_index {
                     break;
                 }
@@ -229,15 +283,18 @@ where
                 index = to;
             }
         }
+        self.provider.utxos_mut().remove_all(not_found);
+        self.provider.utxos_mut().insert_all(new);
         Ok(())
     }
 
     #[cfg(feature = "async")]
     async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
-        self.utxos.clear_async().await;
-        for keychain in self.descriptor.keychains() {
+        let mut new = set![];
+        let mut not_found = self.provider.utxos().outpoints().collect::<HashSet<_>>();
+        for keychain in self.provider.descriptor().keychains() {
             let mut index = NormalIndex::ZERO;
-            let last_index = self.utxos.next_index_async(keychain, false).await;
+            let last_index = self.provider.utxos().next_index_noshift(keychain);
             loop {
                 let Some(to) = index.checked_add(20u16) else {
                     break;
@@ -246,7 +303,7 @@ where
                 let mut range = Vec::with_capacity(20);
                 while index < to {
                     let terminal = Terminal::new(keychain, index);
-                    let iter = self.descriptor.derive(keychain, index);
+                    let iter = self.provider.descriptor().derive(keychain, index);
 
                     range.extend(iter.map(|d| (terminal, d.to_script_pubkey())));
 
@@ -256,14 +313,16 @@ where
                 }
 
                 let set = self.resolver.resolve_utxos_async(range).await;
-                let prev_len = self.utxos.len();
+                let prev_len = self.provider.utxos().len();
                 for utxo in set {
                     let utxo = utxo?;
-                    self.utxos
-                        .insert_async(utxo.outpoint, utxo.value, utxo.terminal)
-                        .await;
+                    not_found.remove(&utxo.outpoint);
+                    if self.provider.utxos().has(utxo.outpoint) {
+                        continue;
+                    }
+                    new.insert(utxo);
                 }
-                let next_len = self.utxos.len();
+                let next_len = self.provider.utxos().len();
                 if prev_len == next_len && index > last_index {
                     break;
                 }
@@ -271,28 +330,32 @@ where
                 index = to;
             }
         }
+        self.provider.utxos_mut().remove_all_async(not_found).await;
+        self.provider.utxos_mut().insert_all_async(new).await;
         Ok(())
     }
 
-    fn register_seal(&mut self, seal: WTxoSeal) { self.descriptor.add_seal(seal); }
+    fn register_seal(&mut self, seal: WTxoSeal) { self.provider.descriptor_mut().add_seal(seal); }
 
     fn resolve_seals(
         &self,
         seals: impl Iterator<Item = AuthToken>,
     ) -> impl Iterator<Item = WTxoSeal> {
         seals.flat_map(|auth| {
-            self.descriptor
+            self.provider
+                .descriptor()
                 .seals()
                 .filter(move |seal| seal.auth_token() == auth)
         })
     }
 
-    fn noise_seed(&self) -> Bytes32 { self.descriptor.noise() }
+    fn noise_seed(&self) -> Bytes32 { self.provider.descriptor().noise() }
 
     fn next_address(&mut self) -> Address {
         let next = self.next_derivation_index(Keychain::OUTER, true);
         let spk = self
-            .descriptor
+            .provider
+            .descriptor()
             .derive(Keychain::OUTER, next)
             .next()
             .expect("at least one address must be derivable")
@@ -300,7 +363,7 @@ where
         Address::with(&spk, self.network).expect("invalid scriptpubkey derivation")
     }
 
-    fn next_nonce(&mut self) -> u64 { self.descriptor.next_nonce() }
+    fn next_nonce(&mut self) -> u64 { self.provider.descriptor_mut().next_nonce() }
 
     #[cfg(not(feature = "async"))]
     fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
@@ -325,7 +388,7 @@ where
         self.resolver.broadcast(tx)?;
 
         for inp in &tx.inputs {
-            self.utxos.remove(inp.prev_output);
+            self.provider.utxos_mut().remove(inp.prev_output);
         }
         if let Some((vout, keychain, index)) = change {
             let txid = tx.txid();
@@ -334,7 +397,8 @@ where
                 Keychain::with(keychain as u8),
                 NormalIndex::try_from_index(index).expect("invalid derivation index"),
             );
-            self.utxos
+            self.provider
+                .utxos_mut()
                 .insert(Outpoint::new(txid, vout), out.value, terminal);
         }
 
@@ -350,7 +414,10 @@ where
         self.resolver.broadcast_async(tx).await?;
 
         for inp in &tx.inputs {
-            self.utxos.remove_async(inp.prev_output).await;
+            self.provider
+                .utxos_mut()
+                .remove_async(inp.prev_output)
+                .await;
         }
         if let Some((vout, keychain, index)) = change {
             let txid = tx.txid();
@@ -359,7 +426,8 @@ where
                 Keychain::with(keychain as u8),
                 NormalIndex::try_from_index(index).expect("invalid derivation index"),
             );
-            self.utxos
+            self.provider
+                .utxos_mut()
                 .insert_async(Outpoint::new(txid, vout), out.value, terminal)
                 .await;
         }
@@ -368,16 +436,17 @@ where
     }
 }
 
-impl<R, K, U> PsbtConstructor for Owner<R, K, U>
+impl<R, O, K, U> PsbtConstructor for Owner<R, O, K, U>
 where
     K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr + DeriveXOnly,
+    O: OwnerProvider<Key = K, UtxoSet = U>,
     R: Resolver,
     U: UtxoSet,
 {
     type Key = K;
     type Descr = RgbDescr<K>;
 
-    fn descriptor(&self) -> &Self::Descr { &self.descriptor }
+    fn descriptor(&self) -> &Self::Descr { self.provider.descriptor() }
 
     #[cfg(not(feature = "async"))]
     fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> {
@@ -393,10 +462,11 @@ where
     }
 
     fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
-        let (value, terminal) = self.utxos.get(outpoint)?;
+        let (value, terminal) = self.provider.utxos().get(outpoint)?;
         let utxo = Utxo { outpoint, value, terminal };
         let script = self
-            .descriptor
+            .provider
+            .descriptor()
             .derive(terminal.keychain, terminal.index)
             .next()
             .expect("unable to derive");
@@ -407,49 +477,33 @@ where
 
     #[cfg(not(feature = "async"))]
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
-        self.utxos.next_index(keychain, shift)
+        self.provider.utxos_mut().next_index(keychain, shift)
     }
     #[cfg(feature = "async")]
     fn next_derivation_index(&mut self, keychain: impl Into<Keychain>, shift: bool) -> NormalIndex {
         use futures::executor::block_on;
-        block_on(self.utxos.next_index_async(keychain, shift))
+        block_on(self.provider.utxos_mut().next_index_async(keychain, shift))
     }
 }
 
 #[cfg(feature = "fs")]
 pub mod file {
     use std::io::{Read, Write};
-    use std::ops::{Deref, DerefMut};
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
     use super::*;
 
-    pub struct FileOwner<R: Resolver> {
-        owner: Owner<R>,
+    pub struct FileHolder {
+        inner: Holder,
         path: PathBuf,
     }
 
-    impl<R: Resolver> Deref for FileOwner<R> {
-        type Target = Owner<R>;
-
-        fn deref(&self) -> &Self::Target { &self.owner }
-    }
-
-    impl<R: Resolver> DerefMut for FileOwner<R> {
-        fn deref_mut(&mut self) -> &mut Self::Target { &mut self.owner }
-    }
-
-    impl<R: Resolver> FileOwner<R> {
+    impl FileHolder {
         const DESCRIPTOR_FILENAME: &'static str = "descriptor.toml";
         const UTXO_FILENAME: &'static str = "utxo.toml";
 
-        pub fn create(
-            path: PathBuf,
-            network: Network,
-            descriptor: RgbDescr,
-            resolver: R,
-        ) -> io::Result<Self> {
+        pub fn create(path: PathBuf, descriptor: RgbDescr) -> io::Result<Self> {
             fs::create_dir_all(&path)?;
 
             let mut file = fs::File::create_new(path.join(Self::DESCRIPTOR_FILENAME))?;
@@ -463,11 +517,11 @@ pub mod file {
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
-            let owner = Owner::with_components(network, descriptor, resolver, utxos);
-            Ok(Self { owner, path })
+            let inner = Holder::with_components(descriptor, utxos);
+            Ok(Self { inner, path })
         }
 
-        pub fn load(path: PathBuf, network: Network, resolver: R) -> io::Result<Self> {
+        pub fn load(path: PathBuf) -> io::Result<Self> {
             let mut file = fs::File::open(path.join(Self::DESCRIPTOR_FILENAME))?;
             let mut deser = String::new();
             file.read_to_string(&mut deser)?;
@@ -480,20 +534,20 @@ pub mod file {
             let utxos: MemUtxos = toml::from_str(&deser)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
 
-            let owner = Owner::with_components(network, descriptor, resolver, utxos);
-            Ok(Self { owner, path })
+            let inner = Holder::with_components(descriptor, utxos);
+            Ok(Self { inner, path })
         }
 
         pub fn save(&self) -> io::Result<()> {
             fs::create_dir_all(&self.path)?;
 
             let mut file = fs::File::create(self.path.join(Self::DESCRIPTOR_FILENAME))?;
-            let ser = toml::to_string(&self.descriptor)
+            let ser = toml::to_string(&self.inner.descriptor())
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
             let mut file = fs::File::create(self.path.join(Self::UTXO_FILENAME))?;
-            let ser = toml::to_string(&self.utxos)
+            let ser = toml::to_string(&self.inner.utxos())
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
             file.write_all(ser.as_bytes())?;
 
@@ -503,7 +557,7 @@ pub mod file {
         pub fn path(&self) -> &Path { &self.path }
     }
 
-    impl<R: Resolver> Drop for FileOwner<R> {
+    impl Drop for FileHolder {
         fn drop(&mut self) {
             if let Err(err) = self.save() {
                 eprintln!("Error: unable to save wallet data. Details: {err}");
@@ -511,99 +565,24 @@ pub mod file {
         }
     }
 
-    impl<R: Resolver> WalletProvider for FileOwner<R> {
-        type Error = ResolverError;
-        #[inline]
-        fn has_utxo(&self, outpoint: Outpoint) -> bool { self.owner.has_utxo(outpoint) }
-        #[inline]
-        fn utxos(&self) -> impl Iterator<Item = Outpoint> { self.owner.utxos() }
-        #[inline]
-        fn update_utxos(&mut self) -> Result<(), Self::Error> { self.owner.update_utxos() }
-        #[inline]
-        #[cfg(feature = "async")]
-        async fn update_utxos_async(&mut self) -> Result<(), Self::Error> {
-            self.owner.update_utxos_async().await
-        }
-
-        #[inline]
-        fn register_seal(&mut self, seal: WTxoSeal) { self.owner.register_seal(seal) }
-        #[inline]
-        fn resolve_seals(
-            &self,
-            seals: impl Iterator<Item = AuthToken>,
-        ) -> impl Iterator<Item = WTxoSeal> {
-            self.owner.resolve_seals(seals)
-        }
-        #[inline]
-        fn noise_seed(&self) -> Bytes32 { self.owner.noise_seed() }
-        #[inline]
-        fn next_address(&mut self) -> Address { self.owner.next_address() }
-        #[inline]
-        fn next_nonce(&mut self) -> u64 { self.owner.next_nonce() }
-        #[inline]
-        fn txid_resolver(&self) -> impl Fn(Txid) -> Result<WitnessStatus, Self::Error> {
-            self.owner.txid_resolver()
-        }
-        #[inline]
-        #[cfg(feature = "async")]
-        fn txid_resolver_async(&self) -> impl AsyncFn(Txid) -> Result<WitnessStatus, Self::Error> {
-            self.owner.txid_resolver_async()
-        }
-
-        #[inline]
-        fn last_block_height(&self) -> Result<u64, Self::Error> { self.owner.last_block_height() }
-        #[inline]
-        #[cfg(feature = "async")]
-        async fn last_block_height_async(&self) -> Result<u64, Self::Error> {
-            self.owner.last_block_height_async().await
-        }
-
-        #[inline]
-        fn broadcast(
-            &mut self,
-            tx: &Tx,
-            change: Option<(Vout, u32, u32)>,
-        ) -> Result<(), Self::Error> {
-            self.owner.broadcast(tx, change)
-        }
-        #[inline]
-        #[cfg(feature = "async")]
-        async fn broadcast_async(
-            &mut self,
-            tx: &Tx,
-            change: Option<(Vout, u32, u32)>,
-        ) -> Result<(), Self::Error> {
-            self.owner.broadcast_async(tx, change).await
-        }
-    }
-
-    impl<R: Resolver> PsbtConstructor for FileOwner<R> {
+    impl OwnerProvider for FileHolder {
         type Key = XpubDerivable;
-        type Descr = RgbDescr<XpubDerivable>;
-
+        type UtxoSet = MemUtxos;
         #[inline]
-        fn descriptor(&self) -> &Self::Descr { self.owner.descriptor() }
+        fn descriptor(&self) -> &RgbDescr<Self::Key> { self.inner.descriptor() }
         #[inline]
-        fn prev_tx(&self, txid: Txid) -> Option<UnsignedTx> { self.owner.prev_tx(txid) }
+        fn utxos(&self) -> &Self::UtxoSet { self.inner.utxos() }
         #[inline]
-        fn utxo(&self, outpoint: Outpoint) -> Option<(Utxo, ScriptPubkey)> {
-            self.owner.utxo(outpoint)
-        }
+        fn descriptor_mut(&mut self) -> &mut RgbDescr<Self::Key> { self.inner.descriptor_mut() }
         #[inline]
-        fn network(&self) -> Network { self.owner.network }
-        #[inline]
-        fn next_derivation_index(
-            &mut self,
-            keychain: impl Into<Keychain>,
-            shift: bool,
-        ) -> NormalIndex {
-            self.owner.next_derivation_index(keychain, shift)
-        }
+        fn utxos_mut(&mut self) -> &mut Self::UtxoSet { self.inner.utxos_mut() }
     }
 }
 
 #[cfg(all(test, not(feature = "async")))]
 mod test {
+    use bpstd::Sats;
+
     use super::*;
 
     fn setup() -> MemUtxos {

@@ -397,9 +397,9 @@ pub mod file {
     use rgb_persist_fs::StockpileDir;
 
     use super::*;
-    use crate::FileOwner;
+    use crate::{FileHolder, Owner};
 
-    pub type RgbpRuntimeDir<R> = RgbRuntime<FileOwner<R>, StockpileDir<TxoSeal>>;
+    pub type RgbpRuntimeDir<R> = RgbRuntime<Owner<R, FileHolder>, StockpileDir<TxoSeal>>;
 
     pub trait ConsignmentStream {
         fn write(self, writer: impl io::Write) -> io::Result<()>;

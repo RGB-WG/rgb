@@ -22,6 +22,17 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+// #![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
+#[macro_use]
+extern crate amplify;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
+extern crate core;
+
 use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt::{self, Display, Formatter};
 
@@ -88,7 +99,7 @@ impl Display for TapretWeaks {
     }
 }
 
-#[derive(Clone, Display, From)]
+#[derive(Clone, Debug, Display, From)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -102,7 +113,6 @@ impl Display for TapretWeaks {
         )
     )
 )]
-// TODO: Remove DeriveSet bound
 enum RgbDeriver<K: DeriveSet = XpubDerivable> {
     #[from]
     #[display(inner)]
@@ -223,7 +233,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     }
 }
 
-#[derive(Clone, Display)]
+#[derive(Clone, Debug, Display)]
 #[display("rgb({deriver},{seals},noise({noise:x}))")]
 #[cfg_attr(
     feature = "serde",
