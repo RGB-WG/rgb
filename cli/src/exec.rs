@@ -271,9 +271,11 @@ impl Args {
                 };
                 for contract_id in contract_ids {
                     let state = if *all {
-                        runtime.state_all(contract_id).map(|seal| seal.primary)
+                        runtime
+                            .contract_state_full(contract_id)
+                            .map(|seal| seal.primary)
                     } else {
-                        runtime.state_own(contract_id)
+                        runtime.wallet_contract_state(contract_id)
                     };
                     let articles = runtime.contracts.contract_articles(contract_id);
                     println!("{contract_id}\t{}", articles.issue().meta.name);
