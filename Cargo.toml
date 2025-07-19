@@ -132,6 +132,10 @@ serde = [
 features = ["all"]
 
 [patch.crates-io]
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
 bp-invoice = { git = "https://github.com/BP-WG/bp-std" }
 bp-derive = { git = "https://github.com/BP-WG/bp-std" }
 descriptors = { git = "https://github.com/BP-WG/bp-std" }

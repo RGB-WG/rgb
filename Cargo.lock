@@ -250,19 +250,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "base58"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6107fe1be6682a68940da878d9e9f5e90ca5745b3dec9fd1bb393c8777d4f581"
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
-name = "base85"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36915bbaca237c626689b5bd14d02f2ba7a5a359d30a2a08be697392e3718079"
-dependencies = [
- "thiserror",
-]
 
 [[package]]
 name = "bech32"
@@ -342,8 +339,7 @@ checksum = "3eeab4423108c5d7c744f4d234de88d18d636100093ae04caf4825134b9c3a32"
 [[package]]
 name = "bp-consensus"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22bbb56809c40565d6085b4211ee2d25a7b5e84848960678ff748e0a8707552f"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#89a85c069abfacfb56b40d25a24153e496dd55af"
 dependencies = [
  "amplify",
  "chrono",
@@ -359,8 +355,7 @@ dependencies = [
 [[package]]
 name = "bp-core"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a28cb4d675dd49dddd705a29d868d3e3b8f217639fd6f9cbfcbf435236eef77"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#89a85c069abfacfb56b40d25a24153e496dd55af"
 dependencies = [
  "bp-consensus",
  "bp-dbc",
@@ -376,11 +371,10 @@ dependencies = [
 [[package]]
 name = "bp-dbc"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8aa1f2d9e00a4f2b107d2df25e0d804cfb87a175a37ee503b982b5784e892a6d"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#89a85c069abfacfb56b40d25a24153e496dd55af"
 dependencies = [
  "amplify",
- "base85",
+ "base58",
  "bp-consensus",
  "commit_verify",
  "getrandom 0.2.16",
@@ -459,10 +453,10 @@ dependencies = [
 [[package]]
 name = "bp-seals"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "565ffa069d6425b01630c68dbf1088a88786bd4b794ebf1f37a1d6edbbc29817"
+source = "git+https://github.com/BP-WG/bp-core?branch=develop#89a85c069abfacfb56b40d25a24153e496dd55af"
 dependencies = [
  "amplify",
+ "base58",
  "bp-consensus",
  "bp-dbc",
  "commit_verify",
@@ -2641,26 +2635,6 @@ dependencies = [
  "once_cell",
  "rustix 1.0.7",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
 ]
 
 [[package]]

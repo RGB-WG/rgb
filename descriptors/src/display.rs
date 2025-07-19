@@ -111,7 +111,7 @@ mod test {
         assert_eq!(descr.to_string(), "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-                tweaks(&0/1=y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$x&)\
+                tweaks(&0/1=xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo)\
             ),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
             seals()\
@@ -124,7 +124,10 @@ mod test {
         assert_eq!(descr.to_string(), "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-                tweaks(&0/1=y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$y1Kf$x&;&1/0=tE;Q4tE;Q4tE;Q4tE;Q4tE;Q4tE;Q4tE;Q4tE;Q4s{)\
+                tweaks(\
+                    &0/1=xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo;\
+                    &1/0=szpHvMPBKt4t9PagDS68oqS8dUc1gZTUPFV5p9Wgh4rF4\
+                )\
             ),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
             seals()\
@@ -140,7 +143,7 @@ mod test {
         assert_eq!(descr.to_string(), "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals(dededededededededededededededededededededededededededededededede:129/d1dfdd95a5e3abd4d67db12eb7395e838641d745aa58a48348d9901d0b00c927ffffffffffffffff)\
+            seals(dededededededededededededededededededededededededededededededede:129/F8GCQc9BuWAA7kGouPwxjZMA9WBNgFGFHG9kqYDNPFrN)\
         )");
 
         let sha = Sha256::new_with_prefix("test");
@@ -149,8 +152,8 @@ mod test {
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
             seals(\
-                1313131313131313131313131313131313131313131313131313131313131313:129/1fcb18f4d570017b8454a3131f43800601a65083f17f974b3b33babb47ec5e32ffffffffffffffff,\
-                dededededededededededededededededededededededededededededededede:129/d1dfdd95a5e3abd4d67db12eb7395e838641d745aa58a48348d9901d0b00c927ffffffffffffffff\
+                1313131313131313131313131313131313131313131313131313131313131313:129/397G2XyBYQZZX6YxnTHyJocEPszPQZTmnwBRQcpGuMCu,\
+                dededededededededededededededededededededededededededededededede:129/F8GCQc9BuWAA7kGouPwxjZMA9WBNgFGFHG9kqYDNPFrN\
             )\
         )");
     }
