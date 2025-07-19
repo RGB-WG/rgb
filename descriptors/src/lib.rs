@@ -33,8 +33,9 @@ extern crate amplify;
 extern crate serde;
 extern crate core;
 
+mod display;
+
 use alloc::collections::{BTreeMap, BTreeSet};
-use core::fmt::{self, Display, Formatter};
 
 use amplify::{Bytes32, Wrapper, WrapperMut};
 use bpstd::dbc::tapret::TapretCommitment;
@@ -58,46 +59,11 @@ pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
 pub struct SealDescr(BTreeSet<WTxoSeal>);
 
-impl Display for SealDescr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("seals(")?;
-        let mut iter = self.0.iter().peekable();
-        while let Some(seal) = iter.next() {
-            Display::fmt(seal, f)?;
-            if iter.peek().is_some() {
-                f.write_str(",")?;
-            }
-        }
-        f.write_str(")")
-    }
-}
-
 #[derive(Wrapper, WrapperMut, Clone, PartialEq, Eq, Debug, Default, From)]
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
 pub struct TapretWeaks(BTreeMap<Terminal, BTreeSet<TapretCommitment>>);
-
-impl Display for TapretWeaks {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("tweaks(")?;
-        let mut iter1 = self.iter().peekable();
-        while let Some((term, tweaks)) = iter1.next() {
-            write!(f, "{term}=")?;
-            let mut iter2 = tweaks.iter().peekable();
-            while let Some(tweak) = iter2.next() {
-                write!(f, "{tweak}")?;
-                if iter2.peek().is_some() {
-                    f.write_str(",")?;
-                }
-            }
-            if iter1.peek().is_some() {
-                f.write_str(";")?;
-            }
-        }
-        f.write_str(")")
-    }
-}
 
 #[derive(Clone, Debug, Display, From)]
 #[cfg_attr(
@@ -118,7 +84,7 @@ enum RgbDeriver<K: DeriveSet = XpubDerivable> {
     #[display(inner)]
     OpretOnly(StdDescr<K>),
 
-    #[display("{tr},{tweaks}")]
+    #[display("tapret({tr},{tweaks})")]
     Universal {
         tr: Tr<K::XOnly>,
         tweaks: TapretWeaks,
@@ -234,7 +200,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
 }
 
 #[derive(Clone, Debug, Display)]
-#[display("rgb({deriver},{seals},noise({noise:x}))")]
+#[display("rgb({deriver},{noise:x},{seals})")]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -368,7 +334,7 @@ mod test {
 
     #[test]
     fn descr_serde() {
-        let s = "[643a7adc/86'/1'/0']tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1;9;10>/*";
+        let s = "[643a7adc/86'/1'/0']tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*";
         let xpub = XpubDerivable::from_str(s).unwrap();
         let descr = RgbDescr::<XpubDerivable>::new_unfunded(Wpkh::from(xpub), [0u8; 32]);
 
@@ -383,7 +349,7 @@ noise = "0000000000000000000000000000000000000000000000000000000000000000"
 nonce = 0
 
 [deriver.opretOnly]
-wpkh = "[643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1;9;10>/*"
+wpkh = "[643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*"
 "#
         );
     }
