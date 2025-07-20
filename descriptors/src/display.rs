@@ -93,8 +93,8 @@ mod test {
         let descr = base_descr();
         assert_eq!(descr.to_string(), "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals()\
+            seals(),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
     }
 
@@ -108,8 +108,8 @@ mod test {
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks()\
             ),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals()\
+            seals(),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
 
         descr.add_tweak(
@@ -121,8 +121,8 @@ mod test {
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks(/0/1/xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo)\
             ),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals()\
+            seals(),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
 
         descr.add_tweak(
@@ -137,8 +137,8 @@ mod test {
                     /1/0/szpHvMPBKt4t9PagDS68oqS8dUc1gZTUPFV5p9Wgh4rF4\
                 )\
             ),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals()\
+            seals(),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
 
         descr.add_tweak(
@@ -153,8 +153,8 @@ mod test {
                     /1/0/<Lyundr2Zsp9JfZbDzSmkRTST46jD93CjGqkZkaBcZf96r;szpHvMPBKt4t9PagDS68oqS8dUc1gZTUPFV5p9Wgh4rF4>\
                 )\
             ),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals()\
+            seals(),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
     }
 
@@ -166,19 +166,19 @@ mod test {
         descr.add_seal(WTxoSeal::no_fallback(Outpoint::new(Txid::from([0xDE; 32]), 129), sha, 56));
         assert_eq!(descr.to_string(), "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals(dededededededededededededededededededededededededededededededede:129/F8GCQc9BuWAA7kGouPwxjZMA9WBNgFGFHG9kqYDNPFrN)\
+            seals(dededededededededededededededededededededededededededededededede:129/F8GCQc9BuWAA7kGouPwxjZMA9WBNgFGFHG9kqYDNPFrN),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
 
         let sha = Sha256::new_with_prefix("test");
         descr.add_seal(WTxoSeal::no_fallback(Outpoint::new(Txid::from([0x13; 32]), 129), sha, 56));
         assert_eq!(descr.to_string(), "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
             seals(\
                 1313131313131313131313131313131313131313131313131313131313131313:129/397G2XyBYQZZX6YxnTHyJocEPszPQZTmnwBRQcpGuMCu,\
                 dededededededededededededededededededededededededededededededede:129/F8GCQc9BuWAA7kGouPwxjZMA9WBNgFGFHG9kqYDNPFrN\
-            )\
+            ),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
     }
 
@@ -193,8 +193,8 @@ mod test {
         descr.add_seal(seal);
         assert_eq!(descr.to_string(), "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
-            seals(dededededededededededededededededededededededededededededededede:129/afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf:2)\
+            seals(dededededededededededededededededededededededededededededededede:129/afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf:2),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
     }
 }

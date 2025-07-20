@@ -203,7 +203,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
 }
 
 #[derive(Clone, Debug, Display)]
-#[display("rgb({deriver},{noise:x},{seals})")]
+#[display("rgb({deriver},{seals},{noise:x})")]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
