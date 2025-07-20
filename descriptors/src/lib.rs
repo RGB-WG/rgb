@@ -34,6 +34,7 @@ extern crate serde;
 extern crate core;
 
 mod display;
+mod parse;
 
 use alloc::collections::{BTreeMap, BTreeSet};
 
@@ -49,6 +50,8 @@ use bpstd::{
 use commit_verify::CommitVerify;
 use indexmap::IndexMap;
 
+pub use self::parse::{RgbDescrParseError, SealParseError, TweakParseError};
+
 pub trait DescriptorRgb<K = XpubDerivable, V = ()>: Descriptor<K, V> {
     fn add_seal(&self, seal: WTxoSeal);
 }
@@ -63,7 +66,7 @@ pub struct SealDescr(BTreeSet<WTxoSeal>);
 #[wrapper(Deref)]
 #[wrapper_mut(DerefMut)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
-pub struct TapretWeaks(BTreeMap<Terminal, BTreeSet<TapretCommitment>>);
+pub struct TapretTweaks(BTreeMap<Terminal, BTreeSet<TapretCommitment>>);
 
 #[derive(Clone, Debug, Display, From)]
 #[cfg_attr(
@@ -87,7 +90,7 @@ enum RgbDeriver<K: DeriveSet = XpubDerivable> {
     #[display("tapret({tr},{tweaks})")]
     Universal {
         tr: Tr<K::XOnly>,
-        tweaks: TapretWeaks,
+        tweaks: TapretTweaks,
     },
 }
 

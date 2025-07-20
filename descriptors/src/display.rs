@@ -25,7 +25,7 @@
 use core::fmt;
 use core::fmt::{Display, Formatter};
 
-use crate::{SealDescr, TapretWeaks};
+use crate::{SealDescr, TapretTweaks};
 
 impl Display for SealDescr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -41,21 +41,29 @@ impl Display for SealDescr {
     }
 }
 
-impl Display for TapretWeaks {
+impl Display for TapretTweaks {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("tweaks(")?;
         let mut iter1 = self.iter().peekable();
         while let Some((term, tweaks)) = iter1.next() {
-            write!(f, "{term}=")?;
+            if tweaks.is_empty() {
+                continue;
+            }
+            write!(f, "/{}/{}/", term.keychain, term.index)?;
+            if tweaks.len() > 1 {
+                f.write_str("<")?;
+            }
             let mut iter2 = tweaks.iter().peekable();
             while let Some(tweak) = iter2.next() {
                 write!(f, "{tweak}")?;
                 if iter2.peek().is_some() {
-                    f.write_str(",")?;
+                    f.write_str(";")?;
+                } else if tweaks.len() > 1 {
+                    f.write_str(">")?;
                 }
             }
             if iter1.peek().is_some() {
-                f.write_str(";")?;
+                f.write_str(",")?;
             }
         }
         f.write_str(")")
@@ -111,7 +119,7 @@ mod test {
         assert_eq!(descr.to_string(), "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
-                tweaks(&0/1=xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo)\
+                tweaks(/0/1/xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo)\
             ),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
             seals()\
@@ -125,8 +133,24 @@ mod test {
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks(\
-                    &0/1=xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo;\
-                    &1/0=szpHvMPBKt4t9PagDS68oqS8dUc1gZTUPFV5p9Wgh4rF4\
+                    /0/1/xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo,\
+                    /1/0/szpHvMPBKt4t9PagDS68oqS8dUc1gZTUPFV5p9Wgh4rF4\
+                )\
+            ),\
+            adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
+            seals()\
+        )");
+
+        descr.add_tweak(
+            Terminal::new(Keychain::INNER, NormalIndex::ZERO),
+            TapretCommitment::from([0x43u8; 33]),
+        );
+        assert_eq!(descr.to_string(), "rgb(\
+            tapret(\
+                tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
+                tweaks(\
+                    /0/1/xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo,\
+                    /1/0/<Lyundr2Zsp9JfZbDzSmkRTST46jD93CjGqkZkaBcZf96r;szpHvMPBKt4t9PagDS68oqS8dUc1gZTUPFV5p9Wgh4rF4>\
                 )\
             ),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad,\
