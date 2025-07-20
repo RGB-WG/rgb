@@ -9,7 +9,7 @@ categories = ["cryptography::cryptocurrencies"]
 authors = ["Dr Maxim Orlovsky <orlovsky@lnp-bp.org>"]
 homepage = "https://rgb.tech"
 repository = "https://github.com/RGB-WG/rgb"
-rust-version = "1.85.0"
+rust-version = "1.87.0"
 edition = "2021"
 license = "Apache-2.0"
 
@@ -130,3 +130,14 @@ serde = [
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+bp-consensus = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-dbc = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-seals = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-core = { git = "https://github.com/BP-WG/bp-core", branch = "develop" }
+bp-invoice = { git = "https://github.com/BP-WG/bp-std" }
+bp-derive = { git = "https://github.com/BP-WG/bp-std" }
+descriptors = { git = "https://github.com/BP-WG/bp-std" }
+psbt = { git = "https://github.com/BP-WG/bp-std" }
+bp-std = { git = "https://github.com/BP-WG/bp-std" }
