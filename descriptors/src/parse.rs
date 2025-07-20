@@ -99,13 +99,13 @@ impl SealDescr {
             } else {
                 WOutpoint::Extern(
                     Outpoint::from_str(prim)
-                        .map_err(|e| SealParseError::InvalidPrimary(e))
+                        .map_err(SealParseError::InvalidPrimary)
                         .map_err(|e| DescrParseError::Expr("seal", e))?,
                 )
             };
             let secondary = if sec.contains(':') {
                 let fallback = Outpoint::from_str(sec)
-                    .map_err(|e| SealParseError::InvalidFallback(e))
+                    .map_err(SealParseError::InvalidFallback)
                     .map_err(|e| DescrParseError::Expr("seal", e))?;
                 TxoSealExt::Fallback(fallback)
             } else {
