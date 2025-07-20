@@ -80,6 +80,9 @@ impl SealDescr {
         ast: ScriptExpr<K>,
     ) -> Result<Self, DescrParseError<SealParseError>>
     where K::Err: Error {
+        if ast.name == "seals" && ast.children.is_empty() {
+            return Ok(SealDescr::default());
+        }
         let form = check_forms(ast, "seals", &[DescrExpr::VariadicLit][..])
             .ok_or(DescrParseError::InvalidArgs("seals"))?;
         let mut set = bset![];
@@ -151,6 +154,9 @@ impl TapretTweaks {
         ast: ScriptExpr<K>,
     ) -> Result<Self, DescrParseError<TweakParseError>>
     where K::Err: Error {
+        if ast.name == "tapret" && ast.children.is_empty() {
+            return Ok(TapretTweaks::default());
+        }
         let form = check_forms(ast, "tweaks", &[DescrExpr::VariadicLit][..])
             .ok_or(DescrParseError::InvalidArgs("tweaks"))?;
         let mut map = bmap! {};
@@ -159,6 +165,12 @@ impl TapretTweaks {
                 unreachable!();
             };
             let mut split = s.split('/');
+            if split.next() != Some("") {
+                return Err(DescrParseError::Expr(
+                    "tapret tweak",
+                    TweakParseError::InvalidStructure(s.to_owned()),
+                ));
+            }
             let keychain = split
                 .next()
                 .ok_or_else(|| TweakParseError::InvalidStructure(s.to_owned()))
@@ -222,6 +234,12 @@ impl From<TweakParseError> for XkeyParseError {
     }
 }
 
+impl From<SealParseError> for XkeyParseError {
+    fn from(_: SealParseError) -> Self {
+        panic!("TweakParseError cannot be converted to SealParseError")
+    }
+}
+
 impl<E: Error> RgbDescrParseError<E> {
     pub fn from_tweak_err(err: DescrParseError<TweakParseError>) -> Self
     where E: From<TweakParseError> {
@@ -273,10 +291,10 @@ where
             let mut form = check_forms(ast, "tapret", &[DescrExpr::Script, DescrExpr::Script][..])
                 .ok_or(DescrParseError::InvalidArgs("tapret"))?;
 
-            let Some(DescrAst::Script(tr)) = form.pop() else {
+            let Some(DescrAst::Script(tweaks)) = form.pop() else {
                 unreachable!();
             };
-            let Some(DescrAst::Script(tweaks)) = form.pop() else {
+            let Some(DescrAst::Script(tr)) = form.pop() else {
                 unreachable!();
             };
 
@@ -308,13 +326,13 @@ where
             check_forms(ast, "rgb", &[DescrExpr::Script, DescrExpr::Script, DescrExpr::Lit][..])
                 .ok_or(DescrParseError::InvalidArgs("rgb"))?;
 
-        let Some(DescrAst::Script(descr)) = form.pop() else {
+        let Some(DescrAst::Lit(noise, _)) = form.pop() else {
             unreachable!();
         };
         let Some(DescrAst::Script(seals)) = form.pop() else {
             unreachable!();
         };
-        let Some(DescrAst::Lit(noise, _)) = form.pop() else {
+        let Some(DescrAst::Script(descr)) = form.pop() else {
             unreachable!();
         };
 

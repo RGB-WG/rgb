@@ -68,7 +68,7 @@ pub struct SealDescr(BTreeSet<WTxoSeal>);
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
 pub struct TapretTweaks(BTreeMap<Terminal, BTreeSet<TapretCommitment>>);
 
-#[derive(Clone, Debug, Display, From)]
+#[derive(Clone, PartialEq, Eq, Debug, Display, From)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -202,7 +202,7 @@ impl<K: DeriveSet<Legacy = K, Compr = K, XOnly = K> + DeriveLegacy + DeriveCompr
     }
 }
 
-#[derive(Clone, Debug, Display)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[display("rgb({deriver},{seals},{noise:x})")]
 #[cfg_attr(
     feature = "serde",

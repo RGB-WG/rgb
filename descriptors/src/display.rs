@@ -91,11 +91,13 @@ mod test {
     #[test]
     fn opret() {
         let descr = base_descr();
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
             seals(),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
     }
 
     #[test]
@@ -103,7 +105,8 @@ mod test {
         let s = "[643a7adc/86'/1'/0']tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*";
         let xpub = XpubDerivable::from_str(s).unwrap();
         let mut descr = RgbDescr::<XpubDerivable>::new_unfunded(TrKey::from(xpub), [0xADu8; 32]);
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks()\
@@ -111,12 +114,14 @@ mod test {
             seals(),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
 
         descr.add_tweak(
             Terminal::new(Keychain::OUTER, NormalIndex::ONE),
             TapretCommitment::from([0xBAu8; 33]),
         );
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks(/0/1/xUGpuwjSUfFQ53BB6PCh36sjttPpYqXq6tNPXw2mC28mo)\
@@ -124,12 +129,14 @@ mod test {
             seals(),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
 
         descr.add_tweak(
             Terminal::new(Keychain::INNER, NormalIndex::ZERO),
             TapretCommitment::from([0xABu8; 33]),
         );
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks(\
@@ -140,12 +147,14 @@ mod test {
             seals(),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
 
         descr.add_tweak(
             Terminal::new(Keychain::INNER, NormalIndex::ZERO),
             TapretCommitment::from([0x43u8; 33]),
         );
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             tapret(\
                 tr([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
                 tweaks(\
@@ -156,6 +165,7 @@ mod test {
             seals(),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
     }
 
     #[test]
@@ -164,15 +174,18 @@ mod test {
 
         let sha = Sha256::new();
         descr.add_seal(WTxoSeal::no_fallback(Outpoint::new(Txid::from([0xDE; 32]), 129), sha, 56));
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
             seals(dededededededededededededededededededededededededededededededede:129/F8GCQc9BuWAA7kGouPwxjZMA9WBNgFGFHG9kqYDNPFrN),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
 
         let sha = Sha256::new_with_prefix("test");
         descr.add_seal(WTxoSeal::no_fallback(Outpoint::new(Txid::from([0x13; 32]), 129), sha, 56));
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
             seals(\
                 1313131313131313131313131313131313131313131313131313131313131313:129/397G2XyBYQZZX6YxnTHyJocEPszPQZTmnwBRQcpGuMCu,\
@@ -180,6 +193,7 @@ mod test {
             ),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
     }
 
     #[test]
@@ -191,10 +205,12 @@ mod test {
             secondary: TxoSealExt::Fallback(Outpoint::new(Txid::from([0xAF; 32]), 2)),
         };
         descr.add_seal(seal);
-        assert_eq!(descr.to_string(), "rgb(\
+        let s = descr.to_string();
+        assert_eq!(s, "rgb(\
             wpkh([643a7adc/86h/1h/0h]tpubDCNiWHaiSkgnQjuhsg9kjwaUzaxQjUcmhagvYzqQ3TYJTgFGJstVaqnu4yhtFktBhCVFmBNLQ5sN53qKzZbMksm3XEyGJsEhQPfVZdWmTE2/<0;1>/*),\
             seals(dededededededededededededededededededededededededededededededede:129/afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf:2),\
             adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad\
         )");
+        assert_eq!(RgbDescr::from_str(&s).unwrap(), descr);
     }
 }
