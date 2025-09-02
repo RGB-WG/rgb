@@ -1,8 +1,8 @@
 # RGB smart contracts
 
-![Build](https://github.com/RGB-WG/rgb/workflows/Build/badge.svg)
-![Tests](https://github.com/RGB-WG/rgb/workflows/Tests/badge.svg)
-![Lints](https://github.com/RGB-WG/rgb/workflows/Lints/badge.svg)
+[![Build](https://github.com/RGB-WG/rgb/workflows/Build/badge.svg)](https://github.com/RGB-WG/rgb/actions/workflows/build.yml)
+[![Tests](https://github.com/RGB-WG/rgb/workflows/Tests/badge.svg)](https://github.com/RGB-WG/rgb/actions/workflows/test.yml)
+[![Lints](https://github.com/RGB-WG/rgb/workflows/Lints/badge.svg)](https://github.com/RGB-WG/rgb/actions/workflows/lint.yml)
 [![codecov](https://codecov.io/gh/RGB-WG/rgb/branch/master/graph/badge.svg)](https://codecov.io/gh/RGB-WG/rgb)
 
 [![crates.io](https://img.shields.io/crates/v/rgb-wallet)](https://crates.io/crates/rgb-wallet)
