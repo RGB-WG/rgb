@@ -1981,6 +1981,7 @@ dependencies = [
  "rgb-psbt",
  "rgb-std",
  "serde",
+ "serde_yaml",
  "strict_types",
  "toml",
  "wasm-bindgen",
