@@ -266,7 +266,7 @@ where
                 }
 
                 let set = self.resolver.resolve_utxos(range);
-                let prev_len = self.provider.utxos().len();
+                let prev_len = new.len();
                 for utxo in set {
                     let utxo = utxo?;
                     not_found.remove(&utxo.outpoint);
@@ -275,7 +275,7 @@ where
                     }
                     new.insert(utxo);
                 }
-                let next_len = self.provider.utxos().len();
+                let next_len = new.len();
                 if prev_len == next_len && index > last_index {
                     break;
                 }
@@ -313,7 +313,7 @@ where
                 }
 
                 let set = self.resolver.resolve_utxos_async(range).await;
-                let prev_len = self.provider.utxos().len();
+                let prev_len = new.len();
                 for utxo in set {
                     let utxo = utxo?;
                     not_found.remove(&utxo.outpoint);
@@ -322,7 +322,7 @@ where
                     }
                     new.insert(utxo);
                 }
-                let next_len = self.provider.utxos().len();
+                let next_len = new.len();
                 if prev_len == next_len && index > last_index {
                     break;
                 }
