@@ -62,8 +62,8 @@ To use the library from other rust code add dependency to the `Cargo.toml` file:
 
 ```toml
 [dependencies]
-rgb-std = "0.11.0-beta.7" # use the latest version
-rgb-runtime = "0.11.0-beta.7" # use the latest version
+rgb-std = "0.12.0-rc.3" # use the latest version
+rgb-runtime = "0.12.0-rc.3" # use the latest version
 ```
 
 ## Using the demo script
