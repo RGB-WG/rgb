@@ -30,7 +30,7 @@ pub const DEFAULT_ELECTRUM: &str = "mycitadel.io:50001";
 pub const DEFAULT_ESPLORA: &str = "https://mempool.space/{network}/api";
 
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
-#[group(args = ["electrum", "esplora", "mempool"])]
+#[group(args = ["electrum", "esplora"])]
 pub struct ResolverOpt {
     /// Electrum server to use
     #[arg(
